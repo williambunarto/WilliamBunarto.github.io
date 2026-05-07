@@ -196,6 +196,50 @@ textarea.inp{resize:vertical;min-height:130px;line-height:1.65}
   .bp-visual{grid-template-columns:1fr 1fr}
   .bp-step{border-right:1px solid rgba(255,255,255,.06);border-bottom:1px solid rgba(255,255,255,.06)}
 }
+
+/* ── Light mode ── */
+[data-theme="light"]{--c0:#F8FAFC;--c1:#F1F5F9;--c2:#E2E8F0;--c3:#CBD5E1;--t1:#0F141E;--t2:rgba(15,20,30,.65);--t3:rgba(15,20,30,.45)}
+[data-theme="light"] body{background:var(--c0);color:var(--t1)}
+[data-theme="light"] nav{background:rgba(248,250,252,.92)!important;border-bottom-color:rgba(0,0,0,.08)}
+[data-theme="light"] .card{background:#fff;border-color:rgba(0,0,0,.09)}
+[data-theme="light"] .card:hover{background:#fff;border-color:rgba(0,200,255,.3);box-shadow:0 8px 24px rgba(0,0,0,.09)}
+[data-theme="light"] .tcard{background:#fff;border-color:rgba(0,0,0,.09)}
+[data-theme="light"] .tcard:hover{border-color:rgba(0,200,255,.3)}
+[data-theme="light"] .statbar{border-top-color:rgba(0,0,0,.07);border-bottom-color:rgba(0,0,0,.07)}
+[data-theme="light"] .si{border-right-color:rgba(0,0,0,.07)}
+[data-theme="light"] .si:nth-child(1),[data-theme="light"] .si:nth-child(2){border-bottom-color:rgba(0,0,0,.07)}
+[data-theme="light"] .si:nth-child(3){border-right-color:rgba(0,0,0,.07)}
+[data-theme="light"] .si:hover{background:rgba(0,200,255,.03)}
+[data-theme="light"] .marquee-wrap{border-bottom-color:rgba(0,0,0,.07);background:var(--c0)}
+[data-theme="light"] .mpill{border-color:rgba(0,0,0,.1)}
+[data-theme="light"] .hchip{border-color:rgba(0,0,0,.1);background:transparent}
+[data-theme="light"] .hchip.cy{border-color:rgba(0,200,255,.3);background:rgba(0,200,255,.05)}
+[data-theme="light"] .bp-visual{background:rgba(0,0,0,.025);border-color:rgba(0,0,0,.09)}
+[data-theme="light"] .bp-step{border-right-color:rgba(0,0,0,.07)}
+[data-theme="light"] .bp-step:hover{background:rgba(0,200,255,.04)}
+[data-theme="light"] .why-row{border-bottom-color:rgba(0,0,0,.07)}
+[data-theme="light"] .why-row:hover{background:rgba(0,200,255,.03)}
+[data-theme="light"] .faq-item{border-bottom-color:rgba(0,0,0,.07)}
+[data-theme="light"] .faq-q{color:var(--t1)}
+[data-theme="light"] .faq-a{color:var(--t2)}
+[data-theme="light"] .lbtn{border-color:rgba(0,0,0,.13)}
+[data-theme="light"] .lbtn:hover{border-color:rgba(0,200,255,.35)}
+[data-theme="light"] .bsec{border-color:rgba(0,0,0,.14);color:var(--t1)}
+[data-theme="light"] .bsec:hover{border-color:rgba(0,200,255,.4);color:var(--cy)}
+[data-theme="light"] .inp{background:#fff;border-color:rgba(0,0,0,.13)}
+[data-theme="light"] .inp::placeholder{color:var(--t3)}
+[data-theme="light"] select.inp option{background:#f1f5f9;color:var(--t1)}
+[data-theme="light"] .ctab{background:linear-gradient(135deg,rgba(0,200,255,.06),rgba(254,165,17,.05));border-color:rgba(0,200,255,.2)}
+[data-theme="light"] .sec-alt{border-top-color:rgba(0,0,0,.06)}
+[data-theme="light"] .ph{border-bottom-color:rgba(0,0,0,.06)}
+[data-theme="light"] .footer{border-top-color:rgba(0,0,0,.06)}
+[data-theme="light"] .mob-overlay{background:rgba(248,250,252,.98)}
+[data-theme="light"] .hbtn{color:var(--t1)}
+[data-theme="light"] ::-webkit-scrollbar-track{background:var(--c1)}
+[data-theme="light"] ::-webkit-scrollbar-thumb{background:var(--c3)}
+[data-theme="light"] .bp-step-mob{border-right-color:rgba(0,0,0,.07)!important;border-bottom-color:rgba(0,0,0,.07)!important}
+/* theme toggle btn */
+#theme-toggle,#theme-toggle-mob{display:flex;align-items:center;justify-content:center;padding:7px 10px;line-height:0}
 </style>
 </head>
 <body>
@@ -366,10 +410,10 @@ id:{
 };
 
 /* ══ STATE ══ */
-const S={page:'home',lang:'en',pfcat:'all',openFaq:-1,form:{name:'',email:'',org:'',role:'',type:'',msg:''},formSent:false,mobMenu:false};
+const S={page:'home',lang:'en',theme:localStorage.getItem('lw-theme')||'dark',pfcat:'all',openFaq:-1,form:{name:'',email:'',org:'',role:'',type:'',msg:''},formSent:false,mobMenu:false};
 const t=()=>T[S.lang];
 const L=o=>o[S.lang];
-const logo='<div class="logo" data-page="home"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 52" fill="none" style="height:32px;width:auto;"><circle cx="10" cy="26" r="4" fill="#00C8FF"/><path d="M14 26 Q20 14 27 26 Q34 38 41 26" stroke="#00C8FF" stroke-width="2.5" stroke-linecap="round" fill="none"/><circle cx="41" cy="26" r="3" fill="#00C8FF" opacity="0.6"/><text x="54" y="33" font-family="Plus Jakarta Sans, system-ui, sans-serif" font-weight="800" font-size="21" fill="#FFFFFF" letter-spacing="-0.5">Logi<tspan fill="#00C8FF">Wave</tspan></text></svg></div>';
+const logo='<div class="logo" data-page="home"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 52" fill="none" style="height:32px;width:auto;"><circle cx="10" cy="26" r="4" fill="#00C8FF"/><path d="M14 26 Q20 14 27 26 Q34 38 41 26" stroke="#00C8FF" stroke-width="2.5" stroke-linecap="round" fill="none"/><circle cx="41" cy="26" r="3" fill="#00C8FF" opacity="0.6"/><text x="54" y="33" font-family="Plus Jakarta Sans, system-ui, sans-serif" font-weight="800" font-size="21" fill="currentColor" letter-spacing="-0.5">Logi<tspan fill="#00C8FF">Wave</tspan></text></svg></div>';
 const ey=(txt,c)=>`<div class="eyebrow${c?' c':''}">${txt}</div>`;
 const waUrl=(msg)=>`https://wa.me/6289617718306?text=${encodeURIComponent(msg||'Hi LogiWave, I\'d like to discuss a project.')}`;
 
@@ -431,9 +475,11 @@ const heroSvg=`<svg class="hsvg" viewBox="0 0 460 380" fill="none" xmlns="http:/
 </svg>`;
 
 /* ══ RENDER: NAV ══ */
+const sunIcon=`<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32 1.41 1.41M2 12h2m16 0h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>`;
+const moonIcon=`<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>`;
 function renderNav(){
   const T=t(),pages=['home','services','portfolio','about','contact'],lng=S.lang==='en'?'ID':'EN';
-  return`<nav id="main-nav"><div class="ni">${logo}<div class="nlinks">${pages.map((p,i)=>`<span class="nlink${S.page===p?' active':''}" data-page="${p}">${T.nav[i]}</span>`).join('')}</div><div class="nacts"><button class="lbtn" data-tlang>${lng}</button><button class="bp sm" data-page="contact">${T.nav_cta}</button></div><div class="mob-acts"><button class="lbtn" data-tlang>${lng}</button><button class="hbtn" id="mob-open">☰</button></div></div></nav>${S.mobMenu?`<div class="mob-overlay"><button id="mob-close" style="position:absolute;top:24px;right:28px;background:none;border:none;color:var(--t3);font-size:24px;cursor:pointer;">✕</button>${pages.map((p,i)=>`<span class="mob-link${S.page===p?' active':''}" data-page="${p}">${T.nav[i]}</span>`).join('')}<button class="bp" data-page="contact">${T.nav_cta}</button></div>`:''}`;
+  return`<nav id="main-nav"><div class="ni">${logo}<div class="nlinks">${pages.map((p,i)=>`<span class="nlink${S.page===p?' active':''}" data-page="${p}">${T.nav[i]}</span>`).join('')}</div><div class="nacts"><button class="lbtn" data-tlang>${lng}</button><button class="lbtn" id="theme-toggle" title="${S.theme==='dark'?'Light mode':'Dark mode'}">${S.theme==='dark'?sunIcon:moonIcon}</button><button class="bp sm" data-page="contact">${T.nav_cta}</button></div><div class="mob-acts"><button class="lbtn" data-tlang>${lng}</button><button class="lbtn" id="theme-toggle-mob">${S.theme==='dark'?sunIcon:moonIcon}</button><button class="hbtn" id="mob-open">☰</button></div></div></nav>${S.mobMenu?`<div class="mob-overlay"><button id="mob-close" style="position:absolute;top:24px;right:28px;background:none;border:none;color:var(--t3);font-size:24px;cursor:pointer;">✕</button>${pages.map((p,i)=>`<span class="mob-link${S.page===p?' active':''}" data-page="${p}">${T.nav[i]}</span>`).join('')}<button class="bp" data-page="contact">${T.nav_cta}</button></div>`:''}`;
 }
 
 /* ══ RENDER: FOOTER ══ */
@@ -551,8 +597,9 @@ function renderContact(){
 }
 
 /* ══ RENDER ENGINE ══ */
+function applyTheme(){document.documentElement.setAttribute('data-theme',S.theme);}
 function render(){
-  const app=document.getElementById('app');
+  applyTheme();const app=document.getElementById('app');
   let html=renderNav();
   if(S.page==='home') html+=renderHome();
   else if(S.page==='services') html+=renderServices();
@@ -570,6 +617,7 @@ function render(){
 function attachEvents(){
   document.querySelectorAll('[data-page]').forEach(el=>{el.addEventListener('click',ev=>{ev.stopPropagation();navigate(el.dataset.page);});});
   document.querySelectorAll('[data-tlang]').forEach(el=>{el.addEventListener('click',()=>{S.lang=S.lang==='en'?'id':'en';render();});});
+  document.querySelectorAll('#theme-toggle,#theme-toggle-mob').forEach(el=>{el.addEventListener('click',()=>{S.theme=S.theme==='dark'?'light':'dark';localStorage.setItem('lw-theme',S.theme);applyTheme();render();});});
   document.querySelectorAll('[data-pcat]').forEach(el=>{el.addEventListener('click',()=>{const sy=window.scrollY;S.pfcat=el.dataset.pcat;render();window.scrollTo(0,sy);});});
   document.querySelectorAll('[data-faq]').forEach(el=>{el.addEventListener('click',()=>{const i=parseInt(el.dataset.faq),sy=window.scrollY;S.openFaq=S.openFaq===i?-1:i;render();window.scrollTo(0,sy);});});
   const mob=document.getElementById('mob-open');if(mob)mob.addEventListener('click',()=>{S.mobMenu=true;render();});
@@ -589,7 +637,7 @@ function attachEvents(){
     setTimeout(()=>{S.formSent=true;render();},600);
   });
   const nav=document.getElementById('main-nav');
-  if(nav){const fn=()=>{nav.style.background=window.scrollY>60?'rgba(15,20,30,.98)':'rgba(15,20,30,.85)';};window.addEventListener('scroll',fn,{passive:true});fn();}
+  if(nav){const fn=()=>{const lm=S.theme==='light';nav.style.background=window.scrollY>60?(lm?'rgba(248,250,252,.98)':'rgba(15,20,30,.98)'):(lm?'rgba(248,250,252,.92)':'rgba(15,20,30,.85)');};window.addEventListener('scroll',fn,{passive:true});fn();}
 }
 
 function navigate(p){S.page=p;S.mobMenu=false;S.openFaq=-1;if(p!=='contact'){S.form={name:'',email:'',org:'',role:'',type:'',msg:''};S.formSent=false;}render();}
@@ -675,7 +723,7 @@ const ks=document.createElement('style');
 ks.textContent=`@keyframes nodePulse{0%,100%{opacity:.35;transform:scale(1)}50%{opacity:1;transform:scale(1.08)}}@keyframes lineFlow{0%{stroke-dashoffset:14}100%{stroke-dashoffset:0}}`;
 document.head.appendChild(ks);
 
-render();
+applyTheme();render();
 </script>
 </body>
 </html>
