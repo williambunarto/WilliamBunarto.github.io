@@ -9,11 +9,11 @@
 <meta property="og:description" content="We build the apps and systems your business depends on. Architecture-first, fully documented, built to last.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://www.logiwave.id">
-<meta name="theme-color" content="#07D6EC">
+<meta name="theme-color" content="#00C8FF">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
-:root{--c0:#070D1A;--c1:#0B1422;--c2:#101C30;--c3:#16243C;--cy:#07D6EC;--cy2:#05A8BC;--bl:#4B82F6;--t1:#EFF4FB;--t2:#8FA8C8;--t3:#4A6480;--f:'Plus Jakarta Sans',sans-serif}
+:root{--c0:#0F141E;--c1:#1E2438;--c2:#1A2035;--c3:#252D45;--cy:#00C8FF;--cy2:#33D4FF;--bl:#FEA511;--t1:#FFFFFF;--t2:rgba(255,255,255,.65);--t3:rgba(255,255,255,.38);--f:'Plus Jakarta Sans',sans-serif}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html{scroll-behavior:smooth}
 body{background:var(--c0);color:var(--t1);font-family:var(--f);-webkit-font-smoothing:antialiased;line-height:1.6}
@@ -23,7 +23,7 @@ a{text-decoration:none;color:inherit}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
 @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
 @keyframes marquee{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
-@keyframes glowPulse{0%,100%{box-shadow:0 0 0 0 rgba(7,214,236,.0)}50%{box-shadow:0 0 28px 4px rgba(7,214,236,.12)}}
+@keyframes glowPulse{0%,100%{box-shadow:0 0 0 0 rgba(0,200,255,.0)}50%{box-shadow:0 0 28px 4px rgba(0,200,255,.12)}}
 @keyframes sweepLine{0%,100%{opacity:.2}50%{opacity:.7}}
 @keyframes wordSlide{0%{opacity:0;transform:translateY(8px)}15%,80%{opacity:1;transform:translateY(0)}100%{opacity:0;transform:translateY(-8px)}}
 @keyframes nodePulse{0%,100%{opacity:.35;transform:scale(1)}50%{opacity:1;transform:scale(1.1)}}
@@ -43,10 +43,10 @@ a{text-decoration:none;color:inherit}
 .rv.d4{transition-delay:.28s}.rv.d5{transition-delay:.37s}.rv.d6{transition-delay:.46s}
 
 /* Nav */
-nav{position:fixed;top:0;left:0;right:0;z-index:50;transition:background .3s,border-color .3s;background:rgba(7,13,26,.85);backdrop-filter:blur(24px);border-bottom:1px solid rgba(255,255,255,.05)}
+nav{position:fixed;top:0;left:0;right:0;z-index:50;transition:background .3s,border-color .3s;background:rgba(15,20,30,.85);backdrop-filter:blur(24px);border-bottom:1px solid rgba(255,255,255,.05)}
 .ni{max-width:1280px;margin:0 auto;padding:0 36px;height:68px;display:flex;align-items:center;justify-content:space-between}
 .logo{cursor:pointer;display:flex;align-items:center;gap:11px;transition:opacity .2s}.logo:hover{opacity:.8}
-.li{width:36px;height:36px;border-radius:8px;background:linear-gradient(135deg,#07D6EC,#4B82F6);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:17px;color:#050D18;flex-shrink:0;transition:transform .25s;animation:glowPulse 5s ease-in-out infinite}
+.li{width:36px;height:36px;border-radius:8px;background:linear-gradient(135deg,#00C8FF,#FEA511);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:17px;color:#0F141E;flex-shrink:0;transition:transform .25s;animation:glowPulse 5s ease-in-out infinite}
 .logo:hover .li{transform:rotate(-8deg) scale(1.1)}
 .lt{font-weight:800;font-size:19px;letter-spacing:-.02em}.lt span{color:var(--cy)}
 .nlinks{display:flex;align-items:center;gap:32px}
@@ -54,23 +54,23 @@ nav{position:fixed;top:0;left:0;right:0;z-index:50;transition:background .3s,bor
 .nlink:hover{color:var(--t1)}.nlink.active{color:var(--t1);border-color:var(--cy)}
 .nacts{display:flex;align-items:center;gap:12px}
 .lbtn{padding:7px 14px;border-radius:6px;border:1px solid rgba(255,255,255,.1);background:transparent;color:var(--t3);font-family:var(--f);font-size:13px;cursor:pointer;transition:all .2s}
-.lbtn:hover{border-color:rgba(7,214,236,.3);color:var(--t2)}
+.lbtn:hover{border-color:rgba(0,200,255,.3);color:var(--t2)}
 
 /* Buttons */
-.bp{display:inline-flex;align-items:center;gap:8px;padding:13px 28px;background:var(--cy);color:#050D18;font-family:var(--f);font-size:14px;font-weight:700;border:none;border-radius:8px;cursor:pointer;transition:all .22s;white-space:nowrap;position:relative;overflow:hidden}
+.bp{display:inline-flex;align-items:center;gap:8px;padding:13px 28px;background:var(--cy);color:#0F141E;font-family:var(--f);font-size:14px;font-weight:700;border:none;border-radius:8px;cursor:pointer;transition:all .22s;white-space:nowrap;position:relative;overflow:hidden}
 .bp::after{content:'';position:absolute;inset:0;background:rgba(255,255,255,.18);transform:translateX(-100%);transition:transform .32s ease}
 .bp:hover::after{transform:translateX(100%)}
-.bp:hover{background:var(--cy2);transform:translateY(-1px);box-shadow:0 8px 28px rgba(7,214,236,.32)}
+.bp:hover{background:var(--cy2);transform:translateY(-1px);box-shadow:0 8px 28px rgba(0,200,255,.32)}
 .bp.sm{padding:9px 20px;font-size:13px}.bp:disabled{opacity:.6;cursor:default;transform:none}
 .bsec{display:inline-flex;align-items:center;gap:8px;padding:12px 26px;background:transparent;color:var(--t1);font-family:var(--f);font-size:14px;font-weight:500;border:1px solid rgba(255,255,255,.18);border-radius:8px;cursor:pointer;transition:all .2s;white-space:nowrap}
-.bsec:hover{border-color:rgba(7,214,236,.4);color:var(--cy);transform:translateY(-1px)}
+.bsec:hover{border-color:rgba(0,200,255,.4);color:var(--cy);transform:translateY(-1px)}
 .walink{display:inline-flex;align-items:center;gap:8px;padding:12px 22px;background:#25D366;color:#fff;font-family:var(--f);font-size:14px;font-weight:600;border:none;border-radius:8px;cursor:pointer;transition:all .2s;text-decoration:none}
 .walink:hover{background:#1ebe5a;transform:translateY(-1px)}
 
 /* Cards */
 .card{background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.07);border-radius:14px;transition:all .3s cubic-bezier(.22,1,.36,1);position:relative;overflow:hidden}
-.card::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 50% -30%,rgba(7,214,236,.06),transparent 65%);opacity:0;transition:opacity .35s}
-.card:hover{background:rgba(255,255,255,.04);border-color:rgba(7,214,236,.25);transform:translateY(-3px);box-shadow:0 16px 40px rgba(0,0,0,.3)}
+.card::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 50% -30%,rgba(0,200,255,.06),transparent 65%);opacity:0;transition:opacity .35s}
+.card:hover{background:rgba(255,255,255,.04);border-color:rgba(0,200,255,.25);transform:translateY(-3px);box-shadow:0 16px 40px rgba(0,0,0,.3)}
 .card:hover::before{opacity:1}
 
 /* Layout */
@@ -80,29 +80,29 @@ nav{position:fixed;top:0;left:0;right:0;z-index:50;transition:background .3s,bor
 .eyebrow.c{justify-content:center}
 .sec{padding:96px 36px}.sec-alt{padding:96px 36px;background:var(--c1);border-top:1px solid rgba(255,255,255,.04)}
 .ph{padding:84px 36px;background:var(--c1);border-bottom:1px solid rgba(255,255,255,.05)}
-.gtext{background:linear-gradient(120deg,var(--cy) 0%,#7AABFF 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.gtext{background:linear-gradient(120deg,var(--cy) 0%,#FEA511 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
 
 /* Hero */
 .hero{min-height:100vh;display:flex;align-items:center;padding-top:68px;position:relative;overflow:hidden;background:var(--c0)}
 #particle-canvas{position:absolute;inset:0;pointer-events:none;z-index:0}
-.hero-glow-a{position:absolute;width:600px;height:600px;border-radius:50%;background:radial-gradient(circle,rgba(7,214,236,.065),transparent 70%);top:-150px;left:-100px;pointer-events:none;z-index:0;animation:float 8s ease-in-out infinite}
-.hero-glow-b{position:absolute;width:500px;height:500px;border-radius:50%;background:radial-gradient(circle,rgba(75,130,246,.055),transparent 70%);bottom:-100px;right:100px;pointer-events:none;z-index:0;animation:float 10s 2s ease-in-out infinite}
+.hero-glow-a{position:absolute;width:600px;height:600px;border-radius:50%;background:radial-gradient(circle,rgba(0,200,255,.065),transparent 70%);top:-150px;left:-100px;pointer-events:none;z-index:0;animation:float 8s ease-in-out infinite}
+.hero-glow-b{position:absolute;width:500px;height:500px;border-radius:50%;background:radial-gradient(circle,rgba(254,165,17,.055),transparent 70%);bottom:-100px;right:100px;pointer-events:none;z-index:0;animation:float 10s 2s ease-in-out infinite}
 .hg{display:grid;grid-template-columns:1fr 1fr;gap:72px;align-items:center;padding:88px 0 72px;position:relative;z-index:1}
 .hsvg-wrap{position:relative}
-.hsvg{width:100%;filter:drop-shadow(0 0 24px rgba(7,214,236,.1))}
+.hsvg{width:100%;filter:drop-shadow(0 0 24px rgba(0,200,255,.1))}
 .hchips{display:flex;gap:8px;flex-wrap:wrap;margin-top:28px}
 .hchip{padding:5px 14px;border-radius:100px;border:1px solid rgba(255,255,255,.12);font-size:12px;font-weight:600;color:var(--t3);background:rgba(255,255,255,.03);transition:all .2s}
-.hchip:hover{border-color:rgba(7,214,236,.3);color:var(--t2)}
-.hchip.cy{border-color:rgba(7,214,236,.25);color:var(--cy);background:rgba(7,214,236,.05)}
+.hchip:hover{border-color:rgba(0,200,255,.3);color:var(--t2)}
+.hchip.cy{border-color:rgba(0,200,255,.25);color:var(--cy);background:rgba(0,200,255,.05)}
 .rot-wrap{display:inline-flex;align-items:center;gap:0;overflow:hidden;vertical-align:bottom;height:1.4em}
 .rot-word{display:block;color:var(--cy);font-weight:700;transition:all .35s cubic-bezier(.22,1,.36,1);white-space:nowrap}
 
 /* Stats */
 .statbar{background:var(--c1);border-top:1px solid rgba(255,255,255,.05);border-bottom:1px solid rgba(255,255,255,.05);position:relative;overflow:hidden}
-.statbar::before{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(7,214,236,.02),transparent);animation:sweepLine 5s ease-in-out infinite}
+.statbar::before{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(0,200,255,.02),transparent);animation:sweepLine 5s ease-in-out infinite}
 .sg{display:grid;grid-template-columns:repeat(4,1fr)}
 .si{padding:36px 32px;border-right:1px solid rgba(255,255,255,.05);cursor:default;transition:background .2s}
-.si:last-child{border-right:none}.si:hover{background:rgba(7,214,236,.02)}
+.si:last-child{border-right:none}.si:hover{background:rgba(0,200,255,.02)}
 .count-num{font-size:42px;font-weight:800;color:var(--cy);line-height:1;margin-bottom:6px;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
 
 /* Marquee */
@@ -110,7 +110,7 @@ nav{position:fixed;top:0;left:0;right:0;z-index:50;transition:background .3s,bor
 .marquee-track{display:flex;width:max-content;animation:marquee 32s linear infinite}
 .marquee-track:hover{animation-play-state:paused}
 .mpill{padding:5px 18px;border-radius:100px;border:1px solid rgba(255,255,255,.07);font-size:12px;font-weight:600;color:var(--t3);white-space:nowrap;margin:0 8px;transition:all .22s;cursor:default}
-.mpill:hover{border-color:rgba(7,214,236,.28);color:var(--t2)}
+.mpill:hover{border-color:rgba(0,200,255,.28);color:var(--t2)}
 
 /* Service icons */
 .svc-icon{width:46px;height:46px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .3s}
@@ -122,9 +122,9 @@ nav{position:fixed;top:0;left:0;right:0;z-index:50;transition:background .3s,bor
 .bp-step:last-child{border-right:none}
 .bp-step::after{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--cy),var(--bl));transform:scaleX(0);transform-origin:left;transition:transform .32s cubic-bezier(.22,1,.36,1)}
 .bp-step:hover::after{transform:scaleX(1)}
-.bp-step:hover{background:rgba(7,214,236,.04)}
+.bp-step:hover{background:rgba(0,200,255,.04)}
 .bp-conn{position:relative;display:flex;align-items:center;justify-content:center;padding:28px 0}
-.bp-line{position:absolute;top:50%;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(7,214,236,.25),transparent);transform:translateY(-50%)}
+.bp-line{position:absolute;top:50%;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(0,200,255,.25),transparent);transform:translateY(-50%)}
 
 /* Sector cards */
 .sec-icon{width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;letter-spacing:.04em;transition:all .3s}
@@ -132,18 +132,18 @@ nav{position:fixed;top:0;left:0;right:0;z-index:50;transition:background .3s,bor
 
 /* Why rows */
 .why-row{padding:30px 32px;border-bottom:1px solid rgba(255,255,255,.05);display:grid;grid-template-columns:1fr auto;gap:24px;align-items:start;transition:background .22s;cursor:default}
-.why-row:hover{background:rgba(7,214,236,.02)}
+.why-row:hover{background:rgba(0,200,255,.02)}
 .why-row:last-child{border-bottom:none}
 
 /* Portfolio */
 .fp{padding:7px 18px;border-radius:100px;font-size:13px;font-weight:500;border:1px solid rgba(255,255,255,.1);color:var(--t3);background:transparent;cursor:pointer;transition:all .22s;font-family:var(--f)}
-.fp:hover{border-color:rgba(7,214,236,.28);color:var(--t2)}.fp.act{background:var(--cy);border-color:var(--cy);color:#050D18;font-weight:700}
-.port-tag{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:3px 10px;border-radius:100px;background:rgba(7,214,236,.07);border:1px solid rgba(7,214,236,.14);white-space:nowrap}
+.fp:hover{border-color:rgba(0,200,255,.28);color:var(--t2)}.fp.act{background:var(--cy);border-color:var(--cy);color:#0F141E;font-weight:700}
+.port-tag{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:3px 10px;border-radius:100px;background:rgba(0,200,255,.07);border:1px solid rgba(0,200,255,.14);white-space:nowrap}
 
 /* Testimonials */
 .tcard{padding:32px;border-radius:14px;background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.07);transition:all .3s}
-.tcard:hover{border-color:rgba(7,214,236,.2);transform:translateY(-2px)}
-.tavatar{width:38px;height:38px;border-radius:50%;background:rgba(7,214,236,.08);border:1px solid rgba(7,214,236,.2);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:var(--cy);flex-shrink:0}
+.tcard:hover{border-color:rgba(0,200,255,.2);transform:translateY(-2px)}
+.tavatar{width:38px;height:38px;border-radius:50%;background:rgba(0,200,255,.08);border:1px solid rgba(0,200,255,.2);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:var(--cy);flex-shrink:0}
 
 /* FAQ */
 .faq-item{border-bottom:1px solid rgba(255,255,255,.06)}
@@ -155,22 +155,22 @@ nav{position:fixed;top:0;left:0;right:0;z-index:50;transition:background .3s,bor
 
 /* Form */
 .inp{width:100%;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:13px 17px;color:var(--t1);font-family:var(--f);font-size:14.5px;outline:none;transition:all .25s}
-.inp:focus{border-color:rgba(7,214,236,.45);background:rgba(7,214,236,.03);box-shadow:0 0 0 3px rgba(7,214,236,.07)}
+.inp:focus{border-color:rgba(0,200,255,.45);background:rgba(0,200,255,.03);box-shadow:0 0 0 3px rgba(0,200,255,.07)}
 .inp::placeholder{color:var(--t3)}
 select.inp option{background:#101C30;color:var(--t1)}
 textarea.inp{resize:vertical;min-height:130px;line-height:1.65}
 .flabel{font-size:12.5px;font-weight:600;color:var(--t2);margin-bottom:7px;display:block;letter-spacing:.02em}
 
 /* CTA banner */
-.ctab{border-radius:18px;background:linear-gradient(135deg,rgba(7,214,236,.07),rgba(75,130,246,.06));border:1px solid rgba(7,214,236,.18);padding:68px 76px;display:flex;align-items:center;justify-content:space-between;gap:40px;position:relative;overflow:hidden}
-.ctab::before{content:'';position:absolute;width:320px;height:320px;border-radius:50%;background:radial-gradient(circle,rgba(7,214,236,.06),transparent 70%);top:-100px;right:180px;pointer-events:none;animation:glowPulse 6s ease-in-out infinite}
+.ctab{border-radius:18px;background:linear-gradient(135deg,rgba(0,200,255,.07),rgba(254,165,17,.06));border:1px solid rgba(0,200,255,.18);padding:68px 76px;display:flex;align-items:center;justify-content:space-between;gap:40px;position:relative;overflow:hidden}
+.ctab::before{content:'';position:absolute;width:320px;height:320px;border-radius:50%;background:radial-gradient(circle,rgba(0,200,255,.06),transparent 70%);top:-100px;right:180px;pointer-events:none;animation:glowPulse 6s ease-in-out infinite}
 
 /* Footer */
 .flink{color:var(--t2);font-size:13.5px;cursor:pointer;transition:color .15s;display:block;line-height:2.1}.flink:hover{color:var(--t1)}
 .footer{background:var(--c1);border-top:1px solid rgba(255,255,255,.05)}
 
 /* Mobile */
-.mob-overlay{position:fixed;inset:0;background:rgba(7,13,26,.98);z-index:200;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:44px}
+.mob-overlay{position:fixed;inset:0;background:rgba(15,20,30,.98);z-index:200;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:44px}
 .mob-link{font-size:32px;font-weight:800;cursor:pointer;color:var(--t1);transition:color .15s;letter-spacing:-.02em}
 .mob-link:hover,.mob-link.active{color:var(--cy)}
 .hbtn{background:none;border:none;color:var(--t1);cursor:pointer;font-size:22px;padding:4px;display:none}
@@ -369,7 +369,7 @@ id:{
 const S={page:'home',lang:'en',pfcat:'all',openFaq:-1,form:{name:'',email:'',org:'',role:'',type:'',msg:''},formSent:false,mobMenu:false};
 const t=()=>T[S.lang];
 const L=o=>o[S.lang];
-const logo='<div class="logo" data-page="home"><div class="li">L</div><div class="lt">LOGI<span>WAVE</span></div></div>';
+const logo='<div class="logo" data-page="home"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 52" fill="none" style="height:32px;width:auto;"><circle cx="10" cy="26" r="4" fill="#00C8FF"/><path d="M14 26 Q20 14 27 26 Q34 38 41 26" stroke="#00C8FF" stroke-width="2.5" stroke-linecap="round" fill="none"/><circle cx="41" cy="26" r="3" fill="#00C8FF" opacity="0.6"/><text x="54" y="33" font-family="Plus Jakarta Sans, system-ui, sans-serif" font-weight="800" font-size="21" fill="#FFFFFF" letter-spacing="-0.5">Logi<tspan fill="#00C8FF">Wave</tspan></text></svg></div>';
 const ey=(txt,c)=>`<div class="eyebrow${c?' c':''}">${txt}</div>`;
 const waUrl=(msg)=>`https://wa.me/6289617718306?text=${encodeURIComponent(msg||'Hi LogiWave, I\'d like to discuss a project.')}`;
 
@@ -377,57 +377,57 @@ const waUrl=(msg)=>`https://wa.me/6289617718306?text=${encodeURIComponent(msg||'
 const heroSvg=`<svg class="hsvg" viewBox="0 0 460 380" fill="none" xmlns="http://www.w3.org/2000/svg">
 <defs>
 <pattern id="g" x="0" y="0" width="46" height="46" patternUnits="userSpaceOnUse">
-  <path d="M46 0L0 0 0 46" fill="none" stroke="rgba(7,214,236,.04)" stroke-width="1"/>
+  <path d="M46 0L0 0 0 46" fill="none" stroke="rgba(0,200,255,.04)" stroke-width="1"/>
 </pattern>
 <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
   <feGaussianBlur in="SourceGraphic" stdDeviation="4" result="blur"/>
   <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
 </filter>
 <radialGradient id="coreGrad" cx="50%" cy="50%" r="50%">
-  <stop offset="0%" stop-color="rgba(7,214,236,.18)"/>
-  <stop offset="100%" stop-color="rgba(7,214,236,.04)"/>
+  <stop offset="0%" stop-color="rgba(0,200,255,.18)"/>
+  <stop offset="100%" stop-color="rgba(0,200,255,.04)"/>
 </radialGradient>
 </defs>
 <rect width="460" height="380" fill="url(#g)"/>
 <!-- Outer ring -->
-<circle cx="230" cy="190" r="130" stroke="rgba(7,214,236,.07)" stroke-width="1" stroke-dasharray="6,6"/>
-<circle cx="230" cy="190" r="88" stroke="rgba(75,130,246,.06)" stroke-width="1" stroke-dasharray="4,8"/>
+<circle cx="230" cy="190" r="130" stroke="rgba(0,200,255,.07)" stroke-width="1" stroke-dasharray="6,6"/>
+<circle cx="230" cy="190" r="88" stroke="rgba(254,165,17,.06)" stroke-width="1" stroke-dasharray="4,8"/>
 <!-- Core -->
-<circle class="svg-node n0" cx="230" cy="190" r="52" fill="url(#coreGrad)" stroke="rgba(7,214,236,.45)" stroke-width="1.5" filter="url(#glow)"/>
-<text x="230" y="185" text-anchor="middle" fill="rgba(7,214,236,.9)" font-size="9.5" font-family="Plus Jakarta Sans" font-weight="700" letter-spacing="0.12em">SYSTEM</text>
-<text x="230" y="200" text-anchor="middle" fill="rgba(7,214,236,.9)" font-size="9.5" font-family="Plus Jakarta Sans" font-weight="700" letter-spacing="0.12em">CORE</text>
+<circle class="svg-node n0" cx="230" cy="190" r="52" fill="url(#coreGrad)" stroke="rgba(0,200,255,.45)" stroke-width="1.5" filter="url(#glow)"/>
+<text x="230" y="185" text-anchor="middle" fill="rgba(0,200,255,.9)" font-size="9.5" font-family="Plus Jakarta Sans" font-weight="700" letter-spacing="0.12em">SYSTEM</text>
+<text x="230" y="200" text-anchor="middle" fill="rgba(0,200,255,.9)" font-size="9.5" font-family="Plus Jakarta Sans" font-weight="700" letter-spacing="0.12em">CORE</text>
 <!-- Nodes -->
-<circle class="svg-node n1" cx="230" cy="38" r="32" fill="rgba(75,130,246,.07)" stroke="rgba(75,130,246,.35)" stroke-width="1.5"/>
-<text x="230" y="34" text-anchor="middle" fill="rgba(75,130,246,.8)" font-size="8.5" font-family="Plus Jakarta Sans" font-weight="600">CLIENT</text>
-<text x="230" y="47" text-anchor="middle" fill="rgba(75,130,246,.8)" font-size="8.5" font-family="Plus Jakarta Sans" font-weight="600">LAYER</text>
-<line class="svg-line" x1="230" y1="70" x2="230" y2="138" stroke="rgba(7,214,236,.22)" stroke-width="1" stroke-dasharray="4,4"/>
+<circle class="svg-node n1" cx="230" cy="38" r="32" fill="rgba(254,165,17,.07)" stroke="rgba(254,165,17,.35)" stroke-width="1.5"/>
+<text x="230" y="34" text-anchor="middle" fill="rgba(254,165,17,.8)" font-size="8.5" font-family="Plus Jakarta Sans" font-weight="600">CLIENT</text>
+<text x="230" y="47" text-anchor="middle" fill="rgba(254,165,17,.8)" font-size="8.5" font-family="Plus Jakarta Sans" font-weight="600">LAYER</text>
+<line class="svg-line" x1="230" y1="70" x2="230" y2="138" stroke="rgba(0,200,255,.22)" stroke-width="1" stroke-dasharray="4,4"/>
 
-<circle class="svg-node n2" cx="390" cy="104" r="30" fill="rgba(7,214,236,.05)" stroke="rgba(7,214,236,.28)" stroke-width="1.5"/>
-<text x="390" y="100" text-anchor="middle" fill="rgba(7,214,236,.72)" font-size="8" font-family="Plus Jakarta Sans" font-weight="600">API</text>
-<text x="390" y="113" text-anchor="middle" fill="rgba(7,214,236,.72)" font-size="8" font-family="Plus Jakarta Sans" font-weight="600">GATEWAY</text>
-<line class="svg-line" x1="362" y1="123" x2="275" y2="163" stroke="rgba(7,214,236,.18)" stroke-width="1" stroke-dasharray="4,4"/>
+<circle class="svg-node n2" cx="390" cy="104" r="30" fill="rgba(0,200,255,.05)" stroke="rgba(0,200,255,.28)" stroke-width="1.5"/>
+<text x="390" y="100" text-anchor="middle" fill="rgba(0,200,255,.72)" font-size="8" font-family="Plus Jakarta Sans" font-weight="600">API</text>
+<text x="390" y="113" text-anchor="middle" fill="rgba(0,200,255,.72)" font-size="8" font-family="Plus Jakarta Sans" font-weight="600">GATEWAY</text>
+<line class="svg-line" x1="362" y1="123" x2="275" y2="163" stroke="rgba(0,200,255,.18)" stroke-width="1" stroke-dasharray="4,4"/>
 
-<circle class="svg-node n3" cx="396" cy="278" r="30" fill="rgba(75,130,246,.05)" stroke="rgba(75,130,246,.28)" stroke-width="1.5"/>
-<text x="396" y="274" text-anchor="middle" fill="rgba(75,130,246,.72)" font-size="8" font-family="Plus Jakarta Sans" font-weight="600">DATA</text>
-<text x="396" y="287" text-anchor="middle" fill="rgba(75,130,246,.72)" font-size="8" font-family="Plus Jakarta Sans" font-weight="600">LAYER</text>
-<line class="svg-line" x1="368" y1="260" x2="275" y2="218" stroke="rgba(7,214,236,.18)" stroke-width="1" stroke-dasharray="4,4"/>
+<circle class="svg-node n3" cx="396" cy="278" r="30" fill="rgba(254,165,17,.05)" stroke="rgba(254,165,17,.28)" stroke-width="1.5"/>
+<text x="396" y="274" text-anchor="middle" fill="rgba(254,165,17,.72)" font-size="8" font-family="Plus Jakarta Sans" font-weight="600">DATA</text>
+<text x="396" y="287" text-anchor="middle" fill="rgba(254,165,17,.72)" font-size="8" font-family="Plus Jakarta Sans" font-weight="600">LAYER</text>
+<line class="svg-line" x1="368" y1="260" x2="275" y2="218" stroke="rgba(0,200,255,.18)" stroke-width="1" stroke-dasharray="4,4"/>
 
-<circle class="svg-node n4" cx="230" cy="340" r="30" fill="rgba(7,214,236,.05)" stroke="rgba(7,214,236,.28)" stroke-width="1.5"/>
-<text x="230" y="336" text-anchor="middle" fill="rgba(7,214,236,.72)" font-size="8" font-family="Plus Jakarta Sans" font-weight="600">INFRA</text>
-<text x="230" y="349" text-anchor="middle" fill="rgba(7,214,236,.72)" font-size="8" font-family="Plus Jakarta Sans" font-weight="600">LAYER</text>
-<line class="svg-line" x1="230" y1="310" x2="230" y2="242" stroke="rgba(7,214,236,.18)" stroke-width="1" stroke-dasharray="4,4"/>
+<circle class="svg-node n4" cx="230" cy="340" r="30" fill="rgba(0,200,255,.05)" stroke="rgba(0,200,255,.28)" stroke-width="1.5"/>
+<text x="230" y="336" text-anchor="middle" fill="rgba(0,200,255,.72)" font-size="8" font-family="Plus Jakarta Sans" font-weight="600">INFRA</text>
+<text x="230" y="349" text-anchor="middle" fill="rgba(0,200,255,.72)" font-size="8" font-family="Plus Jakarta Sans" font-weight="600">LAYER</text>
+<line class="svg-line" x1="230" y1="310" x2="230" y2="242" stroke="rgba(0,200,255,.18)" stroke-width="1" stroke-dasharray="4,4"/>
 
-<circle class="svg-node n5" cx="64" cy="278" r="30" fill="rgba(75,130,246,.05)" stroke="rgba(75,130,246,.28)" stroke-width="1.5"/>
-<text x="64" y="274" text-anchor="middle" fill="rgba(75,130,246,.72)" font-size="8" font-family="Plus Jakarta Sans" font-weight="600">AUTH</text>
-<text x="64" y="287" text-anchor="middle" fill="rgba(75,130,246,.72)" font-size="8" font-family="Plus Jakarta Sans" font-weight="600">MODULE</text>
-<line class="svg-line" x1="92" y1="260" x2="185" y2="218" stroke="rgba(7,214,236,.18)" stroke-width="1" stroke-dasharray="4,4"/>
+<circle class="svg-node n5" cx="64" cy="278" r="30" fill="rgba(254,165,17,.05)" stroke="rgba(254,165,17,.28)" stroke-width="1.5"/>
+<text x="64" y="274" text-anchor="middle" fill="rgba(254,165,17,.72)" font-size="8" font-family="Plus Jakarta Sans" font-weight="600">AUTH</text>
+<text x="64" y="287" text-anchor="middle" fill="rgba(254,165,17,.72)" font-size="8" font-family="Plus Jakarta Sans" font-weight="600">MODULE</text>
+<line class="svg-line" x1="92" y1="260" x2="185" y2="218" stroke="rgba(0,200,255,.18)" stroke-width="1" stroke-dasharray="4,4"/>
 
-<circle class="svg-node n6" cx="70" cy="104" r="30" fill="rgba(7,214,236,.05)" stroke="rgba(7,214,236,.28)" stroke-width="1.5"/>
-<text x="70" y="100" text-anchor="middle" fill="rgba(7,214,236,.72)" font-size="8" font-family="Plus Jakarta Sans" font-weight="600">BUSINESS</text>
-<text x="70" y="113" text-anchor="middle" fill="rgba(7,214,236,.72)" font-size="8" font-family="Plus Jakarta Sans" font-weight="600">LOGIC</text>
-<line class="svg-line" x1="98" y1="123" x2="185" y2="163" stroke="rgba(7,214,236,.18)" stroke-width="1" stroke-dasharray="4,4"/>
+<circle class="svg-node n6" cx="70" cy="104" r="30" fill="rgba(0,200,255,.05)" stroke="rgba(0,200,255,.28)" stroke-width="1.5"/>
+<text x="70" y="100" text-anchor="middle" fill="rgba(0,200,255,.72)" font-size="8" font-family="Plus Jakarta Sans" font-weight="600">BUSINESS</text>
+<text x="70" y="113" text-anchor="middle" fill="rgba(0,200,255,.72)" font-size="8" font-family="Plus Jakarta Sans" font-weight="600">LOGIC</text>
+<line class="svg-line" x1="98" y1="123" x2="185" y2="163" stroke="rgba(0,200,255,.18)" stroke-width="1" stroke-dasharray="4,4"/>
 <!-- Watermark -->
-<text x="12" y="368" fill="rgba(7,214,236,.16)" font-size="8" font-family="Plus Jakarta Sans" font-weight="700" letter-spacing="0.14em">THE BLUEPRINT PROTOCOL · LOGIWAVE TEKNOLOGI NUSANTARA</text>
+<text x="12" y="368" fill="rgba(0,200,255,.16)" font-size="8" font-family="Plus Jakarta Sans" font-weight="700" letter-spacing="0.14em">THE BLUEPRINT PROTOCOL · LOGIWAVE TEKNOLOGI NUSANTARA</text>
 </svg>`;
 
 /* ══ RENDER: NAV ══ */
@@ -440,7 +440,7 @@ function renderNav(){
 function renderFooter(){
   const T=t(),pmap={about:T.nav[3],services:T.nav[1],portfolio:T.nav[2],contact:T.nav[4]};
   const svcs=[{en:'Business Platforms',id:'Platform Bisnis'},{en:'AI and Automation',id:'AI dan Otomasi'},{en:'System Integration',id:'Integrasi Sistem'},{en:'Cloud Infrastructure',id:'Cloud Infrastructure'},{en:'Mobile Applications',id:'Aplikasi Mobile'},{en:'UI/UX Design',id:'Desain UI/UX'}];
-  return`<footer class="footer" style="padding-bottom:20px;"><div class="wrap" style="padding-top:60px;padding-bottom:40px;"><div style="display:grid;grid-template-columns:2.2fr 1fr 1.6fr;gap:56px;margin-bottom:48px;" class="footer-g"><div>${logo}<p style="font-size:13.5px;color:var(--t2);line-height:1.8;max-width:280px;margin:20px 0 22px;">${T.ftg}</p><div style="display:flex;flex-direction:column;gap:7px;margin-bottom:22px;"><span style="font-size:13px;color:var(--t3);">hello@logiwave.id</span><span style="font-size:13px;color:var(--t3);">+62 896 1771 8306</span><span style="font-size:13px;color:var(--t3);">www.logiwave.id</span><span style="font-size:13px;color:var(--t3);">Jakarta, Indonesia</span></div><div style="display:flex;gap:8px;align-items:center;"><span style="font-size:11px;color:var(--t3);letter-spacing:.08em;text-transform:uppercase;margin-right:2px;">${T.soc}:</span><a href="https://linkedin.com/company/logiwave" target="_blank" style="font-size:12px;font-weight:600;color:var(--t3);padding:5px 12px;border:1px solid rgba(255,255,255,.1);border-radius:100px;transition:all .2s;" onmouseover="this.style.color='var(--t2)';this.style.borderColor='rgba(7,214,236,.28)'" onmouseout="this.style.color='var(--t3)';this.style.borderColor='rgba(255,255,255,.1)'">LinkedIn</a><a href="https://instagram.com/logiwave.id" target="_blank" style="font-size:12px;font-weight:600;color:var(--t3);padding:5px 12px;border:1px solid rgba(255,255,255,.1);border-radius:100px;transition:all .2s;" onmouseover="this.style.color='var(--t2)';this.style.borderColor='rgba(7,214,236,.28)'" onmouseout="this.style.color='var(--t3)';this.style.borderColor='rgba(255,255,255,.1)'">Instagram</a><a href="mailto:william.bunarto.job@gmail.com" style="font-size:12px;font-weight:600;color:var(--t3);padding:5px 12px;border:1px solid rgba(255,255,255,.1);border-radius:100px;transition:all .2s;" onmouseover="this.style.color='var(--t2)';this.style.borderColor='rgba(7,214,236,.28)'" onmouseout="this.style.color='var(--t3)';this.style.borderColor='rgba(255,255,255,.1)'">Email</a></div></div><div><div style="font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--t3);margin-bottom:18px;">${T.fco}</div>${['about','services','portfolio','contact'].map(p=>`<span class="flink" data-page="${p}">${pmap[p]}</span>`).join('')}</div><div><div style="font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--t3);margin-bottom:18px;">${T.fsv}</div>${svcs.map(s=>`<span class="flink" data-page="services">${L(s)}</span>`).join('')}</div></div><div style="border-top:1px solid rgba(255,255,255,.05);padding-top:24px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;"><span style="font-size:12.5px;color:var(--t3);">&#169; ${T.ftr}</span><span style="font-size:12px;color:var(--t3);">PT LogiWave Teknologi Nusantara · Jakarta, Indonesia</span></div></div></footer>`;
+  return`<footer class="footer" style="padding-bottom:20px;"><div class="wrap" style="padding-top:60px;padding-bottom:40px;"><div style="display:grid;grid-template-columns:2.2fr 1fr 1.6fr;gap:56px;margin-bottom:48px;" class="footer-g"><div>${logo}<p style="font-size:13.5px;color:var(--t2);line-height:1.8;max-width:280px;margin:20px 0 22px;">${T.ftg}</p><div style="display:flex;flex-direction:column;gap:7px;margin-bottom:22px;"><span style="font-size:13px;color:var(--t3);">hello@logiwave.id</span><span style="font-size:13px;color:var(--t3);">+62 896 1771 8306</span><span style="font-size:13px;color:var(--t3);">www.logiwave.id</span><span style="font-size:13px;color:var(--t3);">Jakarta, Indonesia</span></div><div style="display:flex;gap:8px;align-items:center;"><span style="font-size:11px;color:var(--t3);letter-spacing:.08em;text-transform:uppercase;margin-right:2px;">${T.soc}:</span><a href="https://linkedin.com/company/logiwave" target="_blank" style="font-size:12px;font-weight:600;color:var(--t3);padding:5px 12px;border:1px solid rgba(255,255,255,.1);border-radius:100px;transition:all .2s;" onmouseover="this.style.color='var(--t2)';this.style.borderColor='rgba(0,200,255,.28)'" onmouseout="this.style.color='var(--t3)';this.style.borderColor='rgba(255,255,255,.1)'">LinkedIn</a><a href="https://instagram.com/logiwave.id" target="_blank" style="font-size:12px;font-weight:600;color:var(--t3);padding:5px 12px;border:1px solid rgba(255,255,255,.1);border-radius:100px;transition:all .2s;" onmouseover="this.style.color='var(--t2)';this.style.borderColor='rgba(0,200,255,.28)'" onmouseout="this.style.color='var(--t3)';this.style.borderColor='rgba(255,255,255,.1)'">Instagram</a><a href="mailto:william.bunarto.job@gmail.com" style="font-size:12px;font-weight:600;color:var(--t3);padding:5px 12px;border:1px solid rgba(255,255,255,.1);border-radius:100px;transition:all .2s;" onmouseover="this.style.color='var(--t2)';this.style.borderColor='rgba(0,200,255,.28)'" onmouseout="this.style.color='var(--t3)';this.style.borderColor='rgba(255,255,255,.1)'">Email</a></div></div><div><div style="font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--t3);margin-bottom:18px;">${T.fco}</div>${['about','services','portfolio','contact'].map(p=>`<span class="flink" data-page="${p}">${pmap[p]}</span>`).join('')}</div><div><div style="font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--t3);margin-bottom:18px;">${T.fsv}</div>${svcs.map(s=>`<span class="flink" data-page="services">${L(s)}</span>`).join('')}</div></div><div style="border-top:1px solid rgba(255,255,255,.05);padding-top:24px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;"><span style="font-size:12.5px;color:var(--t3);">&#169; ${T.ftr}</span><span style="font-size:12px;color:var(--t3);">PT LogiWave Teknologi Nusantara · Jakarta, Indonesia</span></div></div></footer>`;
 }
 
 /* ══ CTA BANNER ══ */
@@ -461,8 +461,8 @@ function renderHome(){
   const stats=T.stats.map((s,i)=>`<div class="si rv d${i+1}"${i===3?' style="border-right:none"':''}><div class="count-num" data-target="${s.v}">${s.v}</div><div style="font-size:13px;font-weight:600;color:var(--t1);margin-bottom:4px;">${s.l}</div><div style="font-size:11.5px;color:var(--t3);line-height:1.5;">${s.s}</div></div>`).join('');
   const marquee=T.creds.map(c=>`<span class="mpill">${c}</span>`).join('');
   const chips=T.hchips.map((c,i)=>`<span class="hchip${i===0?' cy':''}">${c}</span>`).join('');
-  const svcs3=SVCS.slice(0,3).map((s,i)=>`<div class="card rv d${i+1}" style="padding:26px;"><div style="display:flex;align-items:flex-start;gap:14px;margin-bottom:16px;"><div class="svc-icon" style="background:${s.a==='var(--cy)'?'rgba(7,214,236,.08)':'rgba(75,130,246,.08)'};border:1px solid ${s.a==='var(--cy)'?'rgba(7,214,236,.2)':'rgba(75,130,246,.2)'};color:${s.a};">${ICONS[s.icon]||''}</div><div style="flex:1;"><div style="font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:${s.a};margin-bottom:4px;">${s.n}</div><h3 style="font-size:15.5px;font-weight:700;line-height:1.3;letter-spacing:-.01em;">${L(s).title}</h3></div></div><p style="font-size:13px;color:var(--t2);line-height:1.72;">${L(s).desc}</p></div>`).join('');
-  const sectors=SECTORS.map((s,i)=>`<div class="card rv d${i+1}" style="padding:24px;"><div class="sec-icon" style="background:${i%2===0?'rgba(7,214,236,.07)':'rgba(75,130,246,.07)'};border:1px solid ${i%2===0?'rgba(7,214,236,.18)':'rgba(75,130,246,.18)'};color:${i%2===0?'var(--cy)':'var(--bl)'};margin-bottom:14px;">${['ENT','FMG','TEC','PUB'][i]}</div><h3 style="font-size:14.5px;font-weight:700;margin-bottom:8px;letter-spacing:-.01em;">${L(s).label}</h3><p style="font-size:13px;color:var(--t2);line-height:1.7;">${L(s).desc}</p></div>`).join('');
+  const svcs3=SVCS.slice(0,3).map((s,i)=>`<div class="card rv d${i+1}" style="padding:26px;"><div style="display:flex;align-items:flex-start;gap:14px;margin-bottom:16px;"><div class="svc-icon" style="background:${s.a==='var(--cy)'?'rgba(0,200,255,.08)':'rgba(254,165,17,.08)'};border:1px solid ${s.a==='var(--cy)'?'rgba(0,200,255,.2)':'rgba(254,165,17,.2)'};color:${s.a};">${ICONS[s.icon]||''}</div><div style="flex:1;"><div style="font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:${s.a};margin-bottom:4px;">${s.n}</div><h3 style="font-size:15.5px;font-weight:700;line-height:1.3;letter-spacing:-.01em;">${L(s).title}</h3></div></div><p style="font-size:13px;color:var(--t2);line-height:1.72;">${L(s).desc}</p></div>`).join('');
+  const sectors=SECTORS.map((s,i)=>`<div class="card rv d${i+1}" style="padding:24px;"><div class="sec-icon" style="background:${i%2===0?'rgba(0,200,255,.07)':'rgba(254,165,17,.07)'};border:1px solid ${i%2===0?'rgba(0,200,255,.18)':'rgba(254,165,17,.18)'};color:${i%2===0?'var(--cy)':'var(--bl)'};margin-bottom:14px;">${['ENT','FMG','TEC','PUB'][i]}</div><h3 style="font-size:14.5px;font-weight:700;margin-bottom:8px;letter-spacing:-.01em;">${L(s).label}</h3><p style="font-size:13px;color:var(--t2);line-height:1.7;">${L(s).desc}</p></div>`).join('');
   const proto=PROTOCOL.map(p=>`<div class="bp-step"><div style="font-size:11px;font-weight:700;color:var(--cy);letter-spacing:.1em;margin-bottom:10px;">${p.n}</div><div style="font-size:12px;font-weight:700;color:var(--t1);margin-bottom:6px;line-height:1.35;">${L(p).phase}</div><div style="font-size:11px;color:var(--t3);line-height:1.6;margin-bottom:8px;">${L(p).short}</div><div style="font-size:10.5px;color:var(--t3);line-height:1.6;display:none;">${L(p).desc}</div></div>`).join('');
   const why=WHY.map((w,i)=>`<div class="why-row rv d${i+1}"><div><h3 style="font-size:17.5px;font-weight:700;margin-bottom:10px;letter-spacing:-.01em;">${L(w).t}</h3><p style="font-size:14px;color:var(--t2);line-height:1.75;max-width:520px;">${L(w).d}</p></div><div style="font-size:10.5px;font-weight:700;color:var(--cy);letter-spacing:.1em;text-transform:uppercase;white-space:nowrap;padding-top:3px;">${L(w).kw}</div></div>`).join('');
   const testi=TESTIMONIALS.map((tm,i)=>`<div class="tcard rv d${i+1}"><p style="font-size:16px;color:var(--t1);line-height:1.82;font-weight:300;margin-bottom:24px;font-style:italic;">"${L(tm).q}"</p><div style="display:flex;align-items:center;gap:12px;padding-top:20px;border-top:1px solid rgba(255,255,255,.06);"><div class="tavatar">${L(tm).r.charAt(0)}</div><div><div style="font-size:13px;font-weight:600;color:var(--t1);">${L(tm).r}</div><div style="font-size:12px;color:var(--t3);margin-top:2px;">${L(tm).c}</div></div></div></div>`).join('');
@@ -505,7 +505,7 @@ ${faqBlock()}
 /* ══ SERVICES ══ */
 function renderServices(){
   const T=t();
-  const svcs=SVCS.map((s,i)=>`<div class="card rv d${(i%2)+1}" style="padding:32px;display:flex;gap:22px;"><div class="svc-icon" style="background:${s.a==='var(--cy)'?'rgba(7,214,236,.07)':'rgba(75,130,246,.07)'};border:1px solid ${s.a==='var(--cy)'?'rgba(7,214,236,.18)':'rgba(75,130,246,.18)'};color:${s.a};">${ICONS[s.icon]||''}</div><div><div style="font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:${s.a};margin-bottom:8px;">${L(s).tag}</div><h3 style="font-size:18px;font-weight:700;margin-bottom:6px;letter-spacing:-.01em;">${L(s).title}</h3><p style="font-size:13px;color:var(--cy);font-weight:600;margin-bottom:12px;">${L(s).sub}</p><p style="font-size:14px;color:var(--t2);line-height:1.75;">${L(s).desc}</p></div></div>`).join('');
+  const svcs=SVCS.map((s,i)=>`<div class="card rv d${(i%2)+1}" style="padding:32px;display:flex;gap:22px;"><div class="svc-icon" style="background:${s.a==='var(--cy)'?'rgba(0,200,255,.07)':'rgba(254,165,17,.07)'};border:1px solid ${s.a==='var(--cy)'?'rgba(0,200,255,.18)':'rgba(254,165,17,.18)'};color:${s.a};">${ICONS[s.icon]||''}</div><div><div style="font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:${s.a};margin-bottom:8px;">${L(s).tag}</div><h3 style="font-size:18px;font-weight:700;margin-bottom:6px;letter-spacing:-.01em;">${L(s).title}</h3><p style="font-size:13px;color:var(--cy);font-weight:600;margin-bottom:12px;">${L(s).sub}</p><p style="font-size:14px;color:var(--t2);line-height:1.75;">${L(s).desc}</p></div></div>`).join('');
   const proto=PROTOCOL.map(p=>`<div class="bp-step"><div style="font-size:11px;font-weight:700;color:var(--cy);letter-spacing:.1em;margin-bottom:10px;">${p.n}</div><div style="font-size:12px;font-weight:700;color:var(--t1);margin-bottom:7px;line-height:1.35;">${L(p).phase}</div><div style="font-size:11.5px;color:var(--t3);line-height:1.65;">${L(p).desc}</div></div>`).join('');
   const eng=T.eng.map((e,i)=>`<div class="card rv d${i+1}" style="padding:28px;"><div style="font-size:11px;font-weight:700;color:var(--cy);letter-spacing:.12em;margin-bottom:14px;">${e.n}</div><h3 style="font-size:15px;font-weight:700;margin-bottom:10px;">${e.t}</h3><p style="font-size:13.5px;color:var(--t2);line-height:1.7;">${e.d}</p></div>`).join('');
   return`<div class="pi" style="padding-top:68px;"><div class="ph"><div class="wrap">${ey(T.seye)}<h1 class="phh" style="font-size:42px;font-weight:800;letter-spacing:-.03em;line-height:1.12;white-space:pre-line;margin:18px 0 14px;">${T.sh}</h1><p style="font-size:16px;color:var(--t2);max-width:520px;line-height:1.7;">${T.ssub}</p></div></div>
@@ -521,7 +521,7 @@ function renderPortfolio(){
   const T=t();
   const fil=S.pfcat==='all'?PORT:PORT.filter(p=>p.c===S.pfcat);
   const cats=PCATS.map(c=>`<button class="fp${S.pfcat===c.k?' act':''}" data-pcat="${c.k}">${L(c)}</button>`).join('');
-  const items=fil.map((item,i)=>`<div class="card rv d${(i%3)+1}" style="padding:26px;display:flex;flex-direction:column;"><div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:14px;"><span class="port-tag" style="color:${item.a};border-color:${item.a==='var(--cy)'?'rgba(7,214,236,.22)':'rgba(75,130,246,.22)'};background:${item.a==='var(--cy)'?'rgba(7,214,236,.07)':'rgba(75,130,246,.07)'};">${L(item).tag}</span>${L(item).client?`<span style="font-size:10.5px;color:var(--t3);text-align:right;line-height:1.4;max-width:160px;">${L(item).client}</span>`:''}</div><h3 style="font-size:15.5px;font-weight:700;margin-bottom:14px;letter-spacing:-.01em;line-height:1.35;">${L(item).title}</h3><div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--t3);margin-bottom:4px;">${T.chal}</div><p style="font-size:13px;color:var(--t3);line-height:1.65;margin-bottom:12px;">${L(item).challenge}</p><div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--t2);margin-bottom:4px;">${T.solv}</div><p style="font-size:13px;color:var(--t2);line-height:1.65;margin-bottom:16px;flex:1;">${L(item).sol}</p><div style="border-top:1px solid rgba(255,255,255,.06);padding-top:12px;"><div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:${item.a};margin-bottom:4px;">${T.imp}</div><p style="font-size:13px;color:var(--t1);font-weight:500;line-height:1.6;">${L(item).impact}</p>${L(item).note?`<p style="font-size:11px;color:var(--t3);margin-top:8px;font-style:italic;">${T.notelabel} ${L(item).note}</p>`:''}</div></div>`).join('');
+  const items=fil.map((item,i)=>`<div class="card rv d${(i%3)+1}" style="padding:26px;display:flex;flex-direction:column;"><div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:14px;"><span class="port-tag" style="color:${item.a};border-color:${item.a==='var(--cy)'?'rgba(0,200,255,.22)':'rgba(254,165,17,.22)'};background:${item.a==='var(--cy)'?'rgba(0,200,255,.07)':'rgba(254,165,17,.07)'};">${L(item).tag}</span>${L(item).client?`<span style="font-size:10.5px;color:var(--t3);text-align:right;line-height:1.4;max-width:160px;">${L(item).client}</span>`:''}</div><h3 style="font-size:15.5px;font-weight:700;margin-bottom:14px;letter-spacing:-.01em;line-height:1.35;">${L(item).title}</h3><div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--t3);margin-bottom:4px;">${T.chal}</div><p style="font-size:13px;color:var(--t3);line-height:1.65;margin-bottom:12px;">${L(item).challenge}</p><div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--t2);margin-bottom:4px;">${T.solv}</div><p style="font-size:13px;color:var(--t2);line-height:1.65;margin-bottom:16px;flex:1;">${L(item).sol}</p><div style="border-top:1px solid rgba(255,255,255,.06);padding-top:12px;"><div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:${item.a};margin-bottom:4px;">${T.imp}</div><p style="font-size:13px;color:var(--t1);font-weight:500;line-height:1.6;">${L(item).impact}</p>${L(item).note?`<p style="font-size:11px;color:var(--t3);margin-top:8px;font-style:italic;">${T.notelabel} ${L(item).note}</p>`:''}</div></div>`).join('');
   return`<div class="pi" style="padding-top:68px;"><div class="ph"><div class="wrap">${ey(T.poe)}<h1 class="phh" style="font-size:42px;font-weight:800;letter-spacing:-.03em;margin:18px 0 14px;">${T.poh}</h1><p style="font-size:16px;color:var(--t2);max-width:520px;margin-bottom:28px;line-height:1.7;">${T.pos}</p><div style="display:flex;gap:10px;flex-wrap:wrap;">${cats}</div></div></div>
 <section class="sec"><div class="wrap"><p style="font-size:12px;color:var(--t3);margin-bottom:28px;padding:12px 16px;border:1px solid rgba(255,255,255,.06);border-radius:8px;line-height:1.6;">${T.pnote}</p><div class="g1" style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;">${items}</div></div></section>
 <section class="sec" style="padding-top:0;"><div class="wrap rv">${ctaBanner()}</div></section></div>`;
@@ -533,7 +533,7 @@ function renderAbout(){
   const why=WHY.map((w,i)=>`<div class="why-row rv d${i+1}"><div><h3 style="font-size:17px;font-weight:700;margin-bottom:9px;letter-spacing:-.01em;">${L(w).t}</h3><p style="font-size:14px;color:var(--t2);line-height:1.75;max-width:500px;">${L(w).d}</p></div><div style="font-size:10.5px;font-weight:700;color:var(--cy);letter-spacing:.1em;text-transform:uppercase;white-space:nowrap;padding-top:3px;">${L(w).kw}</div></div>`).join('');
   const team=TEAM.map((m,i)=>`<div class="card rv d${(i%3)+1}" style="padding:24px;"><div style="font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:${m.a};margin-bottom:10px;">${L(m).title}</div><h3 style="font-size:15.5px;font-weight:700;margin-bottom:10px;letter-spacing:-.01em;">${L(m).name}</h3><p style="font-size:13px;color:var(--t3);line-height:1.7;">${L(m).bio}</p></div>`).join('');
   const testi=TESTIMONIALS.map((tm,i)=>`<div class="tcard rv d${i+1}"><p style="font-size:15px;color:var(--t1);line-height:1.82;font-weight:300;margin-bottom:22px;font-style:italic;">"${L(tm).q}"</p><div style="display:flex;align-items:center;gap:12px;padding-top:18px;border-top:1px solid rgba(255,255,255,.06);"><div class="tavatar">${L(tm).r.charAt(0)}</div><div><div style="font-size:13px;font-weight:600;color:var(--t1);">${L(tm).r}</div><div style="font-size:12px;color:var(--t3);margin-top:2px;">${L(tm).c}</div></div></div></div>`).join('');
-  return`<div class="pi" style="padding-top:68px;"><div class="ph"><div class="wrap"><div class="g1" style="display:grid;grid-template-columns:1.3fr 1fr;gap:64px;align-items:start;"><div>${ey(T.abe)}<h1 class="abh" style="font-size:38px;font-weight:800;letter-spacing:-.03em;line-height:1.12;white-space:pre-line;margin:18px 0 22px;">${T.abh}</h1><p style="font-size:16px;color:var(--t2);margin-bottom:18px;line-height:1.75;">${T.abs}</p><p style="font-size:14.5px;color:var(--t2);line-height:1.8;">${T.abp}</p></div><div style="padding-top:8px;display:flex;flex-direction:column;gap:16px;"><div style="padding:28px;border-radius:14px;background:rgba(7,214,236,.04);border:1px solid rgba(7,214,236,.14);"><p style="font-size:15.5px;font-weight:300;color:var(--t1);line-height:1.8;font-style:italic;margin-bottom:12px;">"${T.abq}"</p><p style="font-size:12px;color:var(--cy);font-weight:600;">${T.abq2}</p></div><div class="card" style="padding:22px;"><div style="font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--t3);margin-bottom:14px;">${T.acred}</div>${T.acredv.map(v=>`<div style="font-size:13.5px;color:var(--t2);padding:9px 0;border-bottom:1px solid rgba(255,255,255,.05);">${v}</div>`).join('')}</div><a href="mailto:william.bunarto.job@gmail.com?subject=Company Profile Request" class="walink" style="background:rgba(7,214,236,.1);border:1px solid rgba(7,214,236,.25);color:var(--cy);">${T.dlbtn}</a></div></div></div></div>
+  return`<div class="pi" style="padding-top:68px;"><div class="ph"><div class="wrap"><div class="g1" style="display:grid;grid-template-columns:1.3fr 1fr;gap:64px;align-items:start;"><div>${ey(T.abe)}<h1 class="abh" style="font-size:38px;font-weight:800;letter-spacing:-.03em;line-height:1.12;white-space:pre-line;margin:18px 0 22px;">${T.abh}</h1><p style="font-size:16px;color:var(--t2);margin-bottom:18px;line-height:1.75;">${T.abs}</p><p style="font-size:14.5px;color:var(--t2);line-height:1.8;">${T.abp}</p></div><div style="padding-top:8px;display:flex;flex-direction:column;gap:16px;"><div style="padding:28px;border-radius:14px;background:rgba(0,200,255,.04);border:1px solid rgba(0,200,255,.14);"><p style="font-size:15.5px;font-weight:300;color:var(--t1);line-height:1.8;font-style:italic;margin-bottom:12px;">"${T.abq}"</p><p style="font-size:12px;color:var(--cy);font-weight:600;">${T.abq2}</p></div><div class="card" style="padding:22px;"><div style="font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--t3);margin-bottom:14px;">${T.acred}</div>${T.acredv.map(v=>`<div style="font-size:13.5px;color:var(--t2);padding:9px 0;border-bottom:1px solid rgba(255,255,255,.05);">${v}</div>`).join('')}</div><a href="mailto:william.bunarto.job@gmail.com?subject=Company Profile Request" class="walink" style="background:rgba(0,200,255,.1);border:1px solid rgba(0,200,255,.25);color:var(--cy);">${T.dlbtn}</a></div></div></div></div>
 <section class="sec"><div class="wrap">${ey(T.weye)}<h2 class="sech rv" style="font-size:32px;font-weight:800;letter-spacing:-.025em;margin:18px 0 36px;">${T.wh}</h2><div class="rv" style="border:1px solid rgba(255,255,255,.07);border-radius:14px;overflow:hidden;">${why}</div></div></section>
 <section class="sec-alt"><div class="wrap">${ey(T.tme)}<h2 class="sech rv" style="font-size:32px;font-weight:800;letter-spacing:-.025em;margin:18px 0 14px;">${T.tmh}</h2><p class="rv" style="font-size:15px;color:var(--t2);max-width:480px;margin-bottom:36px;line-height:1.7;">${T.tms}</p><div class="g2" style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;">${team}</div><p style="font-size:12px;color:var(--t3);font-style:italic;margin-top:20px;text-align:center;">${T.tmn}</p></div></section>
 <section class="sec"><div class="wrap">${ey(T.teye)}<h2 class="sech rv" style="font-size:32px;font-weight:800;letter-spacing:-.025em;white-space:pre-line;margin:18px 0 14px;">${T.th}</h2><p class="rv" style="font-size:13.5px;color:var(--t3);margin-bottom:36px;">${T.ts}</p><div class="g1" style="display:grid;grid-template-columns:repeat(3,1fr);gap:20px;">${testi}</div></div></section>
@@ -543,11 +543,11 @@ function renderAbout(){
 /* ══ CONTACT ══ */
 function renderContact(){
   const T=t();
-  const steps=T.eng.map(e=>`<div style="display:flex;gap:16px;padding:16px 0;border-bottom:1px solid rgba(255,255,255,.05);"><div style="width:32px;height:32px;border-radius:8px;background:rgba(7,214,236,.08);border:1px solid rgba(7,214,236,.15);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:var(--cy);flex-shrink:0;">${e.n}</div><div><div style="font-size:14px;font-weight:700;margin-bottom:4px;">${e.t}</div><div style="font-size:13px;color:var(--t2);line-height:1.65;">${e.d}</div></div></div>`).join('');
-  const form=S.formSent?`<div style="padding:48px;border-radius:14px;background:rgba(7,214,236,.04);border:1px solid rgba(7,214,236,.16);text-align:center;"><div style="width:52px;height:52px;border-radius:50%;background:rgba(7,214,236,.1);border:1px solid rgba(7,214,236,.2);display:flex;align-items:center;justify-content:center;margin:0 auto 18px;font-size:22px;color:var(--cy);">&#10003;</div><p style="font-size:16px;color:var(--t1);font-weight:500;max-width:380px;margin:0 auto;line-height:1.7;">${T.fsc}</p></div>`:
+  const steps=T.eng.map(e=>`<div style="display:flex;gap:16px;padding:16px 0;border-bottom:1px solid rgba(255,255,255,.05);"><div style="width:32px;height:32px;border-radius:8px;background:rgba(0,200,255,.08);border:1px solid rgba(0,200,255,.15);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:var(--cy);flex-shrink:0;">${e.n}</div><div><div style="font-size:14px;font-weight:700;margin-bottom:4px;">${e.t}</div><div style="font-size:13px;color:var(--t2);line-height:1.65;">${e.d}</div></div></div>`).join('');
+  const form=S.formSent?`<div style="padding:48px;border-radius:14px;background:rgba(0,200,255,.04);border:1px solid rgba(0,200,255,.16);text-align:center;"><div style="width:52px;height:52px;border-radius:50%;background:rgba(0,200,255,.1);border:1px solid rgba(0,200,255,.2);display:flex;align-items:center;justify-content:center;margin:0 auto 18px;font-size:22px;color:var(--cy);">&#10003;</div><p style="font-size:16px;color:var(--t1);font-weight:500;max-width:380px;margin:0 auto;line-height:1.7;">${T.fsc}</p></div>`:
   `<div style="display:flex;flex-direction:column;gap:16px;"><div class="g1" style="display:grid;grid-template-columns:1fr 1fr;gap:14px;"><div><label class="flabel">${T.fn} *</label><input id="fname" class="inp" placeholder="${S.lang==='en'?'Your name':'Nama Anda'}" value="${S.form.name}"></div><div><label class="flabel">${T.fe} *</label><input id="femail" class="inp" type="email" placeholder="${S.lang==='en'?'your@email.com':'email@anda.com'}" value="${S.form.email}"></div></div><div class="g1" style="display:grid;grid-template-columns:1fr 1fr;gap:14px;"><div><label class="flabel">${T.fc}</label><input id="forg" class="inp" placeholder="${S.lang==='en'?'Organisation name':'Nama organisasi'}" value="${S.form.org}"></div><div><label class="flabel">${T.fr}</label><input id="frole" class="inp" placeholder="${S.lang==='en'?'Your role':'Jabatan Anda'}" value="${S.form.role}"></div></div><div><label class="flabel">${T.ft}</label><select id="ftype" class="inp">${T.fto.map((o,i)=>`<option value="${i===0?'':o}"${S.form.type===o?' selected':''}>${o}</option>`).join('')}</select></div><div><label class="flabel">${T.fm} *</label><textarea id="fmsg" class="inp" placeholder="${T.fmp}">${S.form.msg}</textarea></div><div style="display:flex;align-items:center;gap:16px;"><button class="bp" id="fsub" style="padding:14px 32px;">${T.fsb}</button><span style="font-size:12px;color:var(--t3);">* ${S.lang==='en'?'Required':'Wajib diisi'}</span></div></div>`;
   return`<div class="pi" style="padding-top:68px;"><div class="ph"><div class="wrap">${ey(T.coe)}<h1 class="phh" style="font-size:42px;font-weight:800;letter-spacing:-.03em;line-height:1.1;white-space:pre-line;margin:18px 0 14px;">${T.coh}</h1><p style="font-size:16px;color:var(--t2);max-width:480px;line-height:1.7;">${T.cos}</p></div></div>
-<section class="sec"><div class="wrap"><div class="g1" style="display:grid;grid-template-columns:1.7fr 1fr;gap:60px;align-items:start;">${form}<div style="display:flex;flex-direction:column;gap:14px;"><div class="card" style="padding:26px;"><div style="font-size:11px;font-weight:700;color:var(--cy);letter-spacing:.14em;text-transform:uppercase;margin-bottom:16px;">${T.howh}</div>${steps}</div><div class="card" style="padding:22px;"><div style="font-size:11px;font-weight:700;color:var(--t3);letter-spacing:.12em;text-transform:uppercase;margin-bottom:14px;">${T.cih}</div><a href="mailto:william.bunarto.job@gmail.com" style="display:block;font-size:13.5px;color:var(--cy);font-weight:600;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.05);text-decoration:none;transition:opacity .2s;" onmouseover="this.style.opacity='.75'" onmouseout="this.style.opacity='1'">william.bunarto.job@gmail.com</a><div style="font-size:13px;color:var(--t2);padding:9px 0;border-bottom:1px solid rgba(255,255,255,.05);">hello@logiwave.id</div><div style="font-size:13px;color:var(--t2);padding:9px 0;">Jakarta, Indonesia</div></div><div style="padding:18px;border-radius:10px;background:rgba(7,214,236,.04);border:1px solid rgba(7,214,236,.12);"><div style="font-size:11px;font-weight:700;color:var(--cy);letter-spacing:.14em;text-transform:uppercase;margin-bottom:8px;">${T.rsph}</div><p style="font-size:13px;color:var(--t2);line-height:1.7;">${T.rspp}</p></div></div></div></div></section></div>`;
+<section class="sec"><div class="wrap"><div class="g1" style="display:grid;grid-template-columns:1.7fr 1fr;gap:60px;align-items:start;">${form}<div style="display:flex;flex-direction:column;gap:14px;"><div class="card" style="padding:26px;"><div style="font-size:11px;font-weight:700;color:var(--cy);letter-spacing:.14em;text-transform:uppercase;margin-bottom:16px;">${T.howh}</div>${steps}</div><div class="card" style="padding:22px;"><div style="font-size:11px;font-weight:700;color:var(--t3);letter-spacing:.12em;text-transform:uppercase;margin-bottom:14px;">${T.cih}</div><a href="mailto:william.bunarto.job@gmail.com" style="display:block;font-size:13.5px;color:var(--cy);font-weight:600;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.05);text-decoration:none;transition:opacity .2s;" onmouseover="this.style.opacity='.75'" onmouseout="this.style.opacity='1'">william.bunarto.job@gmail.com</a><div style="font-size:13px;color:var(--t2);padding:9px 0;border-bottom:1px solid rgba(255,255,255,.05);">hello@logiwave.id</div><div style="font-size:13px;color:var(--t2);padding:9px 0;">Jakarta, Indonesia</div></div><div style="padding:18px;border-radius:10px;background:rgba(0,200,255,.04);border:1px solid rgba(0,200,255,.12);"><div style="font-size:11px;font-weight:700;color:var(--cy);letter-spacing:.14em;text-transform:uppercase;margin-bottom:8px;">${T.rsph}</div><p style="font-size:13px;color:var(--t2);line-height:1.7;">${T.rspp}</p></div></div></div></div></section></div>`;
 }
 
 /* ══ RENDER ENGINE ══ */
@@ -589,7 +589,7 @@ function attachEvents(){
     setTimeout(()=>{S.formSent=true;render();},600);
   });
   const nav=document.getElementById('main-nav');
-  if(nav){const fn=()=>{nav.style.background=window.scrollY>60?'rgba(7,13,26,.98)':'rgba(7,13,26,.85)';};window.addEventListener('scroll',fn,{passive:true});fn();}
+  if(nav){const fn=()=>{nav.style.background=window.scrollY>60?'rgba(15,20,30,.98)':'rgba(15,20,30,.85)';};window.addEventListener('scroll',fn,{passive:true});fn();}
 }
 
 function navigate(p){S.page=p;S.mobMenu=false;S.openFaq=-1;if(p!=='contact'){S.form={name:'',email:'',org:'',role:'',type:'',msg:''};S.formSent=false;}render();}
@@ -629,7 +629,7 @@ function initAnimations(){
 
   /* Blueprint hover */
   document.querySelectorAll('.bp-step').forEach(el=>{
-    el.addEventListener('mouseenter',()=>el.style.background='rgba(7,214,236,.04)');
+    el.addEventListener('mouseenter',()=>el.style.background='rgba(0,200,255,.04)');
     el.addEventListener('mouseleave',()=>el.style.background='transparent');
   });
 }
@@ -659,11 +659,11 @@ function initParticles(){
       if(p.x<0||p.x>w)p.vx*=-1;
       if(p.y<0||p.y>h)p.vy*=-1;
       ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
-      ctx.fillStyle='rgba(7,214,236,.35)';ctx.fill();
+      ctx.fillStyle='rgba(0,200,255,.35)';ctx.fill();
     });
     for(let i=0;i<pts.length;i++)for(let j=i+1;j<pts.length;j++){
       const dx=pts[i].x-pts[j].x,dy=pts[i].y-pts[j].y,d=Math.sqrt(dx*dx+dy*dy);
-      if(d<MAX_DIST){ctx.beginPath();ctx.moveTo(pts[i].x,pts[i].y);ctx.lineTo(pts[j].x,pts[j].y);ctx.strokeStyle=`rgba(7,214,236,${.12*(1-d/MAX_DIST)})`;ctx.lineWidth=.7;ctx.stroke();}
+      if(d<MAX_DIST){ctx.beginPath();ctx.moveTo(pts[i].x,pts[i].y);ctx.lineTo(pts[j].x,pts[j].y);ctx.strokeStyle=`rgba(0,200,255,${.12*(1-d/MAX_DIST)})`;ctx.lineWidth=.7;ctx.stroke();}
     }
     requestAnimationFrame(draw);
   }
