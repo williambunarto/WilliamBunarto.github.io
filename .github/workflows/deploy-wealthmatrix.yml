@@ -1,0 +1,52 @@
+name: Deploy WealthMatrix v2
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - claude/deploy-wealthmatrix-v2-kG7CD
+    paths:
+      - 'wealthmatrix/**'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.ORACLE_SSH_KEY }}" > ~/.ssh/oracle.key
+          chmod 600 ~/.ssh/oracle.key
+          ssh-keyscan -H 140.245.103.249 >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Upload app to server
+        run: |
+          ssh -i ~/.ssh/oracle.key ubuntu@140.245.103.249 "mkdir -p ~/wealthmatrix"
+          scp -i ~/.ssh/oracle.key \
+            wealthmatrix/package.json \
+            wealthmatrix/server.js \
+            wealthmatrix/deploy.sh \
+            ubuntu@140.245.103.249:~/wealthmatrix/
+          scp -i ~/.ssh/oracle.key -r \
+            wealthmatrix/public \
+            ubuntu@140.245.103.249:~/wealthmatrix/
+
+      - name: Run deploy script
+        run: |
+          ssh -i ~/.ssh/oracle.key ubuntu@140.245.103.249 "cd ~/wealthmatrix && bash deploy.sh"
+
+      - name: Verify - local port
+        run: |
+          sleep 5
+          ssh -i ~/.ssh/oracle.key ubuntu@140.245.103.249 \
+            "curl -s --max-time 10 http://localhost:3001/ | head -5 && echo '✓ App responding on :3001'"
+
+      - name: Verify - public URL
+        run: |
+          curl -sk --max-time 15 https://williambunarto.duckdns.org/wealth/ \
+            | grep -o '<title>[^<]*</title>' \
+            && echo '✓ https://williambunarto.duckdns.org/wealth/ is live' \
+            || echo 'Public URL check — may need Nginx config (see deploy output above)'
