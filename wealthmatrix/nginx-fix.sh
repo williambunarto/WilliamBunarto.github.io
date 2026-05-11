@@ -1,8 +1,19 @@
 #!/bin/bash
-# Inject /wealth/ proxy block into the active Nginx server config
+# Inject /wealth/ and /api/ proxy blocks into the active Nginx server config
 set -e
 
 PORT=3001
+
+PROXY_HEADERS='
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection '"'"'upgrade'"'"';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+        proxy_read_timeout 60s;'
 
 # Find the main active config (skip defaults, mime types etc)
 CONF=""
@@ -22,42 +33,36 @@ echo "--- current content ---"
 sudo cat "$CONF"
 echo "-----------------------"
 
+# ── /wealth/ block ──────────────────────────────────────────
 if sudo grep -q "location /wealth/" "$CONF"; then
   echo "✓ /wealth/ already present — updating port"
   sudo sed -i "s|proxy_pass http://localhost:[0-9]*/;|proxy_pass http://localhost:${PORT}/;|g" "$CONF"
 else
   echo "Injecting /wealth/ location block..."
-  # Write new block to a temp file
-  TMPFILE=$(mktemp)
-  sudo cat "$CONF" > "$TMPFILE"
-
-  # Find line number of last closing brace
-  LASTLINE=$(grep -n "^}" "$TMPFILE" | tail -1 | cut -d: -f1)
-
-  if [ -z "$LASTLINE" ]; then
-    echo "ERROR: Could not find closing brace in config"
-    cat "$TMPFILE"
-    exit 1
-  fi
-
-  # Insert location block before the last closing brace
+  LASTLINE=$(sudo grep -n "^}" "$CONF" | tail -1 | cut -d: -f1)
   sudo sed -i "${LASTLINE}i\\
 \\
     location /wealth/ {\\
-        proxy_pass http://localhost:${PORT}/;\\
-        proxy_http_version 1.1;\\
-        proxy_set_header Upgrade \$http_upgrade;\\
-        proxy_set_header Connection 'upgrade';\\
-        proxy_set_header Host \$host;\\
-        proxy_set_header X-Real-IP \$remote_addr;\\
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;\\
-        proxy_set_header X-Forwarded-Proto \$scheme;\\
-        proxy_cache_bypass \$http_upgrade;\\
-        proxy_read_timeout 60s;\\
+        proxy_pass http://localhost:${PORT}/;${PROXY_HEADERS}\\
     }\\
 " "$CONF"
+fi
 
-  rm -f "$TMPFILE"
+# ── /api/ block ─────────────────────────────────────────────
+# Frontend JS makes absolute calls to /api/* (not /wealth/api/*).
+# We need Nginx to proxy these to the app as well.
+if sudo grep -q "location /api/" "$CONF"; then
+  echo "✓ /api/ already present — updating port"
+  sudo sed -i "s|proxy_pass http://localhost:[0-9]*/api/;|proxy_pass http://localhost:${PORT}/api/;|g" "$CONF"
+else
+  echo "Injecting /api/ location block..."
+  LASTLINE=$(sudo grep -n "^}" "$CONF" | tail -1 | cut -d: -f1)
+  sudo sed -i "${LASTLINE}i\\
+\\
+    location /api/ {\\
+        proxy_pass http://localhost:${PORT}/api/;${PROXY_HEADERS}\\
+    }\\
+" "$CONF"
 fi
 
 echo "--- updated config ---"
