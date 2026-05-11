@@ -30,6 +30,7 @@ jobs:
             wealthmatrix/package.json \
             wealthmatrix/server.js \
             wealthmatrix/deploy.sh \
+            wealthmatrix/nginx-fix.sh \
             ubuntu@140.245.103.249:~/wealthmatrix/
           scp -i ~/.ssh/oracle.key -r \
             wealthmatrix/public \
@@ -41,53 +42,15 @@ jobs:
 
       - name: Fix Nginx /wealth/ location
         run: |
-          ssh -i ~/.ssh/oracle.key ubuntu@140.245.103.249 bash << 'ENDSSH'
-          set -e
-          PORT=3001
-          LOCATION_BLOCK="
-              location /wealth/ {
-                  proxy_pass http://localhost:${PORT}/;
-                  proxy_http_version 1.1;
-                  proxy_set_header Upgrade \$http_upgrade;
-                  proxy_set_header Connection 'upgrade';
-                  proxy_set_header Host \$host;
-                  proxy_set_header X-Real-IP \$remote_addr;
-                  proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-                  proxy_set_header X-Forwarded-Proto \$scheme;
-                  proxy_cache_bypass \$http_upgrade;
-                  proxy_read_timeout 60s;
-              }"
+          ssh -i ~/.ssh/oracle.key ubuntu@140.245.103.249 "bash ~/wealthmatrix/nginx-fix.sh"
 
-          # Find the active nginx config file
-          CONF=$(sudo nginx -T 2>/dev/null | grep "# configuration file" | grep -v "mime\|fastcgi\|proxy\|scgi\|uwsgi" | head -1 | awk '{print $NF}' | tr -d ':')
-          echo "Active config: $CONF"
-
-          if [ -z "$CONF" ]; then
-            CONF="/etc/nginx/sites-available/default"
-          fi
-
-          # Add /wealth/ block if not present
-          if sudo grep -q "location /wealth/" "$CONF"; then
-            echo "✓ /wealth/ location already in $CONF"
-            # Update the port just in case
-            sudo sed -i "s|proxy_pass http://localhost:[0-9]*/;|proxy_pass http://localhost:${PORT}/;|g" "$CONF"
-          else
-            echo "Adding /wealth/ location to $CONF"
-            # Insert before the last closing brace of the server block
-            sudo sed -i "s|^\s*}\s*$|${LOCATION_BLOCK}\n}|" "$CONF"
-          fi
-
-          sudo nginx -t && sudo systemctl reload nginx
-          echo "✓ Nginx reloaded"
-          ENDSSH
-
-      - name: Verify - local port
+      - name: Verify app on port 3001
         run: |
           sleep 3
           ssh -i ~/.ssh/oracle.key ubuntu@140.245.103.249 \
-            "curl -s --max-time 10 http://localhost:3001/ | grep -o '<title>[^<]*</title>' && echo '✓ App on :3001'"
+            "curl -sf --max-time 10 http://localhost:3001/ | grep -o '<title>[^<]*</title>' && echo '✓ App running on :3001'"
 
-      - name: Verify - public URL
+      - name: Verify public URL
         run: |
           sleep 2
           HTTP=$(curl -s -o /dev/null -w "%{http_code}" --max-time 15 http://williambunarto.duckdns.org/wealth/)
@@ -95,6 +58,6 @@ jobs:
           if [ "$HTTP" = "200" ] || [ "$HTTP" = "301" ] || [ "$HTTP" = "302" ]; then
             echo "✓ http://williambunarto.duckdns.org/wealth/ is live"
           else
-            echo "Unexpected status $HTTP — check Nginx config on server"
+            echo "Unexpected status $HTTP"
             exit 1
           fi
