@@ -7,6 +7,7 @@ on:
       - claude/deploy-wealthmatrix-v2-kG7CD
     paths:
       - 'wealthmatrix/**'
+      - '.github/workflows/deploy-wealthmatrix.yml'
 
 jobs:
   deploy:
@@ -24,7 +25,7 @@ jobs:
 
       - name: Upload app to server
         run: |
-          ssh -i ~/.ssh/oracle.key ubuntu@140.245.103.249 "mkdir -p ~/wealthmatrix"
+          ssh -i ~/.ssh/oracle.key ubuntu@140.245.103.249 "mkdir -p ~/wealthmatrix/public"
           scp -i ~/.ssh/oracle.key \
             wealthmatrix/package.json \
             wealthmatrix/server.js \
@@ -38,15 +39,62 @@ jobs:
         run: |
           ssh -i ~/.ssh/oracle.key ubuntu@140.245.103.249 "cd ~/wealthmatrix && bash deploy.sh"
 
+      - name: Fix Nginx /wealth/ location
+        run: |
+          ssh -i ~/.ssh/oracle.key ubuntu@140.245.103.249 bash << 'ENDSSH'
+          set -e
+          PORT=3001
+          LOCATION_BLOCK="
+              location /wealth/ {
+                  proxy_pass http://localhost:${PORT}/;
+                  proxy_http_version 1.1;
+                  proxy_set_header Upgrade \$http_upgrade;
+                  proxy_set_header Connection 'upgrade';
+                  proxy_set_header Host \$host;
+                  proxy_set_header X-Real-IP \$remote_addr;
+                  proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+                  proxy_set_header X-Forwarded-Proto \$scheme;
+                  proxy_cache_bypass \$http_upgrade;
+                  proxy_read_timeout 60s;
+              }"
+
+          # Find the active nginx config file
+          CONF=$(sudo nginx -T 2>/dev/null | grep "# configuration file" | grep -v "mime\|fastcgi\|proxy\|scgi\|uwsgi" | head -1 | awk '{print $NF}' | tr -d ':')
+          echo "Active config: $CONF"
+
+          if [ -z "$CONF" ]; then
+            CONF="/etc/nginx/sites-available/default"
+          fi
+
+          # Add /wealth/ block if not present
+          if sudo grep -q "location /wealth/" "$CONF"; then
+            echo "✓ /wealth/ location already in $CONF"
+            # Update the port just in case
+            sudo sed -i "s|proxy_pass http://localhost:[0-9]*/;|proxy_pass http://localhost:${PORT}/;|g" "$CONF"
+          else
+            echo "Adding /wealth/ location to $CONF"
+            # Insert before the last closing brace of the server block
+            sudo sed -i "s|^\s*}\s*$|${LOCATION_BLOCK}\n}|" "$CONF"
+          fi
+
+          sudo nginx -t && sudo systemctl reload nginx
+          echo "✓ Nginx reloaded"
+          ENDSSH
+
       - name: Verify - local port
         run: |
-          sleep 5
+          sleep 3
           ssh -i ~/.ssh/oracle.key ubuntu@140.245.103.249 \
-            "curl -s --max-time 10 http://localhost:3001/ | head -5 && echo '✓ App responding on :3001'"
+            "curl -s --max-time 10 http://localhost:3001/ | grep -o '<title>[^<]*</title>' && echo '✓ App on :3001'"
 
       - name: Verify - public URL
         run: |
-          curl -sk --max-time 15 https://williambunarto.duckdns.org/wealth/ \
-            | grep -o '<title>[^<]*</title>' \
-            && echo '✓ https://williambunarto.duckdns.org/wealth/ is live' \
-            || echo 'Public URL check — may need Nginx config (see deploy output above)'
+          sleep 2
+          HTTP=$(curl -s -o /dev/null -w "%{http_code}" --max-time 15 http://williambunarto.duckdns.org/wealth/)
+          echo "HTTP status: $HTTP"
+          if [ "$HTTP" = "200" ] || [ "$HTTP" = "301" ] || [ "$HTTP" = "302" ]; then
+            echo "✓ http://williambunarto.duckdns.org/wealth/ is live"
+          else
+            echo "Unexpected status $HTTP — check Nginx config on server"
+            exit 1
+          fi
