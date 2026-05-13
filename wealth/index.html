@@ -439,7 +439,6 @@ textarea.fc{min-height:64px;resize:vertical}
         <div class="fg"><label>Name / Ticker</label><input class="fc" id="inv-name" placeholder="e.g. BBCA, BTC Spot, BCA 6M"></div>
         <div class="fg"><label>Platform / Bank</label><input class="fc" id="inv-platform" placeholder="e.g. Ajaib, Bybit, BCA"></div>
       </div>
-      <!-- Currency selector -->
       <div class="fg">
         <label>Currency</label>
         <div class="cur-row">
@@ -447,18 +446,15 @@ textarea.fc{min-height:64px;resize:vertical}
           <button class="cur-btn" onclick="selCurrency('USD',this)">USD</button>
         </div>
       </div>
-      <!-- Saham fields -->
       <div id="inv-saham-fields" style="display:none">
         <div class="fr">
           <div class="fg"><label>Principal / Modal (<span id="inv-saham-cur">IDR</span>)</label><input type="number" class="fc mono" id="inv-principal" placeholder="0" oninput="updateInvCalc()"></div>
           <div class="fg"><label>Current Value (<span id="inv-cur">IDR</span>)</label><input type="number" class="fc mono" id="inv-current" placeholder="0" oninput="updateInvCalc()"><div class="fc-hint" id="inv-equiv"></div></div>
         </div>
       </div>
-      <!-- Deposito fields -->
       <div id="inv-deposito-fields" style="display:none">
         <div class="fg"><label>Jumlah / Value (<span id="inv-dep-cur">IDR</span>)</label><input type="number" class="fc mono" id="inv-dep-value" placeholder="0" oninput="updateInvCalc()"></div>
       </div>
-      <!-- Crypto fields -->
       <div id="inv-crypto-fields" style="display:none">
         <div class="fg">
           <label>BTC Quantity</label>
@@ -475,16 +471,9 @@ textarea.fc{min-height:64px;resize:vertical}
         </div>
         <div class="fg"><label>Start Date</label><input type="date" class="fc" id="inv-date"></div>
       </div>
-      <!-- Return display -->
       <div id="inv-return-display" class="ret-display" style="display:none;margin-bottom:13px">
-        <div class="ret-display-row">
-          <span class="ret-lbl">Annual Gain</span>
-          <span class="ret-val" id="inv-annual-gain">—</span>
-        </div>
-        <div class="ret-display-row">
-          <span class="ret-lbl">Daily Return</span>
-          <span class="ret-val" id="inv-daily-ret">—</span>
-        </div>
+        <div class="ret-display-row"><span class="ret-lbl">Annual Gain</span><span class="ret-val" id="inv-annual-gain">—</span></div>
+        <div class="ret-display-row"><span class="ret-lbl">Daily Return</span><span class="ret-val" id="inv-daily-ret">—</span></div>
       </div>
       <div class="fg"><label>Notes</label><input class="fc" id="inv-notes" placeholder="Strategy, target price, memo..."></div>
     </div>
@@ -812,7 +801,6 @@ function updateInvCalc(){
     cv=parseFloat($('inv-dep-value')?.value)||0;
   } else if(type==='saham'){
     cv=parseFloat($('inv-current')?.value)||0;
-    const pv=parseFloat($('inv-principal')?.value)||0;
     if(cv>0){
       const equiv=EDIT_INV_CURRENCY==='IDR'?('≈ $'+(cv/usdIdr()).toFixed(0)):('≈ '+fmt(cv*usdIdr(),true));
       setHtml('inv-equiv',equiv);
@@ -841,24 +829,12 @@ function selT(t,el){
 }
 
 function openAdd(){
-  EDIT_INV_ID=null;
-  EDIT_INV_CURRENCY='IDR';
+  EDIT_INV_ID=null;EDIT_INV_CURRENCY='IDR';
   $('inv-m-title').textContent='Add Investment';
-  $('inv-id').value='';
-  $('inv-name').value='';
-  $('inv-platform').value='';
-  $('inv-principal').value='';
-  $('inv-current').value='';
-  $('inv-dep-value').value='';
-  $('inv-btc-qty').value='';
-  $('inv-rate').value='';
+  ['inv-id','inv-name','inv-platform','inv-principal','inv-current','inv-dep-value','inv-btc-qty','inv-rate','inv-notes'].forEach(id=>{const e=$(id);if(e)e.value='';});
   $('inv-date').value=new Date().toISOString().slice(0,10);
-  $('inv-notes').value='';
   $('inv-del-btn').style.display='none';
-  $('inv-saham-fields').style.display='none';
-  $('inv-deposito-fields').style.display='none';
-  $('inv-crypto-fields').style.display='none';
-  $('inv-return-display').style.display='none';
+  ['inv-saham-fields','inv-deposito-fields','inv-crypto-fields','inv-return-display'].forEach(id=>{const e=$(id);if(e)e.style.display='none';});
   document.querySelectorAll('.type-opt').forEach(o=>o.className='type-opt');
   document.querySelectorAll('.cur-btn').forEach(b=>b.classList.remove('cur-on'));
   document.querySelector('.cur-btn').classList.add('cur-on');
@@ -869,72 +845,36 @@ function openAdd(){
 
 function openEdit(id){
   const inv=INV.find(i=>i.id===id);if(!inv)return;
-  EDIT_INV_ID=id;
-  EDIT_INV_CURRENCY=inv.currency||'IDR';
+  EDIT_INV_ID=id;EDIT_INV_CURRENCY=inv.currency||'IDR';
   $('inv-m-title').textContent='Edit Investment';
-  $('inv-id').value=inv.id;
-  $('inv-name').value=inv.name;
-  $('inv-platform').value=inv.platform;
-  $('inv-rate').value=inv.rate;
-  $('inv-date').value=inv.startDate||'';
-  $('inv-notes').value=inv.notes||'';
+  $('inv-id').value=inv.id;$('inv-name').value=inv.name;$('inv-platform').value=inv.platform;
+  $('inv-rate').value=inv.rate;$('inv-date').value=inv.startDate||'';$('inv-notes').value=inv.notes||'';
   $('inv-del-btn').style.display='inline-flex';
-  $('inv-saham-fields').style.display='none';
-  $('inv-deposito-fields').style.display='none';
-  $('inv-crypto-fields').style.display='none';
+  ['inv-saham-fields','inv-deposito-fields','inv-crypto-fields'].forEach(id=>{const e=$(id);if(e)e.style.display='none';});
   document.querySelectorAll('.type-opt').forEach(o=>o.className='type-opt');
   const tEl=$('t-'+inv.type);if(tEl)tEl.classList.add('sel-'+inv.type);
   document.querySelectorAll('.cur-btn').forEach(b=>b.classList.remove('cur-on'));
   document.querySelectorAll('.cur-btn').forEach(b=>{if(b.textContent===EDIT_INV_CURRENCY)b.classList.add('cur-on');});
   ['inv-saham-cur','inv-cur','inv-dep-cur'].forEach(cid=>{const e=$(cid);if(e)e.textContent=EDIT_INV_CURRENCY;});
-  if(inv.type==='saham'){
-    $('inv-saham-fields').style.display='block';
-    $('inv-principal').value=inv.principal||'';
-    $('inv-current').value=inv.currentValue||'';
-  } else if(inv.type==='deposito'){
-    $('inv-deposito-fields').style.display='block';
-    $('inv-dep-value').value=inv.currentValue||'';
-  } else if(inv.type==='crypto'){
-    $('inv-crypto-fields').style.display='block';
-    $('inv-btc-qty').value=inv.btcQty||'';
-  }
+  if(inv.type==='saham'){$('inv-saham-fields').style.display='block';$('inv-principal').value=inv.principal||'';$('inv-current').value=inv.currentValue||'';}
+  else if(inv.type==='deposito'){$('inv-deposito-fields').style.display='block';$('inv-dep-value').value=inv.currentValue||'';}
+  else if(inv.type==='crypto'){$('inv-crypto-fields').style.display='block';$('inv-btc-qty').value=inv.btcQty||'';}
   $('inv-rate-hint').textContent=TYPE_HINTS[inv.type]||'';
-  $('ov-inv').classList.add('on');
-  updateInvCalc();
+  $('ov-inv').classList.add('on');updateInvCalc();
 }
 
 function saveInvestment(){
-  const name=getVal('inv-name');
-  const platform=getVal('inv-platform');
-  const rate=parseFloat($('inv-rate').value)||0;
-  const startDate=getVal('inv-date');
-  const notes=getVal('inv-notes');
+  const name=getVal('inv-name'),platform=getVal('inv-platform'),rate=parseFloat($('inv-rate').value)||0,startDate=getVal('inv-date'),notes=getVal('inv-notes');
   const selType=document.querySelector('.type-opt[class*="sel-"]');
-  const type=selType?(selType.id.replace('t-','')):'saham';
+  const type=selType?selType.id.replace('t-',''):'saham';
   if(!name){toast('Please enter a name/ticker','err');return;}
-  const color=TYPE_COLORS[type]||'#3b82f6';
-  const cur=EDIT_INV_CURRENCY;
+  const color=TYPE_COLORS[type]||'#3b82f6',cur=EDIT_INV_CURRENCY;
   let obj={name,type,platform,currency:cur,rate,startDate,notes,color};
-  if(type==='saham'){
-    const principal=parseFloat($('inv-principal').value)||0;
-    const currentValue=parseFloat($('inv-current').value)||0;
-    if(principal<=0&&currentValue<=0){toast('Enter principal or current value','err');return;}
-    obj.principal=principal;obj.currentValue=currentValue;
-  } else if(type==='deposito'){
-    const val=parseFloat($('inv-dep-value').value)||0;
-    if(val<=0){toast('Enter deposit value','err');return;}
-    obj.currentValue=val;obj.principal=val;
-  } else if(type==='crypto'){
-    const qty=parseFloat($('inv-btc-qty').value)||0;
-    if(qty<=0){toast('Enter BTC quantity','err');return;}
-    obj.btcQty=qty;
-  }
-  if(EDIT_INV_ID){
-    const idx=INV.findIndex(i=>i.id===EDIT_INV_ID);
-    if(idx>=0){INV[idx]={...INV[idx],...obj};toast(`${name} updated`,'ok');}
-  } else {
-    INV.push({id:uid(),...obj});toast(`${name} added`,'ok');
-  }
+  if(type==='saham'){const principal=parseFloat($('inv-principal').value)||0,currentValue=parseFloat($('inv-current').value)||0;if(principal<=0&&currentValue<=0){toast('Enter principal or current value','err');return;}obj.principal=principal;obj.currentValue=currentValue;}
+  else if(type==='deposito'){const val=parseFloat($('inv-dep-value').value)||0;if(val<=0){toast('Enter deposit value','err');return;}obj.currentValue=val;obj.principal=val;}
+  else if(type==='crypto'){const qty=parseFloat($('inv-btc-qty').value)||0;if(qty<=0){toast('Enter BTC quantity','err');return;}obj.btcQty=qty;}
+  if(EDIT_INV_ID){const idx=INV.findIndex(i=>i.id===EDIT_INV_ID);if(idx>=0){INV[idx]={...INV[idx],...obj};toast(`${name} updated`,'ok');}}
+  else{INV.push({id:uid(),...obj});toast(`${name} added`,'ok');}
   save('inv');closeModal('ov-inv');renderAll();
 }
 
@@ -944,41 +884,19 @@ function openUpd(id){
   const inv=INV.find(i=>i.id===id);if(!inv)return;
   $('upd-id').value=id;
   const cur=inv.currency||'IDR';
-  if(inv.type==='crypto'){
-    setHtml('upd-info',`<b>${inv.name}</b> &nbsp;&middot;&nbsp; Current: ${(inv.btcQty||0).toFixed(5)} BTC &nbsp;&middot;&nbsp; Crypto`);
-    setHtml('upd-val-label','New BTC Quantity');
-  } else {
-    setHtml('upd-info',`<b>${inv.name}</b> &nbsp;&middot;&nbsp; Current: ${fmtCurC(inv.currentValue||0,cur)} &nbsp;&middot;&nbsp; ${inv.type}`);
-    setHtml('upd-val-label',`New Value (${cur})`);
-  }
-  $('upd-value').value='';
-  $('upd-date').value=new Date().toISOString().slice(0,10);
-  $('upd-notes').value='';
+  if(inv.type==='crypto'){setHtml('upd-info',`<b>${inv.name}</b> &nbsp;&middot;&nbsp; Current: ${(inv.btcQty||0).toFixed(5)} BTC &nbsp;&middot;&nbsp; Crypto`);setHtml('upd-val-label','New BTC Quantity');}
+  else{setHtml('upd-info',`<b>${inv.name}</b> &nbsp;&middot;&nbsp; Current: ${fmtCurC(inv.currentValue||0,cur)} &nbsp;&middot;&nbsp; ${inv.type}`);setHtml('upd-val-label',`New Value (${cur})`);}
+  $('upd-value').value='';$('upd-date').value=new Date().toISOString().slice(0,10);$('upd-notes').value='';
   $('ov-upd').classList.add('on');
 }
 
 function saveUpdate(){
-  const id=getVal('upd-id');
-  const newVal=parseFloat($('upd-value').value);
-  const date=getVal('upd-date');
+  const id=getVal('upd-id'),newVal=parseFloat($('upd-value').value),date=getVal('upd-date');
   if(!id||isNaN(newVal)||newVal<=0){toast('Enter a valid value','err');return;}
   const idx=INV.findIndex(i=>i.id===id);if(idx<0)return;
   const inv=INV[idx];
-  if(inv.type==='crypto'){
-    const prevQty=inv.btcQty||0;
-    INV[idx].btcQty=newVal;
-    HIST.push({date:date||new Date().toISOString().slice(0,10),value:getStats().total,note:getVal('upd-notes')});
-    save('inv');save('hist');closeModal('ov-upd');
-    toast(`${inv.name}: ${prevQty.toFixed(5)} BTC → ${newVal.toFixed(5)} BTC`,'ok');
-  } else {
-    const prev=inv.currentValue||0;
-    INV[idx].currentValue=newVal;
-    HIST.push({date:date||new Date().toISOString().slice(0,10),value:getStats().total,note:getVal('upd-notes')});
-    save('inv');save('hist');closeModal('ov-upd');
-    const cur=inv.currency||'IDR';
-    const diff=newVal-prev;
-    toast(`${inv.name}: ${fmtCurC(prev,cur)} → ${fmtCurC(newVal,cur)} (${diff>=0?'+':''}${fmtCurC(diff,cur)})`,'ok');
-  }
+  if(inv.type==='crypto'){const prevQty=inv.btcQty||0;INV[idx].btcQty=newVal;HIST.push({date:date||new Date().toISOString().slice(0,10),value:getStats().total,note:getVal('upd-notes')});save('inv');save('hist');closeModal('ov-upd');toast(`${inv.name}: ${prevQty.toFixed(5)} BTC → ${newVal.toFixed(5)} BTC`,'ok');}
+  else{const prev=inv.currentValue||0;INV[idx].currentValue=newVal;HIST.push({date:date||new Date().toISOString().slice(0,10),value:getStats().total,note:getVal('upd-notes')});save('inv');save('hist');closeModal('ov-upd');const cur=inv.currency||'IDR';const diff=newVal-prev;toast(`${inv.name}: ${fmtCurC(prev,cur)} → ${fmtCurC(newVal,cur)} (${diff>=0?'+':''}${fmtCurC(diff,cur)})`,'ok');}
   renderAll();
 }
 
@@ -988,48 +906,26 @@ function selAssetType(t,el){
   document.querySelectorAll('#ov-asset .type-opt').forEach(o=>{o.className='type-opt';});
   el.classList.add('sel-'+t);
   const def=ASSET_TYPE_DEFAULTS[t]||{rate:0,depreciating:false,change:'static'};
-  $('asset-change').value=def.change;
-  $('asset-rate').value=def.rate;
+  $('asset-change').value=def.change;$('asset-rate').value=def.rate;
   const hints={property:'Properti di Indonesia rata-rata apresiasi ~5%/yr',vehicle:'Kendaraan umumnya depresiasi ~10-15%/yr',other:'Set rate sesuai jenis aset'};
   $('asset-rate-hint').textContent=hints[t]||'';
   updateAssetCalc();
 }
 function onAssetChangeType(){updateAssetCalc();}
 function updateAssetCalc(){
-  const val=parseFloat($('asset-value').value)||0;
-  const rate=parseFloat($('asset-rate').value)||0;
-  const changeType=$('asset-change').value;
-  const dateStr=getVal('asset-date');
-  const disp=$('asset-est-display');
-  if(val>0){
-    const acq=dateStr?new Date(dateStr):new Date();
-    const years=Math.max(0,(Date.now()-acq)/(1000*60*60*24*365.25));
-    const r=rate/100;
-    let factor=1;
-    if(changeType==='depreciate')factor=Math.pow(1-Math.min(r,0.99),years);
-    else if(changeType==='appreciate')factor=Math.pow(1+r,years);
-    const est=val*factor;
-    setHtml('asset-est-val',fmt(est,true));
-    if(disp)disp.style.display='block';
-  } else {
-    if(disp)disp.style.display='none';
-  }
+  const val=parseFloat($('asset-value').value)||0,rate=parseFloat($('asset-rate').value)||0,changeType=$('asset-change').value,dateStr=getVal('asset-date'),disp=$('asset-est-display');
+  if(val>0){const acq=dateStr?new Date(dateStr):new Date();const years=Math.max(0,(Date.now()-acq)/(1000*60*60*24*365.25));const r=rate/100;let factor=1;if(changeType==='depreciate')factor=Math.pow(1-Math.min(r,0.99),years);else if(changeType==='appreciate')factor=Math.pow(1+r,years);setHtml('asset-est-val',fmt(val*factor,true));if(disp)disp.style.display='block';}
+  else{if(disp)disp.style.display='none';}
 }
 
 function openAddAsset(){
-  EDIT_ASSET_ID=null;
-  EDIT_ASSET_TYPE='property';
+  EDIT_ASSET_ID=null;EDIT_ASSET_TYPE='property';
   $('asset-m-title').textContent='Add Asset';
-  $('asset-id').value='';
-  $('asset-name').value='';
-  $('asset-date').value='';
-  $('asset-value').value='';
-  $('asset-notes').value='';
+  ['asset-id','asset-name','asset-date','asset-value','asset-notes'].forEach(id=>{const e=$(id);if(e)e.value='';});
   $('asset-del-btn').style.display='none';
   document.querySelectorAll('#ov-asset .type-opt').forEach(o=>o.className='type-opt');
   const def=ASSET_TYPE_DEFAULTS['property'];
-  $('asset-change').value=def.change;
-  $('asset-rate').value=def.rate;
+  $('asset-change').value=def.change;$('asset-rate').value=def.rate;
   $('asset-rate-hint').textContent='Properti di Indonesia rata-rata apresiasi ~5%/yr';
   $('asset-est-display').style.display='none';
   const propEl=$('at-property');if(propEl)propEl.classList.add('sel-property');
@@ -1038,45 +934,26 @@ function openAddAsset(){
 
 function openEditAsset(id){
   const a=ASSETS.find(x=>x.id===id);if(!a)return;
-  EDIT_ASSET_ID=id;
-  EDIT_ASSET_TYPE=a.type||'property';
+  EDIT_ASSET_ID=id;EDIT_ASSET_TYPE=a.type||'property';
   $('asset-m-title').textContent='Edit Asset';
-  $('asset-id').value=a.id;
-  $('asset-name').value=a.name;
-  $('asset-date').value=a.acquisitionDate||'';
-  $('asset-value').value=a.value||'';
-  $('asset-notes').value=a.notes||'';
-  $('asset-rate').value=a.rate||0;
+  $('asset-id').value=a.id;$('asset-name').value=a.name;$('asset-date').value=a.acquisitionDate||'';
+  $('asset-value').value=a.value||'';$('asset-notes').value=a.notes||'';$('asset-rate').value=a.rate||0;
   $('asset-del-btn').style.display='inline-flex';
   document.querySelectorAll('#ov-asset .type-opt').forEach(o=>o.className='type-opt');
   const tEl=$('at-'+a.type);if(tEl)tEl.classList.add('sel-'+a.type);
-  let chg='static';
-  if(a.depreciating)chg='depreciate';
-  else if((a.rate||0)>0)chg='appreciate';
-  $('asset-change').value=chg;
-  updateAssetCalc();
+  let chg='static';if(a.depreciating)chg='depreciate';else if((a.rate||0)>0)chg='appreciate';
+  $('asset-change').value=chg;updateAssetCalc();
   $('ov-asset').classList.add('on');
 }
 
 function saveAsset(){
-  const name=getVal('asset-name');
-  const acquisitionDate=getVal('asset-date');
-  const value=parseFloat($('asset-value').value)||0;
-  const rate=parseFloat($('asset-rate').value)||0;
-  const notes=getVal('asset-notes');
-  const changeType=$('asset-change').value;
-  const type=EDIT_ASSET_TYPE||'other';
+  const name=getVal('asset-name'),acquisitionDate=getVal('asset-date'),value=parseFloat($('asset-value').value)||0,rate=parseFloat($('asset-rate').value)||0,notes=getVal('asset-notes'),changeType=$('asset-change').value,type=EDIT_ASSET_TYPE||'other';
   if(!name){toast('Enter asset name','err');return;}
   if(value<=0){toast('Enter original value','err');return;}
-  const depreciating=changeType==='depreciate';
-  const effectiveRate=changeType==='static'?0:rate;
+  const depreciating=changeType==='depreciate',effectiveRate=changeType==='static'?0:rate;
   const obj={name,type,currency:'IDR',value,acquisitionDate,depreciating,rate:effectiveRate,notes};
-  if(EDIT_ASSET_ID){
-    const idx=ASSETS.findIndex(a=>a.id===EDIT_ASSET_ID);
-    if(idx>=0){ASSETS[idx]={...ASSETS[idx],...obj};toast(`${name} updated`,'ok');}
-  } else {
-    ASSETS.push({id:uid(),...obj});toast(`${name} added`,'ok');
-  }
+  if(EDIT_ASSET_ID){const idx=ASSETS.findIndex(a=>a.id===EDIT_ASSET_ID);if(idx>=0){ASSETS[idx]={...ASSETS[idx],...obj};toast(`${name} updated`,'ok');}}
+  else{ASSETS.push({id:uid(),...obj});toast(`${name} added`,'ok');}
   save('assets');closeModal('ov-asset');renderAssets();const s=getStats();renderHeader(s);
 }
 
@@ -1088,13 +965,7 @@ function deleteAsset(){
   save('assets');closeModal('ov-asset');toast(`${a?.name} deleted`,'warn');renderAssets();const s=getStats();renderHeader(s);
 }
 
-function toggleIncludeAssets(){
-  INCLUDE_ASSETS=!INCLUDE_ASSETS;
-  save('inc');
-  const s=getStats();
-  renderDashboard(s);
-  renderHeader(s);
-}
+function toggleIncludeAssets(){INCLUDE_ASSETS=!INCLUDE_ASSETS;save('inc');const s=getStats();renderDashboard(s);renderHeader(s);}
 
 function toast(msg,t='ok'){const el=document.createElement('div');el.className=`toast-item ti-${t}`;el.innerHTML=(t==='ok'?'✓':t==='err'?'⚠':'ℹ')+' '+msg;$('toast').appendChild(el);setTimeout(()=>el.remove(),3500);}
 
@@ -1104,4 +975,5 @@ try{renderAll();}catch(e){console.error(e);}
 fetchBTC();setInterval(fetchBTC,120000);
 </script>
 </body>
+<!-- v2 -->
 </html>
