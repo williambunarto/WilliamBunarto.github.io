@@ -64,17 +64,17 @@ jobs:
           scp -i /tmp/deploy_key -o StrictHostKeyChecking=no \
             wbtrade/scripts/healthos.conf ubuntu@williambunarto.duckdns.org:/tmp/healthos.conf
           ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@williambunarto.duckdns.org \
-            "sudo cp /tmp/healthos.conf /etc/nginx/sites-available/healthos && sudo nginx -t && sudo systemctl restart nginx"
+            "sudo cp /tmp/healthos.conf /etc/nginx/sites-available/healthos && echo 'File copied' && sudo nginx -t && sudo systemctl restart nginx && echo 'Nginx restarted'"
 
       - name: Start / restart wbtrade service
         run: |
           ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@williambunarto.duckdns.org \
             "sudo systemctl restart wbtrade && sleep 3 && sudo systemctl status wbtrade --no-pager -l"
 
-      - name: Debug - test uvicorn and nginx
+      - name: Debug - dump active nginx config
         run: |
           ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@williambunarto.duckdns.org \
-            "echo '=== uvicorn direct ===' && curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8001/ && echo && echo '=== nginx /trade/ verbose ===' && curl -v http://127.0.0.1/trade/ 2>&1 | head -30"
+            "echo '=== sites-enabled ===' && ls -la /etc/nginx/sites-enabled/ && echo '=== healthos file on disk ===' && grep -n 'trade\|8001' /etc/nginx/sites-available/healthos && echo '=== nginx -T (active loaded config) ===' && sudo nginx -T 2>&1 | grep -n 'trade\|8001\|listen\|server_name' | head -40"
 
       - name: Smoke test
         run: |
