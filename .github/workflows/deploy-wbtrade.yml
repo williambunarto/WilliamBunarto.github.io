@@ -50,7 +50,7 @@ jobs:
       - name: Setup venv and install dependencies
         run: |
           ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@williambunarto.duckdns.org \
-            "sudo apt-get install -y python3-venv python3-pip > /dev/null 2>&1; cd /home/ubuntu/wbtrade && ([ -d venv ] || python3 -m venv venv) && venv/bin/pip install -q --upgrade pip && venv/bin/pip install -q -r requirements.txt"
+            "sudo apt-get install -y python3-venv python3-pip > /dev/null 2>&1 && cd /home/ubuntu/wbtrade && ([ -f venv/bin/pip ] || (rm -rf venv && python3 -m venv venv)) && venv/bin/pip install -q --upgrade pip && venv/bin/pip install -q -r requirements.txt"
 
       - name: Install systemd service
         run: |
