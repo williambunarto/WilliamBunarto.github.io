@@ -76,6 +76,11 @@ jobs:
           ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@williambunarto.duckdns.org \
             "sudo systemctl restart wbtrade && sleep 3 && sudo systemctl status wbtrade --no-pager -l"
 
+      - name: Debug - dump nginx config and test uvicorn directly
+        run: |
+          ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@williambunarto.duckdns.org \
+            "echo '=== sites-enabled files ===' && ls /etc/nginx/sites-enabled/ && echo '=== default config (trade sections) ===' && grep -n 'trade\|8001\|server_name' /etc/nginx/sites-available/default || true && echo '=== healthos config ===' && cat /etc/nginx/sites-available/healthos 2>/dev/null || true && echo '=== direct uvicorn test ===' && curl -s -o /dev/null -w 'uvicorn /: %{http_code}' http://127.0.0.1:8001/ && echo && curl -s -o /dev/null -w 'nginx /trade/: %{http_code}' http://127.0.0.1/trade/ && echo"
+
       - name: Smoke test
         run: |
           sleep 5
