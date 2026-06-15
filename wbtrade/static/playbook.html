@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WB Trade — Playbook</title>
+  <link rel="stylesheet" href="/trade/static/css/style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.0.0/dist/tabler-icons.min.css">
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="logo">wb<span>trade</span></div>
+    <div id="market-banner"><span class="state-pill state-neutral">→ NEUTRAL</span><span class="banner-reason">Loading...</span></div>
+    <div id="btc-price" class="mono">—</div>
+    <nav><a href="/trade/">Dashboard</a><a href="/trade/journal">Journal</a><a href="/trade/plan">Plan</a><a href="/trade/spot">Spot</a><a href="/trade/stats">Stats</a><a href="/trade/playbook" class="active">Playbook</a></nav>
+  </header>
+  <main>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+      <div><h2 style="font-size:18px;font-weight:500">Strategy Playbook</h2><p class="muted" style="font-size:13px;margin-top:4px">Your documented setups.</p></div>
+      <button class="btn btn-primary" onclick="openPlaybookModal()"><i class="ti ti-plus"></i> Add setup</button>
+    </div>
+    <div id="playbook-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:16px">
+      <div class="card muted" style="text-align:center;padding:40px">Loading setups...</div>
+    </div>
+  </main>
+</div>
+<div class="modal-backdrop hidden" id="playbook-modal"><div class="modal" style="max-width:580px"><div class="modal-header"><span class="modal-title">Add setup</span><button class="modal-close" onclick="document.getElementById('playbook-modal').classList.add('hidden')">×</button></div>
+<form id="playbook-form" onsubmit="submitSetup(event)">
+<div class="form-group"><label>Setup name</label><input type="text" name="name" required></div>
+<div class="form-group"><label>Description</label><textarea name="description" rows="2"></textarea></div>
+<div class="form-group"><label>Required conditions (one per line)</label><textarea name="conditions" rows="4"></textarea></div>
+<div class="form-group"><label>Volume behavior</label><input type="text" name="volume_behavior"></div>
+<div class="form-group"><label>Funding context</label><input type="text" name="funding_context"></div>
+<div class="form-group"><label>Best market state</label><select name="best_market_state"><option value="any">Any</option><option value="super_long">Super Long</option><option value="long">Long</option><option value="neutral">Neutral</option><option value="short">Short</option><option value="super_short">Super Short</option></select></div>
+<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px"><button type="button" class="btn btn-secondary" onclick="document.getElementById('playbook-modal').classList.add('hidden')">Cancel</button><button type="submit" class="btn btn-primary">Save setup</button></div>
+</form></div></div>
+<div id="toast"></div>
+<script src="/trade/static/js/app.js"></script>
+<script src="/trade/static/js/playbook.js"></script>
+</body></html>

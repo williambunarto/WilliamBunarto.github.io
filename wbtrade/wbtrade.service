@@ -1,0 +1,21 @@
+[Unit]
+Description=WB Trade — BTC Trading Journal System
+After=network.target
+Wants=network-online.target
+
+[Service]
+Type=exec
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/home/ubuntu/wbtrade
+Environment="WBTRADE_DB=/home/ubuntu/wbtrade/data/trade.db"
+Environment="WBTRADE_UPLOADS=/home/ubuntu/wbtrade/uploads"
+ExecStart=/home/ubuntu/wbtrade/venv/bin/uvicorn main:app --host 127.0.0.1 --port 8001 --workers 1
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=wbtrade
+
+[Install]
+WantedBy=multi-user.target

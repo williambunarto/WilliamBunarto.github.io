@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WB Trade — Stats</title>
+  <link rel="stylesheet" href="/trade/static/css/style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.0.0/dist/tabler-icons.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="logo">wb<span>trade</span></div>
+    <div id="market-banner"><span class="state-pill state-neutral">→ NEUTRAL</span><span class="banner-reason">Loading...</span></div>
+    <div id="btc-price" class="mono">—</div>
+    <nav><a href="/trade/">Dashboard</a><a href="/trade/journal">Journal</a><a href="/trade/plan">Plan</a><a href="/trade/spot">Spot</a><a href="/trade/stats" class="active">Stats</a><a href="/trade/playbook">Playbook</a></nav>
+  </header>
+  <main>
+    <div class="grid-4" style="margin-bottom:20px">
+      <div class="stat-tile"><div class="stat-label">Total PnL</div><div class="stat-value mono" id="s-pnl">—</div><div class="stat-sub" id="s-trades">—</div></div>
+      <div class="stat-tile"><div class="stat-label">Win Rate</div><div class="stat-value mono" id="s-wr">—</div><div class="stat-sub" id="s-wl">—</div></div>
+      <div class="stat-tile"><div class="stat-label">Avg R</div><div class="stat-value mono" id="s-r">—</div><div class="stat-sub">per trade</div></div>
+      <div class="stat-tile"><div class="stat-label">Best / Worst</div><div class="stat-value mono green" id="s-best">—</div><div class="stat-sub mono red" id="s-worst">—</div></div>
+    </div>
+    <div class="grid-2" style="margin-bottom:20px">
+      <div class="card"><div class="card-header"><span class="card-title">Equity curve</span></div><canvas id="chart-equity" height="180"></canvas></div>
+      <div class="card"><div class="card-header"><span class="card-title">Monthly PnL</span></div><canvas id="chart-monthly" height="180"></canvas></div>
+    </div>
+    <div class="grid-2" style="margin-bottom:20px">
+      <div class="card"><div class="card-header"><span class="card-title">Win rate by setup</span></div>
+        <div class="table-wrap"><table><thead><tr><th>Setup</th><th>Trades</th><th>Win rate</th><th>Total PnL</th><th>Avg R</th></tr></thead><tbody id="setup-body"><tr><td colspan="5" class="muted" style="text-align:center;padding:24px">No data yet</td></tr></tbody></table></div></div>
+      <div class="card"><div class="card-header"><span class="card-title">Psychology vs outcome</span></div>
+        <div class="table-wrap"><table><thead><tr><th>State</th><th>Trades</th><th>Win rate</th><th>Total PnL</th></tr></thead><tbody id="psych-body"><tr><td colspan="4" class="muted" style="text-align:center;padding:24px">No data yet</td></tr></tbody></table></div></div>
+    </div>
+  </main>
+</div>
+<div id="toast"></div>
+<script src="/trade/static/js/app.js"></script>
+<script src="/trade/static/js/stats.js"></script>
+</body></html>

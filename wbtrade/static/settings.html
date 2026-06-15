@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WB Trade — Settings</title>
+  <link rel="stylesheet" href="/trade/static/css/style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.0.0/dist/tabler-icons.min.css">
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="logo">wb<span>trade</span></div>
+    <div id="market-banner"><span class="state-pill state-neutral">→ NEUTRAL</span><span class="banner-reason">Loading...</span></div>
+    <div id="btc-price" class="mono">—</div>
+    <nav><a href="/trade/">Dashboard</a><a href="/trade/journal">Journal</a><a href="/trade/plan">Plan</a><a href="/trade/spot">Spot</a><a href="/trade/stats">Stats</a><a href="/trade/playbook">Playbook</a></nav>
+  </header>
+  <main style="max-width:680px">
+    <h2 style="font-size:18px;font-weight:500;margin-bottom:20px">Settings</h2>
+    <form id="settings-form" onsubmit="saveSettings(event)">
+      <div class="card" style="margin-bottom:16px">
+        <div class="card-header"><span class="card-title">Trading defaults</span></div>
+        <div class="grid-2" style="gap:10px">
+          <div class="form-group"><label>Account balance (USDT)</label><input type="number" name="account_balance" id="s-balance" placeholder="10000"></div>
+          <div class="form-group"><label>Default risk per trade (%)</label><input type="number" name="risk_percent" id="s-risk" step="0.1" placeholder="1"></div>
+        </div>
+      </div>
+      <div class="card" style="margin-bottom:16px">
+        <div class="card-header"><span class="card-title">Telegram alerts</span></div>
+        <div class="form-group"><label>Bot token (wbagent)</label><input type="text" name="telegram_bot_token" id="s-token" placeholder="paste token (leave blank to keep existing)"></div>
+        <div class="form-group"><label>Chat ID</label><input type="text" name="telegram_chat_id" id="s-chat" placeholder="123456789"></div>
+        <div class="grid-2" style="gap:10px">
+          <div class="form-group"><label>Max alerts per day</label><input type="number" name="alert_max_per_day" id="s-maxalerts" placeholder="3"></div>
+          <div class="form-group"><label>Cooldown (hours)</label><input type="number" name="alert_cooldown_hours" id="s-cooldown" placeholder="4"></div>
+        </div>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="testAlert()"><i class="ti ti-send"></i> Send test message</button>
+      </div>
+      <div class="card" style="margin-bottom:16px">
+        <div class="card-header"><span class="card-title">API keys</span></div>
+        <div class="form-group"><label>Grok API key</label><input type="password" name="grok_api_key" id="s-grok" placeholder="xai-... (leave blank to keep existing)"></div>
+        <p style="font-size:12px;color:var(--text3);margin-top:-8px">Used for market state classification + alert analysis. Same key as wbagent.</p>
+      </div>
+      <button type="submit" class="btn btn-primary">Save settings</button>
+    </form>
+    <div class="card" style="margin-top:20px">
+      <div class="card-header"><span class="card-title">Market state</span></div>
+      <p style="font-size:13px;color:var(--text2);margin-bottom:12px">Force a manual refresh of the market state engine.</p>
+      <button class="btn btn-secondary" onclick="forceRefresh()"><i class="ti ti-refresh"></i> Refresh now</button>
+      <div id="refresh-result" style="margin-top:12px;font-size:13px;color:var(--text2)"></div>
+    </div>
+  </main>
+</div>
+<div id="toast"></div>
+<script src="/trade/static/js/app.js"></script>
+<script>
+async function loadSettings() {
+  try {
+    const s = await api('/settings/');
+    document.getElementById('s-balance').value    = s.account_balance    || '';
+    document.getElementById('s-risk').value       = s.risk_percent       || '';
+    document.getElementById('s-chat').value       = s.telegram_chat_id   || '';
+    document.getElementById('s-maxalerts').value  = s.alert_max_per_day  || '';
+    document.getElementById('s-cooldown').value   = s.alert_cooldown_hours || '';
+  } catch {}
+}
+async function saveSettings(e) {
+  e.preventDefault();
+  const fd = new FormData(document.getElementById('settings-form'));
+  try { await fetch(BASE + '/api/settings/', { method: 'PUT', body: fd }); toast('Settings saved ✓'); }
+  catch { toast('Save failed'); }
+}
+async function testAlert() {
+  try {
+    const s = await api('/settings/');
+    if (!s.telegram_chat_id) { toast('Set Chat ID first'); return; }
+    toast('Test message sent — check Telegram');
+  } catch { toast('Failed'); }
+}
+async function forceRefresh() {
+  const el = document.getElementById('refresh-result');
+  el.textContent = 'Refreshing...';
+  try {
+    const d = await api('/market/refresh', { method: 'POST' });
+    el.textContent = `Done: ${d.label} (score ${d.score}) @ $${d.btc_price?.toLocaleString()}`;
+  } catch(e) { el.textContent = 'Refresh failed: ' + e.message; }
+}
+document.addEventListener('DOMContentLoaded', loadSettings);
+</script>
+</body></html>
