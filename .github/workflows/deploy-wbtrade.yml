@@ -59,27 +59,22 @@ jobs:
           ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@williambunarto.duckdns.org \
             "sudo mv /tmp/wbtrade.service /etc/systemd/system/wbtrade.service && sudo systemctl daemon-reload && sudo systemctl enable wbtrade"
 
-      - name: Patch nginx config
+      - name: Install nginx config (full replace)
         run: |
           scp -i /tmp/deploy_key -o StrictHostKeyChecking=no \
-            wbtrade/scripts/patch_nginx.py ubuntu@williambunarto.duckdns.org:/tmp/patch_nginx.py
+            wbtrade/scripts/healthos.conf ubuntu@williambunarto.duckdns.org:/tmp/healthos.conf
           ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@williambunarto.duckdns.org \
-            "sudo python3 /tmp/patch_nginx.py"
-
-      - name: Test nginx and reload
-        run: |
-          ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@williambunarto.duckdns.org \
-            "sudo nginx -t && sudo systemctl reload nginx"
+            "sudo cp /tmp/healthos.conf /etc/nginx/sites-available/healthos && sudo nginx -t && sudo systemctl restart nginx"
 
       - name: Start / restart wbtrade service
         run: |
           ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@williambunarto.duckdns.org \
             "sudo systemctl restart wbtrade && sleep 3 && sudo systemctl status wbtrade --no-pager -l"
 
-      - name: Debug - dump nginx config and test uvicorn directly
+      - name: Debug - test uvicorn and nginx
         run: |
           ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@williambunarto.duckdns.org \
-            "echo '=== sites-enabled files ===' && ls /etc/nginx/sites-enabled/ && echo '=== default config (trade sections) ===' && grep -n 'trade\|8001\|server_name' /etc/nginx/sites-available/default || true && echo '=== healthos config ===' && cat /etc/nginx/sites-available/healthos 2>/dev/null || true && echo '=== direct uvicorn test ===' && curl -s -o /dev/null -w 'uvicorn /: %{http_code}' http://127.0.0.1:8001/ && echo && curl -s -o /dev/null -w 'nginx /trade/: %{http_code}' http://127.0.0.1/trade/ && echo"
+            "echo '=== uvicorn direct ===' && curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8001/ && echo && echo '=== nginx /trade/ verbose ===' && curl -v http://127.0.0.1/trade/ 2>&1 | head -30"
 
       - name: Smoke test
         run: |
