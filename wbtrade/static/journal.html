@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WB Trade — Journal</title>
+  <link rel="stylesheet" href="/trade/static/css/style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.0.0/dist/tabler-icons.min.css">
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="logo">wb<span>trade</span></div>
+    <div id="market-banner"><span class="state-pill state-neutral">→ NEUTRAL</span><span class="banner-reason">Loading...</span></div>
+    <div id="btc-price" class="mono">—</div>
+    <nav><a href="/trade/">Dashboard</a><a href="/trade/journal" class="active">Journal</a><a href="/trade/plan">Plan</a><a href="/trade/spot">Spot</a><a href="/trade/stats">Stats</a><a href="/trade/playbook">Playbook</a></nav>
+  </header>
+  <main>
+    <div class="tabs" id="journal-tabs">
+      <div class="tab active" data-tab="tab-trades">Futures Trades</div>
+      <div class="tab" data-tab="tab-daily">Daily Bias</div>
+      <div class="tab" data-tab="tab-monthly">Monthly Review</div>
+    </div>
+    <div class="tab-panel active" id="tab-trades">
+      <div class="card" style="margin-bottom:16px">
+        <div class="card-header"><span class="card-title">Trade log</span>
+          <div style="display:flex;gap:8px;align-items:center">
+            <select id="filter-outcome" class="btn btn-secondary btn-sm" style="padding:5px 10px" onchange="loadTrades()"><option value="">All outcomes</option><option value="win">Wins</option><option value="loss">Losses</option><option value="be">Breakeven</option></select>
+            <select id="filter-setup" class="btn btn-secondary btn-sm" style="padding:5px 10px" onchange="loadTrades()"><option value="">All setups</option><option value="trend_follow">Trend follow</option><option value="breakout">Breakout</option><option value="reversal">Reversal</option><option value="range">Range</option><option value="news">News play</option></select>
+            <button class="btn btn-primary btn-sm" onclick="openTradeModal()"><i class="ti ti-plus"></i> Log trade</button>
+          </div>
+        </div>
+        <div class="table-wrap"><table><thead><tr><th>Date</th><th>Dir</th><th>Entry</th><th>Exit</th><th>Size</th><th>Lev</th><th>SL</th><th>PnL</th><th>R</th><th>Setup</th><th>Vol</th><th>Psych</th><th>Bias</th><th>Outcome</th><th></th></tr></thead>
+        <tbody id="trades-body"><tr><td colspan="15" class="muted" style="text-align:center;padding:32px">No trades logged yet</td></tr></tbody></table></div>
+      </div>
+    </div>
+    <div class="tab-panel" id="tab-daily">
+      <div class="grid-2" style="gap:16px">
+        <div class="card">
+          <div class="card-header"><span class="card-title">Today's bias log</span><input type="date" id="daily-date" class="btn btn-secondary btn-sm" style="padding:5px 10px" onchange="loadDailyEntry()"></div>
+          <div class="form-group"><label>Pre-market bias</label><textarea id="d-premarket" rows="3" placeholder="BTC looks bullish..."></textarea></div>
+          <div class="form-group"><label>Key levels watching</label><textarea id="d-levels" rows="2" placeholder="Support: 97,500 — Resistance: 99,200"></textarea></div>
+          <div class="form-group"><label>Macro / news today</label><textarea id="d-macro" rows="2" placeholder="FOMC, CPI, ETF flows..."></textarea></div>
+          <div class="form-group"><label>Post-session notes</label><textarea id="d-postsession" rows="3" placeholder="What actually happened..."></textarea></div>
+          <div class="form-group"><label>Day rating</label>
+            <div style="display:flex;gap:8px">
+              <button class="btn btn-secondary btn-sm day-rating" data-val="good" onclick="setDayRating('good')">Good</button>
+              <button class="btn btn-secondary btn-sm day-rating" data-val="neutral" onclick="setDayRating('neutral')">Neutral</button>
+              <button class="btn btn-secondary btn-sm day-rating" data-val="bad" onclick="setDayRating('bad')">Bad</button>
+            </div>
+          </div>
+          <button class="btn btn-primary" style="margin-top:12px;width:100%" onclick="saveDailyEntry()">Save day log</button>
+        </div>
+        <div class="card"><div class="card-header"><span class="card-title">Recent days</span></div><div id="daily-history"><p class="muted" style="padding:8px 0">No entries yet</p></div></div>
+      </div>
+    </div>
+    <div class="tab-panel" id="tab-monthly">
+      <div class="grid-2" style="gap:16px">
+        <div class="card">
+          <div class="card-header"><span class="card-title">Monthly review</span><div style="display:flex;gap:6px"><select id="m-year" class="btn btn-secondary btn-sm" style="padding:5px 10px" onchange="loadMonthlyEntry()"></select><select id="m-month" class="btn btn-secondary btn-sm" style="padding:5px 10px" onchange="loadMonthlyEntry()"><option value="1">Jan</option><option value="2">Feb</option><option value="3">Mar</option><option value="4">Apr</option><option value="5">May</option><option value="6">Jun</option><option value="7">Jul</option><option value="8">Aug</option><option value="9">Sep</option><option value="10">Oct</option><option value="11">Nov</option><option value="12">Dec</option></select></div></div>
+          <div class="grid-2" style="gap:10px;margin-bottom:14px">
+            <div class="form-group"><label>Starting balance (USDT)</label><input type="number" id="m-start" placeholder="10000"></div>
+            <div class="form-group"><label>Ending balance (USDT)</label><input type="number" id="m-end" placeholder="11200"></div>
+          </div>
+          <div class="form-group"><label>Goals set</label><textarea id="m-goals" rows="2"></textarea></div>
+          <div class="form-group"><label>Goals achieved</label><textarea id="m-achieved" rows="2"></textarea></div>
+          <div class="form-group"><label>Lessons learned</label><textarea id="m-lessons" rows="3"></textarea></div>
+          <div class="form-group"><label>Next month goals</label><textarea id="m-next" rows="2"></textarea></div>
+          <div class="form-group"><label>Emotional pattern</label><textarea id="m-emotion" rows="2"></textarea></div>
+          <button class="btn btn-primary" style="width:100%" onclick="saveMonthlyEntry()">Save review</button>
+        </div>
+        <div class="card"><div class="card-header"><span class="card-title">Past reviews</span></div><div id="monthly-history"><p class="muted" style="padding:8px 0">No reviews yet</p></div></div>
+      </div>
+    </div>
+  </main>
+</div>
+<div class="modal-backdrop hidden" id="trade-detail-modal"><div class="modal" style="max-width:700px"><div class="modal-header"><span class="modal-title" id="detail-title">Trade detail</span><button class="modal-close" onclick="closeDetailModal()">×</button></div><div id="detail-content"></div></div></div>
+<div class="modal-backdrop hidden" id="trade-modal"><div class="modal"><div class="modal-header"><span class="modal-title">Log trade</span><button class="modal-close" onclick="closeTradeModal()">×</button></div>
+<form id="trade-form" onsubmit="submitTrade(event)"><div class="grid-2" style="gap:10px">
+<div class="form-group"><label>Direction</label><select name="direction" required><option value="long">Long</option><option value="short">Short</option></select></div>
+<div class="form-group"><label>Outcome</label><select name="outcome"><option value="">Open</option><option value="win">Win</option><option value="loss">Loss</option><option value="be">Breakeven</option></select></div>
+<div class="form-group"><label>Entry price</label><input type="number" name="entry_price" step="0.01" required></div>
+<div class="form-group"><label>Exit price</label><input type="number" name="exit_price" step="0.01"></div>
+<div class="form-group"><label>Position size (USDT)</label><input type="number" name="position_size_usdt" step="0.01" required></div>
+<div class="form-group"><label>Leverage</label><input type="number" name="leverage" value="10" min="1"></div>
+<div class="form-group"><label>Stop loss</label><input type="number" name="stop_loss" step="0.01"></div>
+<div class="form-group"><label>Take profit</label><input type="number" name="take_profit" step="0.01"></div>
+<div class="form-group"><label>Setup tag</label><select name="setup_tag"><option value="">—</option><option value="trend_follow">Trend follow</option><option value="breakout">Breakout</option><option value="reversal">Reversal</option><option value="range">Range</option><option value="news">News play</option><option value="other">Other</option></select></div>
+<div class="form-group"><label>Volume</label><select name="volume_tag"><option value="normal">Normal</option><option value="high">High</option><option value="low">Low</option></select></div>
+<div class="form-group"><label>Psychology</label><select name="psychology_tag"><option value="disciplined">Disciplined</option><option value="focused">Focused</option><option value="distracted">Distracted</option><option value="fomo">FOMO</option><option value="revenge">Revenge</option><option value="overconfident">Overconfident</option></select></div>
+<div class="form-group"><label>Screenshot</label><input type="file" name="screenshot" accept="image/*"></div>
+</div>
+<div class="form-group"><label>Notes</label><textarea name="notes" placeholder="Setup thesis..."></textarea></div>
+<div class="form-group"><label>Rule violations</label><div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px">
+<label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text)"><input type="checkbox" name="rv" value="moved_sl"> Moved SL</label>
+<label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text)"><input type="checkbox" name="rv" value="sized_up"> Sized up</label>
+<label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text)"><input type="checkbox" name="rv" value="entered_early"> Entered early</label>
+<label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text)"><input type="checkbox" name="rv" value="chased"> Chased price</label>
+<label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text)"><input type="checkbox" name="rv" value="no_plan"> No plan</label>
+</div></div>
+<div style="display:flex;gap:10px;justify-content:flex-end;margin-top:8px"><button type="button" class="btn btn-secondary" onclick="closeTradeModal()">Cancel</button><button type="submit" class="btn btn-primary">Save trade</button></div>
+</form></div></div>
+<div id="toast"></div>
+<script src="/trade/static/js/app.js"></script>
+<script src="/trade/static/js/journal.js"></script>
+</body></html>

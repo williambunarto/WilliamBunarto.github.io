@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WB Trade — Plan</title>
+  <link rel="stylesheet" href="/trade/static/css/style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.0.0/dist/tabler-icons.min.css">
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="logo">wb<span>trade</span></div>
+    <div id="market-banner"><span class="state-pill state-neutral">→ NEUTRAL</span><span class="banner-reason">Loading...</span></div>
+    <div id="btc-price" class="mono">—</div>
+    <nav><a href="/trade/">Dashboard</a><a href="/trade/journal">Journal</a><a href="/trade/plan" class="active">Plan</a><a href="/trade/spot">Spot</a><a href="/trade/stats">Stats</a><a href="/trade/playbook">Playbook</a></nav>
+  </header>
+  <main>
+    <div class="grid-2" style="gap:16px">
+      <div class="card">
+        <div class="card-header"><span class="card-title">Build trade plan</span></div>
+        <form id="plan-form" onsubmit="submitPlan(event)">
+          <div class="form-group"><label>Direction</label><div style="display:flex;gap:8px"><button type="button" class="btn btn-secondary" id="dir-long" onclick="setDir('long')" style="flex:1">⬆ Long</button><button type="button" class="btn btn-secondary" id="dir-short" onclick="setDir('short')" style="flex:1">⬇ Short</button></div><input type="hidden" name="direction" id="plan-direction" required></div>
+          <div class="form-group"><label>Trade thesis</label><textarea name="thesis" rows="3" placeholder="BTC breaking above 98k..."></textarea></div>
+          <div class="grid-2" style="gap:10px">
+            <div class="form-group"><label>Entry zone — low</label><input type="number" name="entry_zone_low" step="0.01" oninput="updatePlanCalc()"></div>
+            <div class="form-group"><label>Entry zone — high</label><input type="number" name="entry_zone_high" step="0.01" oninput="updatePlanCalc()"></div>
+            <div class="form-group"><label>Stop loss</label><input type="number" name="stop_loss" step="0.01" oninput="updatePlanCalc()"></div>
+            <div class="form-group"><label>TP1</label><input type="number" name="tp1" step="0.01" oninput="updatePlanCalc()"></div>
+            <div class="form-group"><label>TP2</label><input type="number" name="tp2" step="0.01" oninput="updatePlanCalc()"></div>
+            <div class="form-group"><label>Position size (USDT)</label><input type="number" name="position_size_usdt" step="0.01" id="plan-size"></div>
+          </div>
+          <div class="form-group"><label>Thesis invalidation</label><textarea name="invalidation" rows="2"></textarea></div>
+          <div id="plan-rr-preview" style="background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:12px;margin-bottom:14px;display:none">
+            <div style="font-size:11px;color:var(--text3);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px">Plan preview</div>
+            <div class="grid-2" style="gap:8px;font-size:12px">
+              <div><span class="muted">SL distance</span><div class="mono red" id="pp-sl">—</div></div>
+              <div><span class="muted">TP1 R:R</span><div class="mono green" id="pp-rr1">—</div></div>
+              <div><span class="muted">TP2 R:R</span><div class="mono green" id="pp-rr2">—</div></div>
+              <div><span class="muted">Market bias now</span><div class="mono" id="pp-bias">—</div></div>
+            </div>
+          </div>
+          <button type="submit" class="btn btn-primary" style="width:100%"><i class="ti ti-clipboard-check"></i> Save plan</button>
+        </form>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">Open plans</span></div>
+        <div id="plans-list"><p class="muted" style="padding:8px 0">No open plans</p></div>
+        <div class="card-header" style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)"><span class="card-title">Past plans</span></div>
+        <div id="plans-past"><p class="muted" style="padding:8px 0">No history yet</p></div>
+      </div>
+    </div>
+  </main>
+</div>
+<div id="toast"></div>
+<script src="/trade/static/js/app.js"></script>
+<script src="/trade/static/js/plan.js"></script>
+</body></html>

@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WB Trade — Dashboard</title>
+  <link rel="stylesheet" href="/trade/static/css/style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.0.0/dist/tabler-icons.min.css">
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="logo">wb<span>trade</span></div>
+    <div id="market-banner"><span class="state-pill state-neutral">→ NEUTRAL</span><span class="banner-reason">Loading...</span></div>
+    <div id="btc-price" class="mono">—</div>
+    <nav>
+      <a href="/trade/" class="active">Dashboard</a>
+      <a href="/trade/journal">Journal</a>
+      <a href="/trade/plan">Plan</a>
+      <a href="/trade/spot">Spot</a>
+      <a href="/trade/stats">Stats</a>
+      <a href="/trade/playbook">Playbook</a>
+    </nav>
+  </header>
+  <main>
+    <div class="grid-4" style="margin-bottom:20px" id="stat-tiles">
+      <div class="stat-tile"><div class="stat-label">Total PnL</div><div class="stat-value mono" id="s-pnl">—</div><div class="stat-sub" id="s-trades">0 trades</div></div>
+      <div class="stat-tile"><div class="stat-label">Win Rate</div><div class="stat-value mono" id="s-wr">—</div><div class="stat-sub" id="s-wl">0W / 0L</div></div>
+      <div class="stat-tile"><div class="stat-label">Avg R Multiple</div><div class="stat-value mono" id="s-r">—</div><div class="stat-sub">per closed trade</div></div>
+      <div class="stat-tile"><div class="stat-label">Best Trade</div><div class="stat-value mono green" id="s-best">—</div><div class="stat-sub mono red" id="s-worst">—</div></div>
+    </div>
+    <div class="grid-2" style="margin-bottom:20px">
+      <div class="card">
+        <div class="card-header"><span class="card-title">Market State</span><span id="ms-updated" class="muted" style="font-size:11px"></span></div>
+        <div id="ms-state-display" style="margin-bottom:16px">
+          <div style="font-size:28px;font-weight:600;font-family:var(--mono)" id="ms-label">—</div>
+          <div style="font-size:12px;color:var(--text2);margin-top:4px" id="ms-reason">Loading...</div>
+          <div style="font-size:11px;color:var(--loss);margin-top:4px" id="ms-risk"></div>
+        </div>
+        <div id="signal-bars">
+          <div class="signal-row"><span class="signal-label">EMA Trend</span><div class="signal-bar-wrap"><div class="signal-bar" id="bar-ema"></div></div><span class="signal-val" id="val-ema">0</span></div>
+          <div class="signal-row"><span class="signal-label">Volume</span><div class="signal-bar-wrap"><div class="signal-bar" id="bar-vol"></div></div><span class="signal-val" id="val-vol">0</span></div>
+          <div class="signal-row"><span class="signal-label">Funding</span><div class="signal-bar-wrap"><div class="signal-bar" id="bar-fund"></div></div><span class="signal-val" id="val-fund">0</span></div>
+          <div class="signal-row"><span class="signal-label">Fear &amp; Greed</span><div class="signal-bar-wrap"><div class="signal-bar" id="bar-fng"></div></div><span class="signal-val" id="val-fng">0</span></div>
+        </div>
+        <div style="margin-top:12px;display:flex;gap:16px;font-size:12px;color:var(--text2)">
+          <span>Funding: <span class="mono" id="ms-funding">—</span></span>
+          <span>F&amp;G: <span class="mono" id="ms-fng">—</span></span>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">Position Calculator</span><button class="btn btn-sm btn-secondary" onclick="saveCalcSettings()">Save defaults</button></div>
+        <div class="grid-2" style="gap:10px">
+          <div class="form-group"><label>Account balance (USDT)</label><input type="number" id="calc-balance" placeholder="10000" oninput="calcPosition()"></div>
+          <div class="form-group"><label>Risk per trade (%)</label><input type="number" id="calc-risk" value="1" step="0.1" oninput="calcPosition()"></div>
+          <div class="form-group"><label>Entry price</label><input type="number" id="calc-entry" placeholder="auto" oninput="calcPosition()"></div>
+          <div class="form-group"><label>Stop loss price</label><input type="number" id="calc-sl" placeholder="0" oninput="calcPosition()"></div>
+          <div class="form-group"><label>Take profit (optional)</label><input type="number" id="calc-tp" placeholder="0" oninput="calcPosition()"></div>
+          <div class="form-group"><label>Leverage</label><input type="number" id="calc-lev" value="10" min="1" max="100" oninput="calcPosition()"></div>
+        </div>
+        <div class="calc-result" id="calc-output" style="display:none">
+          <div class="calc-item"><label>Risk (USDT)</label><span id="co-risk" class="red">—</span></div>
+          <div class="calc-item"><label>Position size (USDT)</label><span id="co-size">—</span></div>
+          <div class="calc-item"><label>Position size (BTC)</label><span id="co-btc">—</span></div>
+          <div class="calc-item"><label>R:R Ratio</label><span id="co-rr">—</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header"><span class="card-title">Recent trades</span><button class="btn btn-primary btn-sm" onclick="openTradeModal()"><i class="ti ti-plus"></i> Log trade</button></div>
+      <div class="table-wrap">
+        <table><thead><tr><th>Date</th><th>Direction</th><th>Entry</th><th>Exit</th><th>Size</th><th>PnL</th><th>R</th><th>Setup</th><th>Outcome</th></tr></thead>
+        <tbody id="recent-trades-body"><tr><td colspan="9" class="muted" style="text-align:center;padding:32px">No trades yet</td></tr></tbody></table>
+      </div>
+    </div>
+  </main>
+</div>
+<div class="modal-backdrop hidden" id="trade-modal">
+  <div class="modal">
+    <div class="modal-header"><span class="modal-title">Log trade</span><button class="modal-close" onclick="closeTradeModal()">×</button></div>
+    <form id="trade-form" onsubmit="submitTrade(event)">
+      <div class="grid-2" style="gap:10px">
+        <div class="form-group"><label>Direction</label><select name="direction" required><option value="long">Long</option><option value="short">Short</option></select></div>
+        <div class="form-group"><label>Outcome</label><select name="outcome"><option value="">Open / TBD</option><option value="win">Win</option><option value="loss">Loss</option><option value="be">Breakeven</option></select></div>
+        <div class="form-group"><label>Entry price</label><input type="number" name="entry_price" step="0.01" required></div>
+        <div class="form-group"><label>Exit price</label><input type="number" name="exit_price" step="0.01"></div>
+        <div class="form-group"><label>Position size (USDT)</label><input type="number" name="position_size_usdt" step="0.01" required></div>
+        <div class="form-group"><label>Leverage</label><input type="number" name="leverage" value="10" min="1"></div>
+        <div class="form-group"><label>Stop loss</label><input type="number" name="stop_loss" step="0.01"></div>
+        <div class="form-group"><label>Take profit</label><input type="number" name="take_profit" step="0.01"></div>
+        <div class="form-group"><label>Setup tag</label><select name="setup_tag"><option value="">— select —</option><option value="trend_follow">Trend follow</option><option value="breakout">Breakout</option><option value="reversal">Reversal</option><option value="range">Range</option><option value="news">News play</option><option value="other">Other</option></select></div>
+        <div class="form-group"><label>Volume</label><select name="volume_tag"><option value="normal">Normal</option><option value="high">High</option><option value="low">Low</option></select></div>
+        <div class="form-group"><label>Psychology</label><select name="psychology_tag"><option value="disciplined">Disciplined</option><option value="focused">Focused</option><option value="distracted">Distracted</option><option value="fomo">FOMO</option><option value="revenge">Revenge</option><option value="overconfident">Overconfident</option></select></div>
+        <div class="form-group"><label>Screenshot</label><input type="file" name="screenshot" accept="image/*"></div>
+      </div>
+      <div class="form-group"><label>Notes</label><textarea name="notes" placeholder="Setup thesis, what you saw..."></textarea></div>
+      <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:8px">
+        <button type="button" class="btn btn-secondary" onclick="closeTradeModal()">Cancel</button>
+        <button type="submit" class="btn btn-primary">Save trade</button>
+      </div>
+    </form>
+  </div>
+</div>
+<div id="toast"></div>
+<script src="/trade/static/js/app.js"></script>
+<script src="/trade/static/js/dashboard.js"></script>
+</body>
+</html>

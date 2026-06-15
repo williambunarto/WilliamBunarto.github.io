@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WB Trade — Spot</title>
+  <link rel="stylesheet" href="/trade/static/css/style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.0.0/dist/tabler-icons.min.css">
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="logo">wb<span>trade</span></div>
+    <div id="market-banner"><span class="state-pill state-neutral">→ NEUTRAL</span><span class="banner-reason">Loading...</span></div>
+    <div id="btc-price" class="mono">—</div>
+    <nav><a href="/trade/">Dashboard</a><a href="/trade/journal">Journal</a><a href="/trade/plan">Plan</a><a href="/trade/spot" class="active">Spot</a><a href="/trade/stats">Stats</a><a href="/trade/playbook">Playbook</a></nav>
+  </header>
+  <main>
+    <div class="grid-4" style="margin-bottom:20px">
+      <div class="stat-tile"><div class="stat-label">Total BTC held</div><div class="stat-value mono" id="sp-btc">—</div></div>
+      <div class="stat-tile"><div class="stat-label">Avg buy price</div><div class="stat-value mono" id="sp-avg">—</div></div>
+      <div class="stat-tile"><div class="stat-label">Portfolio value</div><div class="stat-value mono" id="sp-value">—</div></div>
+      <div class="stat-tile"><div class="stat-label">Unrealized PnL</div><div class="stat-value mono" id="sp-pnl">—</div></div>
+    </div>
+    <div class="grid-2" style="margin-bottom:20px;gap:16px">
+      <div class="card">
+        <div class="card-header"><span class="card-title">DCA buy log</span><button class="btn btn-primary btn-sm" onclick="openSpotModal()"><i class="ti ti-plus"></i> Add entry</button></div>
+        <div class="table-wrap"><table><thead><tr><th>Date</th><th>Action</th><th>BTC</th><th>Price</th><th>USDT spent</th><th>Avg after</th><th>Thesis</th></tr></thead>
+        <tbody id="spot-body"><tr><td colspan="7" class="muted" style="text-align:center;padding:24px">No entries yet</td></tr></tbody></table></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">Exit targets</span><button class="btn btn-secondary btn-sm" onclick="openTargetModal()"><i class="ti ti-plus"></i> Add target</button></div>
+        <div id="targets-list"><p class="muted" style="padding:8px 0">No targets set</p></div>
+        <div style="margin-top:16px;padding-top:12px;border-top:1px solid var(--border)">
+          <div style="font-size:11px;color:var(--text3);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px">Current price vs targets</div>
+          <div id="price-ladder"></div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+<div class="modal-backdrop hidden" id="spot-modal"><div class="modal" style="max-width:480px"><div class="modal-header"><span class="modal-title">Add DCA entry</span><button class="modal-close" onclick="document.getElementById('spot-modal').classList.add('hidden')">×</button></div>
+<form id="spot-form" onsubmit="submitSpotEntry(event)">
+<div class="form-group"><label>Action</label><select name="action"><option value="buy">Buy (DCA)</option><option value="sell">Partial sell</option></select></div>
+<div class="form-group"><label>Date</label><input type="date" name="entry_date" required></div>
+<div class="form-group"><label>BTC amount</label><input type="number" name="btc_amount" step="0.00000001" required></div>
+<div class="form-group"><label>Price (USDT)</label><input type="number" name="price_usdt" step="0.01" required></div>
+<div class="form-group"><label>USDT spent</label><input type="number" name="usdt_spent" step="0.01"></div>
+<div class="form-group"><label>Thesis tag</label><select name="thesis_tag"><option value="">—</option><option value="conviction_add">Conviction add</option><option value="fear_buy">Fear / dip buy</option><option value="dca_scheduled">Scheduled DCA</option><option value="cycle_top_hedge">Cycle top partial exit</option></select></div>
+<div class="form-group"><label>Notes</label><textarea name="notes" rows="2"></textarea></div>
+<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px"><button type="button" class="btn btn-secondary" onclick="document.getElementById('spot-modal').classList.add('hidden')">Cancel</button><button type="submit" class="btn btn-primary">Save</button></div>
+</form></div></div>
+<div class="modal-backdrop hidden" id="target-modal"><div class="modal" style="max-width:420px"><div class="modal-header"><span class="modal-title">Add exit target</span><button class="modal-close" onclick="document.getElementById('target-modal').classList.add('hidden')">×</button></div>
+<form id="target-form" onsubmit="submitTarget(event)">
+<div class="form-group"><label>Label</label><input type="text" name="label" required></div>
+<div class="form-group"><label>Target price (USDT)</label><input type="number" name="price_usdt" step="1" required></div>
+<div class="form-group"><label>% of BTC holdings to sell</label><input type="number" name="btc_percent_to_sell" step="1" min="1" max="100"></div>
+<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px"><button type="button" class="btn btn-secondary" onclick="document.getElementById('target-modal').classList.add('hidden')">Cancel</button><button type="submit" class="btn btn-primary">Add target</button></div>
+</form></div></div>
+<div id="toast"></div>
+<script src="/trade/static/js/app.js"></script>
+<script src="/trade/static/js/spot.js"></script>
+</body></html>
