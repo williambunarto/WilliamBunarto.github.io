@@ -7,3 +7,4 @@ requests
 aiohttp
 python-multipart
 httpx
+# wbtrade deploy trigger
