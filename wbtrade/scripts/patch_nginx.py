@@ -1,22 +1,19 @@
 #!/usr/bin/env python3
-"""Idempotent nginx patcher: removes ALL /trade location blocks, inserts correct one."""
+"""Idempotent nginx patcher: removes ALL /trade location blocks, inserts correct ones."""
 import re, sys
 
 conf = '/etc/nginx/sites-available/default'
 with open(conf) as f:
     content = f.read()
 
-# Remove every location block that mentions /trade (handles duplicates)
-# Strategy: split into lines, track brace depth to excise blocks
+# Remove every line/block that mentions /trade (handles duplicates)
 lines = content.splitlines(keepends=True)
 output = []
 i = 0
 skipped_any = False
 while i < len(lines):
     line = lines[i]
-    # Detect start of a /trade-related location block or the # WB Trade marker
-    if re.match(r'\s*(# WB Trade|location /trade)', line):
-        # Skip forward until we close every opened brace (or hit the marker line itself)
+    if re.match(r'\s*(# WB Trade|location /trade|location = /trade)', line):
         depth = 0
         found_brace = False
         j = i
@@ -30,7 +27,6 @@ while i < len(lines):
             j += 1
             if found_brace and depth == 0:
                 break
-        # If it was just a comment line with no braces, only skip that line
         if not found_brace:
             j = i + 1
         i = j
@@ -44,9 +40,17 @@ if skipped_any:
 
 content = ''.join(output)
 
+# Correct blocks:
+# - exact match /trade redirects to /trade/
+# - /trade/ (with trailing slash) strips prefix cleanly before forwarding to uvicorn
+# With proxy_pass http://127.0.0.1:8001/: nginx replaces matched prefix /trade/ with /
+# so /trade/ -> /, /trade/journal -> /journal, etc.
 blocks = '''
     # WB Trade
-    location /trade {
+    location = /trade {
+        return 301 /trade/;
+    }
+    location /trade/ {
         proxy_pass         http://127.0.0.1:8001/;
         proxy_set_header   Host $host;
         proxy_set_header   X-Real-IP $remote_addr;
