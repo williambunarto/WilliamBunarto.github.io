@@ -5,14 +5,23 @@ conf = '/etc/nginx/sites-available/default'
 with open(conf) as f:
     content = f.read()
 
-if 'location /trade' in content:
-    print('Already patched, skipping.')
+# If already correctly patched (with trailing slash), nothing to do
+if 'location /trade {' in content and 'proxy_pass         http://127.0.0.1:8001/;' in content:
+    print('Already correctly patched, skipping.')
     sys.exit(0)
+
+# Remove any existing /trade blocks (may have wrong proxy_pass without trailing slash)
+content = re.sub(
+    r'\n\s*# WB Trade\n.*?location /trade/uploads \{.*?\}\n',
+    '\n',
+    content,
+    flags=re.DOTALL
+)
 
 blocks = '''
     # WB Trade
     location /trade {
-        proxy_pass         http://127.0.0.1:8001;
+        proxy_pass         http://127.0.0.1:8001/;
         proxy_set_header   Host $host;
         proxy_set_header   X-Real-IP $remote_addr;
         proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;

@@ -79,4 +79,6 @@ jobs:
       - name: Smoke test
         run: |
           sleep 5
-          curl -sf http://williambunarto.duckdns.org/trade/ -o /dev/null && echo 'OK' || echo 'WARNING: smoke test failed'
+          STATUS=$(curl -s -o /dev/null -w '%{http_code}' http://williambunarto.duckdns.org/trade/)
+          echo "HTTP status: $STATUS"
+          [ "$STATUS" = "200" ] && echo 'OK: /trade/ reachable' || (echo "FAIL: got $STATUS"; exit 1)
