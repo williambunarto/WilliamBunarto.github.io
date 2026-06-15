@@ -1,10 +1,16 @@
 #!/usr/bin/env python3
-"""Idempotent nginx patcher: removes ALL /trade location blocks, inserts correct ones."""
+"""Idempotent nginx patcher: removes ALL /trade location blocks from healthos,
+inserts correct ones. healthos is the default_server for williambunarto.duckdns.org."""
 import re, sys
 
-conf = '/etc/nginx/sites-available/default'
+conf = '/etc/nginx/sites-available/healthos'
 with open(conf) as f:
     content = f.read()
+
+# Already correctly patched?
+if 'location /trade/' in content and 'proxy_pass         http://127.0.0.1:8001/;' in content:
+    print('Already correctly patched, skipping.')
+    sys.exit(0)
 
 # Remove every line/block that mentions /trade (handles duplicates)
 lines = content.splitlines(keepends=True)
@@ -40,11 +46,8 @@ if skipped_any:
 
 content = ''.join(output)
 
-# Correct blocks:
-# - exact match /trade redirects to /trade/
-# - /trade/ (with trailing slash) strips prefix cleanly before forwarding to uvicorn
-# With proxy_pass http://127.0.0.1:8001/: nginx replaces matched prefix /trade/ with /
-# so /trade/ -> /, /trade/journal -> /journal, etc.
+# location /trade/ with trailing slash: nginx strips /trade/ prefix before forwarding
+# /trade/ -> /, /trade/journal -> /journal, etc.
 blocks = '''
     # WB Trade
     location = /trade {
@@ -75,4 +78,4 @@ content = re.sub(r'(\}\s*)$', blocks + r'\1', content.rstrip(), count=1) + '\n'
 
 with open(conf, 'w') as f:
     f.write(content)
-print('Nginx config patched successfully.')
+print('Nginx config (healthos) patched successfully.')
