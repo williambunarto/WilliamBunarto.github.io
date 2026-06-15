@@ -15,7 +15,7 @@ jobs:
 
       - name: Setup SSH key
         run: |
-          echo "LS0tLS1CRUdJTiBSU0EgUFJJVkFURSBLRVktLS0tLQpNSUlFb3dJQkFBS0NBUUVBNDNmdFdRN1drSzM3MmpJZkl0U1R2QkxJaWxzY0ptU0MyNmZUSjFqNnZGdDdPNlFlCnFZdER1aFRuN1VTdWwxUHJ4SytVYmUxMER5akxGMG5KNFJtclFVeFNIY0FhckNHbW16ZzVwbWdpaW1XUXU5dUoKaHVhZGtORmduekttZTNoTWs1TWFhaUVVVFIvNTlwL1FlYkFESTdQVXJZY1JDcUFiUzlYYVlsZCtkcis4SlZ1RgpZdlYxMmpDMlJMZ084K0ZXTE0xRGt2bkxyZjJaM3pqWXpKbVlSSU1QQ3J3VDdhblRLVEhrZ3RMWlpSdGQwNTRKCnlwT0N0STBIMEd4dnM0bFRkS1c2SU1CV1pCMjdyQkFuZ3Bmby9vOUhJcXV6S0cveGt2SCtnWW9ZR1hwOVRUWnEKaFNIRzhYYkZKY1V5UDBHZmQxRGcvNmdjU2h0bUJwRGswSDBLTVFJREFRQUJBb0lCQUdyT0FNLzBPNk1yVGpvaApscVVRRTE0WG83bnpGY0NoS1NCaUtLOHRCRzQwdGlSRzUyN01TVHl5WEVQNEg5SkdRVW5VOTJpMk9leDBSd2ZrClNibzhCMEZkeUtEWGRxNmtEa3FMbCtZZXR6a3NmMHoxeEJsbloweDhRMVg4dmxieklXR1pqS21RWnF2Zis4cGwKTjhvcmJ3M3dma2dNUjJBcDFTZENmb3YyY1Jib0JZTE5hS1RrYStoZWphRjUxaXVQRDFWNFc0eUZ2TzlsZ2lTRApVRDJVT3ByRUJQNGNuZVd3UitRRGFxQ2ZHNnFJelV6ckhPYTNlRVI1YzB4S2NlUmRFRnRUZkxYSkd4WVBKRjUvCmZvaEY5SEFRQ242RkZrVTRuZFdDVG43YWFGYjFxYTAyN3U2UDFHcDh2VHhaN0sydDJseHdwVHZHMHoxVVBmeVgKNk9QK3RGRUNnWUVBK3Q3aUt0cm1VNTFNNzFTNEsyRWYzeWlQazFlakZCNysvdS90N1dPb0ZZcW5COWdEOS96ZgpUMVd3SjM0VThpRkFsRFJERVE0SVV4QnhqdHdkWlA4ellYTzg4QmtIbXJPYldHRWVNZi9MdHFPKzdGTTEyU0paCkh3Q3lvVkhqVEp2TWFMMVlRN2l6M2g0d1RlOFloTzBvUi9uNFkyTjg1MDlnYmRUSGhOM1ZYWThDZ1lFQTZCNk4KRjIwSGdiUDN1Z2FaWFk0ZXQxNnd3SGF4dDY2bmFCcWJjWk5ORm1KclFSMmJzTVQ2L0lUNmxCWmx3QTBUcU13SwovZW1aQVNkTjQ1ZTN0bzZLcnZKMzZjeVN3Y0M2M3p4bmZCNU1Db0Znd1hMYW01dzJBczRsRzhEL2ZCMG85NDNFCktUY2dMdElpWE1oVnY3bm05Y1R1eWZvdEF4aU5CUWhPeFJ4YXZEOENnWUFOa08vNkVVeFRTVFpYMnVUNnM0M2QKcTN2WUkrMFZzWGRvb2VEajdYZXhjb1lGenBDb1lHeFRCZmM0cTRER2R6WGV6ZFN5bjJlajFrZk55ZWx0QkwvcQpqUyt5YkNnVkhaRlEvaTk3MUxGWGR4TmtCRHZ0T2daSHZ1bnAvMXVqVU9tRTRIaGRjU2VJNDJrSlRkeXRrNFdTCkh0cG54WUdEb0s4K1FUdG8yL1lsMFFLQmdISjAvaVdiQWFTWFZZUkpWTDZwSWNSUjBONVdxUE5tRCs1cGtGVEUKeWJKTC9ZOHlSbDg0QW5zYUoyVjJWZDRKbExRYlNTQkRXOHNSMG5wemlZZGZha3N5REtjZzFRenRPRGh6MUtPRApYUU9oSUZERGpjQkZtdXh2TWlVcFdkR2RuMkhTYWZQWTF1bS9mR283N3V5SGdyZVYwQm1RWHptemxYWHh6c1dyCllhS0pBb0dCQU9FMFNYdGtLb2dYOXBKWFRteFV5VWgzcHdJVG04UnNVSDdHM3hFN25OK3RXeGxDak91N05UN3cKZlV2cnhQTTRTYmduSE9aOG51VXU4bEhJeVRSUmZ1SkN1L0xCbGFrSWpCOUovTndrdHJ2eEVKZnZ0NkN4VnNKQwpqUU1DMGZRYmVsSWZ1cnpzd2pnK0d1Vll5ZU5CUnZZNmJtTTZPd0FyblVYMG9iOVB3VS9kCi0tLS0tRU5EIFJTQSBQUklWQVRFIEtFWS0tLS0tCg==" | base64 -d > /tmp/deploy_key
+          echo "LS0tLS1CRUdJTiBSU0EgUFJJVkFURSBLRVktLS0tLQpNSUlFb3dJQkFBS0NBUUVBNDNmdFdRN1drSzM3MmpJZkl0U1R2QkxJaWxzY0ptU0MyNmZUSjFqNnZGdDdPNlFlCnFZdER1aFRuN1VTdWwxUHJ4SytVYmUxMER5akxGMG5KNFJtclFVeFNIY0FhckNHbW16ZzVwbWdpaW1XUXU1dUoKaHVhZGtORmduekttZTNoTWs1TWFhaUVVVFIvNTlwL1FlYkFESTdQVXJZY1JDcUFiUzlYYVlsZCtkcis4SlZ1RgpZdlYxMmpDMlJMZ084K0ZXTE0xRGt2bkxyZjJaM3pqWXpKbVlSSU1QQ3J3VDdhblRLVEhrZ3RMWlpSdGQwNTRKCnlwT0N0STBIMEd4dnM0bFRkS1c2SU1CV1pCMjdyQkFuZ3Bmby9vOUhJcXV6S0cveGt2SCtnWW9ZR1hwOVRUWnEKaFNIRzhYYkZKY1V5UDBHZmQxRGcvNmdjU2h0bUJwRGswSDBLTVFJREFRQUJBb0lCQUdyT0FNLzBPNk1yVGpvaApscVVRRTE0WG83bnpGY0NoS1NCaUtLOHRCRzQwdGlSRzUyN01TVHl5WEVQNEg5SkdRVW5VOTJpMk9leDBSd2ZrClNibzhCMEZkeUtEWGRxNmtEa3FMbCtZZXR6a3NmMHoxeEJsbloweDhRMVg4dmxieklXR1pqS21RWnF2Zis4cGwKTjhvcmJ3M3dma2dNUjJBcDFTZENmb3YyY1Jib0JZTE5hS1RrYStoZWphRjUxaXVQRDFWNFc0eUZ2TzlsZ2lTRApVRDJVT3ByRUJQNGNuZVd3UitRRGFxQ2ZHNnFJelV6ckhPYTNlRVI1YzB4S2NlUmRFRnRUZkxYSkd4WVBKRjUvCmZvaEY5SEFRQ242RkZrVTRuZFdDVG43YWFGYjFxYTAyN3U2UDFHcDh2VHhaN0sydDJseHdwVHZHMHoxVVBmeVgKNk9QK3RGRUNnWUVBK3Q3aUt0cm1VNTFNNzFTNEsyRWYzeWlQazFlakZCNysvdS90N1dPb0ZZcW5COWdEOS96ZgpUMVd3SjM0VThpRkFsRFJERVE0SVV4QnhqdHdkWlA0ellYTzg4QmtIbXJPYldHRWVNZi9MdHFPKzdGTTEyU0paCkh3Q3lvVkhqVEp2TWFMMVlRN2l6M2g0d1RlOFloTzBvUi9uNFkyTjg1MDlnYmRUSGhOM1ZYWThDZ1lFQTZCNk4KRjIwSGdiUDN1Z2FaWFk0ZXQxNnd3SGF4dDY2bmFCcWJjWk5ORm1KclFSMmJzTVQ2L0lUNmxCWmx3QTBUcU13SwovZW1aQVNkTjQ1ZTN0bzZLcnZKMzZjeVN3Y0M2M3p4bmZCNU1Db0Znd1hMYW01dzJBczRsRzhEL2ZCMG85NDNFCktUY2dMdElpWE1oVnY3bm05Y1R1eWZvdEF4aU5CUWhPeFJ4YXZEOENnWUFOa08vNkVVeFRTVFpYMnVUNnM0M2QKcTN2WUkrMFZzWGRvb2VEajdYZXhjb1lGenBDb1lHeFRCZmM0cTRER2R6WGV6ZFN5bjJlajFrZk55ZWx0QkwvcQpqUyt5YkNnVkhaRlEvaTk3MUxGWGR4TmtCRHZ0T2daSHZ1bnAvMXVqVU9tRTRIaGRjU2VJNDJrSlRkeXRrNFdTCkh0cG54WUdEb0s4K1FUdG8yL1lsMFFLQmdISjAvaVdiQWFTWFZZUkpWTDZwSWNSUjBONVdxUE5tRCs1cGtGVEUKeWJKTC9ZOHlSbDg0QW5zYUoyVjJWZDRKbExRYlNTQkRXOHNSMG5wemlZZGZha3N5REtjZzFRenRPRGh6MUtPRApYUU9oSUZERGpjQkZtdXh2TWlVcFdkR2RuMkhTYWZQWTF1bS9mR283N3V5SGdyZVYwQm1RWHptemxYWHh6c1dyCllhS0pBb0dCQU9FMFNYdGtLb2dYOXBKWFRteFV5VWgzcHdJVG04UnNVSDdHM3hFN25OK3RXeGxDak91N05UN3cKZlV2cnhQTTRTYmduSE9aOG51VXU4bEhJeVRSUmZ1SkN1L0xCbGFrSWpCOUovTndrdHJ2eEVKZnZ0NkN4VnNKQwpqUU1DMGZRYmVsSWZ1cnpzd2pnK0d1Vll5ZU5CUnZZNmJtTTZPd0FyblVYMG9iOVB3VS9kCi0tLS0tRU5EIFJTQSBQUklWQVRFIEtFWS0tLS0tCg==" | base64 -d > /tmp/deploy_key
           chmod 600 /tmp/deploy_key
 
       - name: Create directories
@@ -59,22 +59,17 @@ jobs:
           ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@williambunarto.duckdns.org \
             "sudo mv /tmp/wbtrade.service /etc/systemd/system/wbtrade.service && sudo systemctl daemon-reload && sudo systemctl enable wbtrade"
 
-      - name: Install nginx config (full replace)
+      - name: Install nginx config into sites-enabled (plain file, not symlink)
         run: |
           scp -i /tmp/deploy_key -o StrictHostKeyChecking=no \
             wbtrade/scripts/healthos.conf ubuntu@williambunarto.duckdns.org:/tmp/healthos.conf
           ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@williambunarto.duckdns.org \
-            "sudo cp /tmp/healthos.conf /etc/nginx/sites-available/healthos && echo 'File copied' && sudo nginx -t && sudo systemctl restart nginx && echo 'Nginx restarted'"
+            "sudo cp /tmp/healthos.conf /etc/nginx/sites-enabled/healthos && sudo cp /tmp/healthos.conf /etc/nginx/sites-available/healthos && sudo nginx -t && sudo systemctl restart nginx && echo 'Nginx restarted OK'"
 
       - name: Start / restart wbtrade service
         run: |
           ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@williambunarto.duckdns.org \
             "sudo systemctl restart wbtrade && sleep 3 && sudo systemctl status wbtrade --no-pager -l"
-
-      - name: Debug - dump active nginx config
-        run: |
-          ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@williambunarto.duckdns.org \
-            "echo '=== sites-enabled ===' && ls -la /etc/nginx/sites-enabled/ && echo '=== healthos file on disk ===' && grep -n 'trade\|8001' /etc/nginx/sites-available/healthos && echo '=== nginx -T (active loaded config) ===' && sudo nginx -T 2>&1 | grep -n 'trade\|8001\|listen\|server_name' | head -40"
 
       - name: Smoke test
         run: |
