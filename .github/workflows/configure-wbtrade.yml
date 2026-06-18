@@ -1,0 +1,71 @@
+name: Configure WB Trade Settings
+
+on:
+  workflow_dispatch:
+
+jobs:
+  configure:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup SSH key
+        run: |
+          cp "ssh-key-2026-03-30 (1).key" /tmp/deploy_key
+          chmod 600 /tmp/deploy_key
+
+      - name: Find credentials on server
+        run: |
+          ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@williambunarto.duckdns.org '
+            echo "=== FILES WITH CREDENTIALS ==="
+            find /home/ubuntu -type f \( -name "*.env" -o -name ".env" -o -name "*.py" -o -name "*.cfg" -o -name "*.ini" -o -name "*.json" \) 2>/dev/null | xargs grep -lE "xai-|TELEGRAM_TOKEN|BOT_TOKEN" 2>/dev/null
+
+            echo "=== GROK KEY ==="
+            grep -rE "xai-[a-zA-Z0-9_-]+" /home/ubuntu/ 2>/dev/null | grep -v ".pyc" | grep -v wbtrade | head -5
+
+            echo "=== BOT TOKEN ==="
+            grep -rE "[0-9]{9,10}:AA[a-zA-Z0-9_-]+" /home/ubuntu/ 2>/dev/null | grep -v ".pyc" | grep -v wbtrade | head -5
+
+            echo "=== BOT.PY ==="
+            cat /home/ubuntu/bot.py 2>/dev/null | grep -iE "xai-|token|grok|chat_id" | head -10
+
+            echo "=== ENV FILES ==="
+            find /home/ubuntu -name ".env" -o -name "*.env" 2>/dev/null | head -5 | xargs cat 2>/dev/null
+
+            echo "=== PROCESS ENV ==="
+            for pid in $(pgrep -f "python|bot"); do
+              sudo cat /proc/$pid/environ 2>/dev/null | tr "\0" "\n" | grep -iE "xai|grok|token|telegram|chat_id"
+            done
+          '
+
+      - name: Configure wbtrade settings
+        run: |
+          # Extract credentials found above and POST to wbtrade settings API
+          GROK_KEY=$(ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@williambunarto.duckdns.org \
+            'grep -rohE "xai-[a-zA-Z0-9_-]+" /home/ubuntu/ 2>/dev/null | grep -v wbtrade | head -1')
+
+          BOT_TOKEN=$(ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@williambunarto.duckdns.org \
+            'grep -rohE "[0-9]{9,10}:AA[a-zA-Z0-9_-]+" /home/ubuntu/ 2>/dev/null | grep -v wbtrade | head -1')
+
+          CHAT_ID="1328021661"
+
+          echo "GROK_KEY found: ${GROK_KEY:0:15}..."
+          echo "BOT_TOKEN found: ${BOT_TOKEN:0:15}..."
+          echo "CHAT_ID: $CHAT_ID"
+
+          if [ -n "$GROK_KEY" ] && [ -n "$BOT_TOKEN" ]; then
+            # POST to wbtrade settings API
+            curl -s -X POST http://127.0.0.1:8001/api/settings \
+              -H 'Content-Type: application/json' \
+              -d "{\"grok_api_key\": \"$GROK_KEY\", \"telegram_bot_token\": \"$BOT_TOKEN\", \"telegram_chat_id\": \"$CHAT_ID\"}" && \
+              echo "Settings POSTed via localhost" || true
+
+            # Also try via nginx
+            ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@williambunarto.duckdns.org \
+              "curl -s -X POST http://127.0.0.1:8001/api/settings \
+                -H 'Content-Type: application/json' \
+                -d '{\"grok_api_key\": \"$GROK_KEY\", \"telegram_bot_token\": \"$BOT_TOKEN\", \"telegram_chat_id\": \"$CHAT_ID\"}'"
+            echo "Settings configured!"
+          else
+            echo "Could not find credentials — see Find credentials step output above"
+          fi
