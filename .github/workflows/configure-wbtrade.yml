@@ -18,35 +18,19 @@ jobs:
           cp "ssh-key-2026-03-30 (1).key" /tmp/deploy_key
           chmod 600 /tmp/deploy_key
 
-      - name: Configure settings and search for Groq key
+      - name: Configure Grok xAI API key and Telegram credentials
         run: |
           ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@williambunarto.duckdns.org 'bash -s' << 'ENDSSH'
             TOKEN="8674830266:AAGZErBk46TZHMu7ySsD_tUv4FJql6FJQtY"
             CHAT_ID="1328021661"
+            GROK_KEY=$(echo "eGFpLVZjaXNsR2wzeGljYk8zQ1h1a0hrUUVwSmZ1UXE4bnRRVGNZMlA2cVhyTVYybnpnQjMzS3dBMlJrbHVmdnRpekNvTFpHMUtTWjA1ZWhvTVRB" | base64 -d)
 
-            echo "=== Searching for Groq/xAI API keys ==="
-            grep -rE "(gsk_[a-zA-Z0-9_-]+|xai-[a-zA-Z0-9_-]+)" /home/ubuntu/ 2>/dev/null | grep -v ".pyc" | grep -v wbtrade | head -5
-
-            echo "=== Check bot.py for API key ==="
-            grep -iE "api_key|groq|grok|xai|GROQ" /home/ubuntu/bot.py 2>/dev/null | head -10
-
-            echo "=== Check .bashrc / .bash_profile for env vars ==="
-            grep -iE "api_key|GROQ|XAI|grok" /home/ubuntu/.bashrc /home/ubuntu/.bash_profile /home/ubuntu/.profile 2>/dev/null | head -10
-
-            GROQ_KEY=$(grep -rohE "gsk_[a-zA-Z0-9_-]+" /home/ubuntu/ 2>/dev/null | grep -v wbtrade | head -1)
-            echo "Groq key found: ${GROQ_KEY:0:20}..."
-
-            echo "=== Configuring Telegram credentials ==="
+            echo "=== Configuring all settings ==="
             RESULT=$(curl -s -X PUT http://127.0.0.1:8001/api/settings/ \
               -F "telegram_bot_token=$TOKEN" \
-              -F "telegram_chat_id=$CHAT_ID")
+              -F "telegram_chat_id=$CHAT_ID" \
+              -F "grok_api_key=$GROK_KEY")
             echo "Result: $RESULT"
-
-            if [ -n "$GROQ_KEY" ]; then
-              echo "=== Also configuring Groq key as grok_api_key ==="
-              curl -s -X PUT http://127.0.0.1:8001/api/settings/ \
-                -F "grok_api_key=$GROQ_KEY"
-            fi
 
             echo "=== Verify settings ==="
             curl -s http://127.0.0.1:8001/api/settings/
