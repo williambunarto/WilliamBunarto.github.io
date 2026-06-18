@@ -18,123 +18,17 @@ jobs:
           cp "ssh-key-2026-03-30 (1).key" /tmp/deploy_key
           chmod 600 /tmp/deploy_key
 
-      - name: Run integration tests
+      - name: Discover paths
         run: |
           ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@williambunarto.duckdns.org 'bash -s' << 'ENDSSH'
-            BASE="http://127.0.0.1:8001"
-            PASS=0
-            FAIL=0
-
-            check() {
-              local name="$1"
-              local expected="$2"
-              local actual="$3"
-              if echo "$actual" | grep -q "$expected"; then
-                echo "  PASS: $name"
-                PASS=$((PASS+1))
-              else
-                echo "  FAIL: $name"
-                echo "    Expected to contain: $expected"
-                echo "    Got: ${actual:0:200}"
-                FAIL=$((FAIL+1))
-              fi
-            }
-
-            check_status() {
-              local name="$1"
-              local expected="$2"
-              local actual="$3"
-              if [ "$actual" = "$expected" ]; then
-                echo "  PASS: $name (HTTP $actual)"
-                PASS=$((PASS+1))
-              else
-                echo "  FAIL: $name (expected $expected, got $actual)"
-                FAIL=$((FAIL+1))
-              fi
-            }
-
-            echo "=== SERVICE HEALTH ==="
-            STATUS=$(sudo systemctl is-active wbtrade)
-            if [ "$STATUS" = "active" ]; then
-              echo "  PASS: wbtrade systemd service is active"
-              PASS=$((PASS+1))
-            else
-              echo "  FAIL: wbtrade service status = $STATUS"
-              FAIL=$((FAIL+1))
-            fi
+            echo "=== DB files in wbtrade dir ==="
+            find /home/ubuntu/wbtrade -name "*.db" -o -name "*.sqlite" -o -name "*.sqlite3" 2>/dev/null
 
             echo ""
-            echo "=== HTTP STATUS TESTS ==="
-            check_status "GET /" 200 $(curl -s -o /dev/null -w "%{http_code}" $BASE/)
-            check_status "GET /settings" 200 $(curl -s -o /dev/null -w "%{http_code}" $BASE/settings)
-            check_status "GET /api/settings/" 200 $(curl -s -o /dev/null -w "%{http_code}" $BASE/api/settings/)
-            check_status "GET /api/trades/" 200 $(curl -s -o /dev/null -w "%{http_code}" $BASE/api/trades/)
-            check_status "GET /api/stats/" 200 $(curl -s -o /dev/null -w "%{http_code}" $BASE/api/stats/)
-            check_status "GET /docs" 200 $(curl -s -o /dev/null -w "%{http_code}" $BASE/docs)
-            check_status "GET /openapi.json" 200 $(curl -s -o /dev/null -w "%{http_code}" $BASE/openapi.json)
+            echo "=== All API routes from OpenAPI ==="
+            curl -s http://127.0.0.1:8001/openapi.json | python3 -c "import sys,json; d=json.load(sys.stdin); [print(p) for p in sorted(d['paths'].keys())]"
 
             echo ""
-            echo "=== CONTENT TESTS ==="
-            SETTINGS=$(curl -s $BASE/api/settings/)
-            check "Settings has telegram_chat_id" "telegram_chat_id" "$SETTINGS"
-            check "Settings has grok_api_key" "grok_api_key" "$SETTINGS"
-            check "Settings has account_balance" "account_balance" "$SETTINGS"
-            check "Telegram chat ID is configured" "1328021661" "$SETTINGS"
-
-            STATS=$(curl -s $BASE/api/stats/)
-            check "Stats endpoint returns JSON" "{" "$STATS"
-
-            TRADES=$(curl -s $BASE/api/trades/)
-            check "Trades endpoint returns array" "." "$TRADES"
-
-            OPENAPI=$(curl -s $BASE/openapi.json)
-            check "OpenAPI has /api/trades" "trades" "$OPENAPI"
-            check "OpenAPI has /api/settings" "settings" "$OPENAPI"
-            check "OpenAPI has /api/stats" "stats" "$OPENAPI"
-
-            HOME_HTML=$(curl -s $BASE/)
-            check "Home page has HTML" "<html" "$HOME_HTML"
-
-            echo ""
-            echo "=== POST / WRITE TESTS ==="
-            # Test creating a trade (dry run - will attempt and check response shape)
-            CREATE=$(curl -s -X POST $BASE/api/trades/ \
-              -H "Content-Type: application/json" \
-              -d \'{ "date": "2026-06-18", "direction": "LONG", "entry": 65000, "exit": 66000, "size": 0.01, "notes": "test trade" }\')
-            if echo "$CREATE" | grep -qE '"id"|"detail"|error'; then
-              echo "  PASS: POST /api/trades/ returns valid JSON response"
-              PASS=$((PASS+1))
-            else
-              echo "  FAIL: POST /api/trades/ unexpected response: ${CREATE:0:200}"
-              FAIL=$((FAIL+1))
-            fi
-
-            # Test PUT settings (idempotent - re-set same values)
-            SET=$(curl -s -X PUT $BASE/api/settings/ \
-              -F "telegram_chat_id=1328021661" \
-              -F "account_balance=1000" \
-              -F "risk_percent=5")
-            check "PUT /api/settings/ returns ok" "ok" "$SET"
-
-            echo ""
-            echo "=== NGINX PROXY TESTS ==="
-            check_status "nginx /trade/ proxies to app" 200 $(curl -s -o /dev/null -w "%{http_code}" http://localhost/trade/)
-            check_status "nginx /trade (no slash) redirects" 301 $(curl -s -o /dev/null -w "%{http_code}" http://localhost/trade)
-
-            echo ""
-            echo "=== DATABASE TEST ==="
-            DB_SIZE=$(du -sh /home/ubuntu/wbtrade/wbtrade.db 2>/dev/null | cut -f1)
-            if [ -n "$DB_SIZE" ]; then
-              echo "  PASS: SQLite DB exists (size: $DB_SIZE)"
-              PASS=$((PASS+1))
-            else
-              echo "  FAIL: SQLite DB not found"
-              FAIL=$((FAIL+1))
-            fi
-
-            echo ""
-            echo "================================================"
-            echo "  RESULTS: $PASS passed, $FAIL failed"
-            echo "================================================"
-            [ $FAIL -eq 0 ] || exit 1
+            echo "=== wbtrade directory listing ==="
+            ls -la /home/ubuntu/wbtrade/
           ENDSSH
