@@ -1,7 +1,11 @@
 name: Setup Bybit .env on Server
 
 on:
-  workflow_dispatch:
+  push:
+    branches:
+      - 'claude/bybit-api-credentials-657y75'
+    paths:
+      - '.github/workflows/setup-bybit-env.yml'
 
 jobs:
   setup-env:
@@ -29,7 +33,6 @@ jobs:
 
           echo ""
           echo "=== Step 2: Add Bybit credentials ==="
-          # Remove existing BYBIT entries to avoid duplicates, then append fresh ones
           if [ -f /home/ubuntu/.env ]; then
             grep -v "^BYBIT_API_KEY=" /home/ubuntu/.env | grep -v "^BYBIT_API_SECRET=" > /tmp/.env.tmp
             mv /tmp/.env.tmp /home/ubuntu/.env
