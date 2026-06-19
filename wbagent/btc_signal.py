@@ -3,7 +3,7 @@ btc_signal.py — BTC/USDT perpetual trading signal engine for wbagent.
 Standalone module: imports nothing from existing screener code.
 """
 
-__version__ = "1.0.6"
+__version__ = "1.0.7"
 
 import hashlib
 import json
@@ -25,7 +25,7 @@ BYBIT_BASE   = "https://api.bybit.com/v5/market"
 WIB          = timezone(timedelta(hours=7))
 STATE_FILE   = "/home/ubuntu/wbagent/btc_signal_state.json"
 LOG_FILE     = "/home/ubuntu/wbagent/logs/btc_signal.log"
-WBTRADE_BASE = "http://localhost:8000"  # wbtrade runs on localhost via nginx /trade proxy
+WBTRADE_BASE = "http://127.0.0.1:8001"  # wbtrade uvicorn on port 8001
 
 MIN_SCORE                  = 8.5
 MAX_DAILY                  = 5
@@ -581,7 +581,8 @@ def run_scan(force: bool = False) -> Optional[dict]:
     params     = _trade_params(signal, account)
     commentary = _commentary(signal)
 
-    if not force and len(state["signals_today"]) >= MAX_DAILY:
+    non_force_count = len([s for s in state["signals_today"] if not s.get("force")])
+    if not force and non_force_count >= MAX_DAILY:
         log.info(f"Score: {score} | Dir: {direction} | Fired: no | Reason: daily limit reached ({MAX_DAILY})")
         return None
 
@@ -600,7 +601,7 @@ def run_scan(force: bool = False) -> Optional[dict]:
             log.info(f"Score: {score:.2f} | Dir: {direction} | Fired: no | Reason: duplicate within 1h, score < 9.0")
             return None
 
-    signal_id  = hashlib.md5(f"{direction}{int(time.time() // 300)}".encode()).hexdigest()[:8]
+    signal_id  = hashlib.md5(f"{direction}{int(time.time() * 1000)}".encode()).hexdigest()[:8]
     now_wib    = datetime.now(WIB)
     expiry_min = 120 if score >= 9.0 else 45
     expiry_wib = now_wib + timedelta(minutes=expiry_min)
@@ -635,14 +636,8 @@ def run_scan(force: bool = False) -> Optional[dict]:
         "detail":        signal["detail"],
     }
 
-    if not force:
-        state["signals_today"].append({
-            "signal_id": signal_id,
-            "direction": direction,
-            "ts":        result["ts"],
-            "score":     score,
-        })
-        _save_state(state)
+    state["signals_today"].append({**result, "force": force})
+    _save_state(state)
 
     log.info(f"Score: {score:.2f} | Dir: {direction} | Fired: yes | ID: {signal_id}")
     return result
@@ -691,11 +686,11 @@ def log_trade_to_wbtrade(sig: dict, outcome: str, pnl_usdt: float,
     }
     if exit_price:
         payload["exit_price"] = str(exit_price)
-    if pnl_usdt:
+    if pnl_usdt is not None:
         payload["pnl_usdt"] = str(round(pnl_usdt, 4))
 
     try:
-        r = requests.post(f"{WBTRADE_BASE}/trade/api/trades/", data=payload, timeout=15)
+        r = requests.post(f"{WBTRADE_BASE}/api/trades/", data=payload, timeout=15)
         r.raise_for_status()
         log.info(f"wbtrade logged: {outcome} | PnL ${pnl_usdt:.2f}")
         return True
