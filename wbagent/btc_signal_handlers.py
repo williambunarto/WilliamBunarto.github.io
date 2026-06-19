@@ -35,7 +35,7 @@ log = logging.getLogger("btc_signal")
 # /btcsignal — on-demand scan (always returns result for testing)
 # ---------------------------------------------------------------------------
 async def cmd_btcsignal(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("🔍 Scanning BTC/USDT... please wait.")
+    await update.message.reply_text("\U0001f50d Scanning BTC/USDT... please wait.")
     try:
         sig = run_scan(force=True)
         if sig:
@@ -111,7 +111,7 @@ async def cmd_tradehistory(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     recent = history[-10:][::-1]
-    lines  = ["📋 <b>Last signals:</b>\n"]
+    lines  = ["\U0001f4cb <b>Last signals:</b>\n"]
     for s in recent:
         outcome = s.get("outcome", "open")
         icon    = {"win": "✅", "loss": "❌", "skip": "⏭️"}.get(outcome, "⏳")
@@ -152,7 +152,7 @@ async def cmd_todaypnl(update: Update, context: ContextTypes.DEFAULT_TYPE):
     sign      = "+" if total_pnl >= 0 else ""
 
     await update.message.reply_text(
-        f"📈 <b>Today's P&L</b>\n"
+        f"\U0001f4c8 <b>Today's P&L</b>\n"
         f"━━━━━━━━━━━━\n"
         f"Trades : {len(wins)}W / {len(losses)}L\n"
         f"Total  : {sign}{total_pnl:.2f} USDT\n"
@@ -166,7 +166,7 @@ async def cmd_todaypnl(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # ---------------------------------------------------------------------------
 async def cmd_signalstatus(update: Update, context: ContextTypes.DEFAULT_TYPE):
     state       = _load_state()
-    count_today = len(state.get("signals_today", []))
+    count_today = len([s for s in state.get("signals_today", []) if not s.get("force")])
     account     = state.get("account_size", 1000)
 
     last_scan = "not yet"
@@ -182,7 +182,7 @@ async def cmd_signalstatus(update: Update, context: ContextTypes.DEFAULT_TYPE):
         pass
 
     await update.message.reply_text(
-        f"🔧 <b>BTC Signal Scanner</b>\n"
+        f"\U0001f527 <b>BTC Signal Scanner</b>\n"
         f"━━━━━━━━━━━━━━━\n"
         f"Signals today : {count_today} / 5\n"
         f"Account size  : ${account:,.2f}\n"
@@ -218,7 +218,7 @@ async def cmd_losstrade(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["awaiting_pnl"]  = signal_id
     context.user_data["pnl_outcome"]   = "loss"
     await update.message.reply_text(
-        f"📝 Signal <code>{signal_id}</code> — enter your loss:\n"
+        f"\U0001f4dd Signal <code>{signal_id}</code> — enter your loss:\n"
         f"Examples: <code>200</code> (USDT) or <code>2%</code>",
         parse_mode="HTML",
     )
@@ -276,7 +276,7 @@ async def handle_pnl_reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
     tl = sum(1 for s in history if s.get("outcome") == "loss"
              and datetime.fromtimestamp(s.get("ts", 0), tz=WIB).strftime("%Y-%m-%d") == today)
 
-    icon = "🏆" if outcome == "win" else "💸"
+    icon = "\U0001f3c6" if outcome == "win" else "\U0001f4b8"
     sign = "+" if pnl_pct >= 0 else ""
     await update.message.reply_text(
         f"✅ Trade logged to dashboard\n"
