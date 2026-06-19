@@ -3,7 +3,9 @@ on:
   push:
     paths:
       - '.github/scripts/wbtrade/patch_trades_robust.py'
+      - '.github/scripts/wbtrade/patch_database.py'
       - '.github/scripts/wbtrade/verify_api.py'
+      - '.github/scripts/wbtrade/verify_api_full.py'
       - '.github/workflows/wbtrade-patch-robust.yml'
       - 'wbtrade/.patch-robust-trigger'
 jobs:
@@ -19,9 +21,11 @@ jobs:
         run: |
           SCP="scp -i /tmp/deploy_key -o StrictHostKeyChecking=no"
           SSH="ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@williambunarto.duckdns.org"
+          $SCP .github/scripts/wbtrade/patch_database.py ubuntu@williambunarto.duckdns.org:/tmp/
           $SCP .github/scripts/wbtrade/patch_trades_robust.py ubuntu@williambunarto.duckdns.org:/tmp/
-          $SCP .github/scripts/wbtrade/verify_api.py ubuntu@williambunarto.duckdns.org:/tmp/
+          $SCP .github/scripts/wbtrade/verify_api_full.py ubuntu@williambunarto.duckdns.org:/tmp/
+          $SSH python3 /tmp/patch_database.py
           $SSH python3 /tmp/patch_trades_robust.py
           $SSH sudo systemctl restart wbtrade
-          sleep 5
-          $SSH python3 /tmp/verify_api.py
+          sleep 8
+          $SSH python3 /tmp/verify_api_full.py
