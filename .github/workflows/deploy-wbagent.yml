@@ -1,0 +1,142 @@
+name: Deploy BTC Signal to WBAgent
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'wbagent/**'
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup SSH key
+        run: |
+          cp "ssh-key-2026-03-30 (1).key" /tmp/deploy_key
+          chmod 600 /tmp/deploy_key
+
+      - name: Create directories on server
+        run: |
+          ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@williambunarto.duckdns.org \
+            "mkdir -p /home/ubuntu/wbagent/logs"
+
+      - name: Copy signal module files
+        run: |
+          KEY=/tmp/deploy_key
+          OPTS="-i $KEY -o StrictHostKeyChecking=no"
+          HOST="ubuntu@williambunarto.duckdns.org"
+          scp $OPTS wbagent/btc_signal.py          $HOST:/home/ubuntu/btc_signal.py
+          scp $OPTS wbagent/btc_signal_handlers.py $HOST:/home/ubuntu/btc_signal_handlers.py
+          echo "Files copied"
+
+      - name: Install Python dependencies
+        run: |
+          ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@williambunarto.duckdns.org \
+            "pip3 install --quiet --break-system-packages requests python-dotenv 2>&1 | tail -3 || true"
+
+      - name: Write patch script to server
+        run: |
+          cat > /tmp/btc_signal_patch.py << 'PATCHEOF'
+          import re, sys, os, shutil
+
+          BOT_FILE = "/home/ubuntu/bot.py"
+          PATCH_MARKER = "# BTC_SIGNAL_INJECTED"
+
+          if not os.path.exists(BOT_FILE):
+              print(f"WARN: {BOT_FILE} not found")
+              sys.exit(0)
+
+          with open(BOT_FILE) as f:
+              content = f.read()
+
+          if PATCH_MARKER in content:
+              print("Already patched")
+              sys.exit(0)
+
+          shutil.copy(BOT_FILE, BOT_FILE + ".pre_btc_signal.bak")
+          print(f"Backed up to {BOT_FILE}.pre_btc_signal.bak")
+
+          import_block = f"""
+          {PATCH_MARKER}
+          try:
+              from btc_signal_handlers import register_btc_handlers as _register_btc
+              _BTC_SIGNAL_OK = True
+          except Exception as _e:
+              print(f"[WARN] btc_signal_handlers not loaded: {{_e}}")
+              _BTC_SIGNAL_OK = False
+          """
+
+          lines = content.split("\n")
+          last_import = 0
+          for i, line in enumerate(lines):
+              stripped = line.strip()
+              if stripped.startswith("import ") or stripped.startswith("from "):
+                  last_import = i
+
+          new_lines = lines[:last_import + 1] + import_block.split("\n") + lines[last_import + 1:]
+          content = "\n".join(new_lines)
+
+          register_block = """
+              # BTC signal handlers
+              if _BTC_SIGNAL_OK:
+                  _register_btc(application)
+          """
+
+          injected = False
+          for var in ("application", "app", "updater"):
+              pattern = f"{var}.run_polling"
+              if pattern in content:
+                  content = content.replace(pattern, register_block + f"\n    {pattern}", 1)
+                  injected = True
+                  print(f"Injected before {var}.run_polling")
+                  break
+
+          if not injected:
+              if "if __name__" in content:
+                  parts = content.rsplit("if __name__", 1)
+                  content = parts[0] + f"\n{register_block}\nif __name__" + parts[1]
+              else:
+                  content += f"\n{register_block}\n"
+              print("Injected at end (fallback)")
+
+          with open(BOT_FILE, "w") as f:
+              f.write(content)
+          print("bot.py patched")
+          PATCHEOF
+          scp -i /tmp/deploy_key -o StrictHostKeyChecking=no \
+            /tmp/btc_signal_patch.py ubuntu@williambunarto.duckdns.org:/home/ubuntu/btc_signal_patch.py
+
+      - name: Patch bot.py (idempotent)
+        run: |
+          ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@williambunarto.duckdns.org \
+            "python3 /home/ubuntu/btc_signal_patch.py"
+
+      - name: Verify imports
+        run: |
+          ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@williambunarto.duckdns.org \
+            "cd /home/ubuntu && \
+             python3 -c 'import btc_signal; print(\"btc_signal import OK\")' && \
+             python3 -c 'import btc_signal_handlers; print(\"btc_signal_handlers import OK\")'" 
+
+      - name: Run standalone test scan
+        run: |
+          ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@williambunarto.duckdns.org \
+            "cd /home/ubuntu && timeout 60 python3 btc_signal.py --test 2>&1 | head -50"
+
+      - name: Restart wbagent service
+        run: |
+          ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@williambunarto.duckdns.org \
+            "sudo systemctl restart wbagent && sleep 4 && \
+             sudo systemctl status wbagent --no-pager -l | head -25"
+
+      - name: Verify service and logs
+        run: |
+          ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@williambunarto.duckdns.org \
+            "sleep 5 && \
+             echo '=== wbagent status ===' && \
+             sudo systemctl is-active wbagent && \
+             echo '=== btc_signal log (last 10 lines) ===' && \
+             (tail -10 /home/ubuntu/wbagent/logs/btc_signal.log 2>/dev/null || echo 'no log yet')"
