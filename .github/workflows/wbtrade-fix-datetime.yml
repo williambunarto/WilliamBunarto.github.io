@@ -1,0 +1,40 @@
+name: WBTrade - Fix datetime serialization
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/wbtrade-fix-datetime.yml'
+      - '.github/scripts/wbtrade/fix_datetime_serialization.py'
+      - 'wbtrade/.bybit-import-trigger'
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup SSH
+        run: |
+          cp "ssh-key-2026-03-30 (1).key" /tmp/deploy_key
+          chmod 600 /tmp/deploy_key
+
+      - name: Apply fix + verify
+        run: |
+          SCP="scp -i /tmp/deploy_key -o StrictHostKeyChecking=no"
+          SSH="ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@williambunarto.duckdns.org"
+
+          $SCP .github/scripts/wbtrade/fix_datetime_serialization.py \
+               .github/scripts/wbtrade/diagnostic.py \
+               ubuntu@williambunarto.duckdns.org:/tmp/
+
+          echo '=== Apply fix ==='
+          $SSH python3 /tmp/fix_datetime_serialization.py
+
+          echo '=== Restart service ==='
+          $SSH sudo systemctl restart wbtrade
+          sleep 5
+          echo "Service: $($SSH sudo systemctl is-active wbtrade)"
+
+          echo '=== Full diagnostic ==='
+          $SSH python3 /tmp/diagnostic.py
