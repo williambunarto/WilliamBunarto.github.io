@@ -119,38 +119,36 @@ jobs:
           ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@williambunarto.duckdns.org \
             "cd /home/ubuntu && \
              python3 -c 'import btc_signal; print(\"btc_signal import OK\")' && \
-             python3 -c 'import btc_signal_handlers; print(\"btc_signal_handlers import OK\")'"  
+             python3 -c 'import btc_signal_handlers; print(\"btc_signal_handlers import OK\")'"
 
       - name: Run standalone test scan
         run: |
           ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@williambunarto.duckdns.org \
             "cd /home/ubuntu && timeout 60 python3 btc_signal.py --test 2>&1 | head -50"
 
-      - name: Restart bot process
+      - name: Write restart script to server
         run: |
           ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@williambunarto.duckdns.org \
-            'echo "=== Checking for bot service ==="
-             for svc in wbagent telegram-bot tgbot bot; do
-               if sudo systemctl is-active --quiet $svc 2>/dev/null; then
-                 echo "Restarting systemd service: $svc"
-                 sudo systemctl restart $svc
-                 sleep 4
-                 sudo systemctl status $svc --no-pager -l | head -20
-                 exit 0
-               fi
-             done
-             echo "No systemd service found — looking for nohup bot.py process"
-             pkill -f "python3.*bot.py" 2>/dev/null || true
-             sleep 2
-             if [ -f /home/ubuntu/bot.py ]; then
-               echo "Starting bot.py via nohup"
-               cd /home/ubuntu && nohup python3 bot.py >> /home/ubuntu/bot.log 2>&1 &
-               sleep 4
-               NEW_PID=$(pgrep -f "python3.*bot.py" || echo "not found")
-               echo "bot.py PID: $NEW_PID"
-             else
-               echo "WARN: bot.py not found — skipping restart"
-             fi'
+            "printf '%s\n' \
+              '#!/bin/bash' \
+              'pkill -f python3.*bot.py 2>/dev/null; true' \
+              'sleep 2' \
+              'cd /home/ubuntu' \
+              'nohup python3 bot.py >> /home/ubuntu/bot.log 2>&1 &' \
+              'sleep 3' \
+              'pgrep -f python3.*bot.py > /tmp/bot_newpid.txt 2>&1 || echo none > /tmp/bot_newpid.txt' \
+              > /tmp/restart_bot.sh && chmod +x /tmp/restart_bot.sh"
+
+      - name: Restart bot process (detached)
+        run: |
+          ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@williambunarto.duckdns.org \
+            "nohup bash /tmp/restart_bot.sh > /tmp/restart_bot.log 2>&1 & echo Restart initiated in background"
+
+      - name: Verify bot restarted
+        run: |
+          sleep 10
+          ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@williambunarto.duckdns.org \
+            "echo '=== Restart log ===' && cat /tmp/restart_bot.log 2>/dev/null || echo none; echo '=== Bot PID ===' && (cat /tmp/bot_newpid.txt 2>/dev/null || pgrep -f python3.*bot.py || echo 'not running')"
 
       - name: Verify signal logs
         run: |
