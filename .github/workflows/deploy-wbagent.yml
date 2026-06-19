@@ -119,7 +119,7 @@ jobs:
           ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@williambunarto.duckdns.org \
             "cd /home/ubuntu && \
              python3 -c 'import btc_signal; print(\"btc_signal import OK\")' && \
-             python3 -c 'import btc_signal_handlers; print(\"btc_signal_handlers import OK\")'"
+             python3 -c 'import btc_signal_handlers; print(\"btc_signal_handlers import OK\")'"  
 
       - name: Run standalone test scan
         run: |
@@ -130,7 +130,6 @@ jobs:
         run: |
           ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@williambunarto.duckdns.org \
             'echo "=== Checking for bot service ==="
-             # Try systemd services first
              for svc in wbagent telegram-bot tgbot bot; do
                if sudo systemctl is-active --quiet $svc 2>/dev/null; then
                  echo "Restarting systemd service: $svc"
@@ -140,14 +139,9 @@ jobs:
                  exit 0
                fi
              done
-             # Fallback: restart nohup-based bot.py
              echo "No systemd service found — looking for nohup bot.py process"
-             BOT_PID=$(pgrep -f "python3.*bot.py" || true)
-             if [ -n "$BOT_PID" ]; then
-               echo "Killing bot.py PID $BOT_PID"
-               kill $BOT_PID
-               sleep 2
-             fi
+             pkill -f "python3.*bot.py" 2>/dev/null || true
+             sleep 2
              if [ -f /home/ubuntu/bot.py ]; then
                echo "Starting bot.py via nohup"
                cd /home/ubuntu && nohup python3 bot.py >> /home/ubuntu/bot.log 2>&1 &
