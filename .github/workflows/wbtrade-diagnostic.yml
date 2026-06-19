@@ -22,27 +22,5 @@ jobs:
         run: |
           SCP="scp -i /tmp/deploy_key -o StrictHostKeyChecking=no"
           SSH="ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@williambunarto.duckdns.org"
-
           $SCP .github/scripts/wbtrade/diagnostic.py ubuntu@williambunarto.duckdns.org:/tmp/
-
-          echo '=== SERVICE ==='
-          $SSH sudo systemctl is-active wbtrade
-
-          echo '=== DB ==='
           $SSH python3 /tmp/diagnostic.py
-
-          echo '=== SYNTAX ==='
-          $SSH python3 -c "import ast; ast.parse(open('/home/ubuntu/wbtrade/routers/trades.py').read()); print('trades.py: OK')"
-          $SSH python3 -c "import ast; ast.parse(open('/home/ubuntu/wbtrade/database.py').read()); print('database.py: OK')"
-
-          echo '=== CODE GREP ==='
-          $SSH grep -n 'market\|trade_datetime\|opening_fee' /home/ubuntu/wbtrade/database.py
-          $SSH grep -n 'market\|/import\|UploadFile' /home/ubuntu/wbtrade/routers/trades.py
-          $SSH grep -c 'importBybitCSV' /home/ubuntu/wbtrade/static/index.html
-
-          echo '=== API ==='
-          $SSH "curl -s http://127.0.0.1:8001/api/trades/ | python3 -c 'import sys,json; d=json.load(sys.stdin); print(\"Count:\",len(d)); print(\"Keys:\",sorted(d[0].keys()) if d else [])'"
-          $SSH "curl -s -o /dev/null -w 'POST /import -> HTTP %{http_code}\n' -X POST http://127.0.0.1:8001/api/trades/import"
-
-          echo '=== FILES ==='
-          $SSH ls -lh /home/ubuntu/wbtrade/data/
