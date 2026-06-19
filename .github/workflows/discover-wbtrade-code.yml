@@ -1,0 +1,58 @@
+name: Discover WBTrade Code
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/discover-wbtrade-code.yml'
+      - 'wbtrade/.discover-trigger'
+
+jobs:
+  discover:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup SSH key
+        run: |
+          cp "ssh-key-2026-03-30 (1).key" /tmp/deploy_key
+          chmod 600 /tmp/deploy_key
+
+      - name: Read codebase
+        run: |
+          ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@williambunarto.duckdns.org 'bash -s' << 'ENDSSH'
+            echo "===== DIRECTORY STRUCTURE ====="
+            find /home/ubuntu/wbtrade -type f -name "*.py" | sort
+
+            echo ""
+            echo "===== models.py ====="
+            cat /home/ubuntu/wbtrade/models.py 2>/dev/null || echo "NOT FOUND"
+
+            echo ""
+            echo "===== database.py ====="
+            cat /home/ubuntu/wbtrade/database.py 2>/dev/null || echo "NOT FOUND"
+
+            echo ""
+            echo "===== main.py (first 100 lines) ====="
+            head -100 /home/ubuntu/wbtrade/main.py 2>/dev/null || echo "NOT FOUND"
+
+            echo ""
+            echo "===== routers/trades.py ====="
+            cat /home/ubuntu/wbtrade/routers/trades.py 2>/dev/null || echo "NOT FOUND"
+
+            echo ""
+            echo "===== routers/ directory ====="
+            ls /home/ubuntu/wbtrade/routers/ 2>/dev/null || echo "NOT FOUND"
+
+            echo ""
+            echo "===== SQLITE SCHEMA ====="
+            sqlite3 /home/ubuntu/wbtrade/data/trade.db ".schema" 2>/dev/null || echo "NOT FOUND"
+
+            echo ""
+            echo "===== SAMPLE TRADE ROW ====="
+            sqlite3 /home/ubuntu/wbtrade/data/trade.db "SELECT * FROM trades LIMIT 3;" 2>/dev/null || echo "EMPTY"
+
+            echo ""
+            echo "===== frontend index.html (grep trade-related JS) ====="
+            grep -n 'import\|upload\|csv\|trade' /home/ubuntu/wbtrade/static/index.html 2>/dev/null | head -50 || echo "NOT FOUND"
+          ENDSSH
