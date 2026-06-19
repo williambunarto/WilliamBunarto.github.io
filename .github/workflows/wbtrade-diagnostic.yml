@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - '.github/workflows/wbtrade-diagnostic.yml'
+      - '.github/scripts/wbtrade/diagnostic.py'
 
 jobs:
   check:
@@ -19,48 +20,29 @@ jobs:
 
       - name: Run diagnostics
         run: |
+          SCP="scp -i /tmp/deploy_key -o StrictHostKeyChecking=no"
           SSH="ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@williambunarto.duckdns.org"
+
+          $SCP .github/scripts/wbtrade/diagnostic.py ubuntu@williambunarto.duckdns.org:/tmp/
 
           echo '=== SERVICE ==='
           $SSH sudo systemctl is-active wbtrade
-          $SSH "sudo journalctl -u wbtrade -n 5 --no-pager"
 
-          echo '=== DB INTEGRITY ==='
-          $SSH python3 << 'PYEOF'
-import sqlite3
-conn = sqlite3.connect('/home/ubuntu/wbtrade/data/trade.db')
-cols = [r[1] for r in conn.execute('PRAGMA table_info(trades)').fetchall()]
-print('Columns:', cols)
-print('Total:', conn.execute('SELECT COUNT(*) FROM trades').fetchone()[0])
-print('Has market:', conn.execute('SELECT COUNT(*) FROM trades WHERE market IS NOT NULL').fetchone()[0])
-print('Has datetime:', conn.execute('SELECT COUNT(*) FROM trades WHERE trade_datetime IS NOT NULL').fetchone()[0])
-print('Null entry:', conn.execute('SELECT COUNT(*) FROM trades WHERE entry_price IS NULL').fetchone()[0])
-print('Null direction:', conn.execute('SELECT COUNT(*) FROM trades WHERE direction IS NULL').fetchone()[0])
-print('PnL total:', conn.execute('SELECT ROUND(SUM(pnl_usdt),2) FROM trades').fetchone()[0])
-print('Liquidations:', conn.execute("SELECT COUNT(*) FROM trades WHERE trade_type='Liquidation'").fetchone()[0])
-rows = conn.execute('SELECT id,market,direction,pnl_usdt,trade_datetime FROM trades ORDER BY trade_datetime DESC LIMIT 3').fetchall()
-for r in rows: print(' ', r)
-conn.close()
-PYEOF
+          echo '=== DB ==='
+          $SSH python3 /tmp/diagnostic.py
 
-          echo '=== CODE SYNTAX ==='
+          echo '=== SYNTAX ==='
           $SSH python3 -c "import ast; ast.parse(open('/home/ubuntu/wbtrade/routers/trades.py').read()); print('trades.py: OK')"
           $SSH python3 -c "import ast; ast.parse(open('/home/ubuntu/wbtrade/database.py').read()); print('database.py: OK')"
 
-          echo '=== COLUMN DEFS IN DATABASE.PY ==='
-          $SSH grep -n 'market\|trade_type\|qty\|opening_fee\|closing_fee\|funding_fee\|trade_datetime' /home/ubuntu/wbtrade/database.py
-
-          echo '=== IMPORT EP IN TRADES.PY ==='
-          $SSH grep -n 'market\|trade_datetime\|/import\|UploadFile\|csv' /home/ubuntu/wbtrade/routers/trades.py
-
-          echo '=== HTML BUTTON ==='
+          echo '=== CODE GREP ==='
+          $SSH grep -n 'market\|trade_datetime\|opening_fee' /home/ubuntu/wbtrade/database.py
+          $SSH grep -n 'market\|/import\|UploadFile' /home/ubuntu/wbtrade/routers/trades.py
           $SSH grep -c 'importBybitCSV' /home/ubuntu/wbtrade/static/index.html
 
-          echo '=== API FIELDS ==='
-          $SSH "curl -s http://127.0.0.1:8001/api/trades/ | python3 -c 'import sys,json; d=json.load(sys.stdin); print(\"Field count:\", len(d)); print(\"Keys:\", sorted(d[0].keys()) if d else \"empty\")'"
-
-          echo '=== IMPORT EP REACHABLE ==='
+          echo '=== API ==='
+          $SSH "curl -s http://127.0.0.1:8001/api/trades/ | python3 -c 'import sys,json; d=json.load(sys.stdin); print(\"Count:\",len(d)); print(\"Keys:\",sorted(d[0].keys()) if d else [])'"
           $SSH "curl -s -o /dev/null -w 'POST /import -> HTTP %{http_code}\n' -X POST http://127.0.0.1:8001/api/trades/import"
 
-          echo '=== BACKUPS ==='
+          echo '=== FILES ==='
           $SSH ls -lh /home/ubuntu/wbtrade/data/
