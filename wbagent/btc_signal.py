@@ -3,6 +3,8 @@ btc_signal.py — BTC/USDT perpetual trading signal engine for wbagent.
 Standalone module: imports nothing from existing screener code.
 """
 
+__version__ = "1.0.6"
+
 import hashlib
 import json
 import logging
@@ -67,10 +69,9 @@ def _save_state(state: dict):
 def _reset_daily_if_needed(state: dict) -> dict:
     today_wib = datetime.now(WIB).strftime("%Y-%m-%d")
     if state.get("last_signal_date") != today_wib:
-        # Move today's signals to history before clearing
         history = state.get("signal_history", [])
         history.extend(state.get("signals_today", []))
-        state["signal_history"] = history[-200:]  # keep last 200
+        state["signal_history"] = history[-200:]
         state["signals_today"]   = []
         state["last_signal_date"] = today_wib
     return state
@@ -283,21 +284,18 @@ def _compute_score(data: dict) -> dict:
     cl5m  = [c["close"] for c in c5m]
     price = cl5m[-1]
 
-    # 4H macro EMAs
     n4h      = len(cl4h)
     ema200_4h = _ema(cl4h, min(200, n4h))[-1]
     ema50_4h  = _ema(cl4h, min(50, n4h))[-1]
     macro_bull = price > ema200_4h and ema50_4h > ema200_4h
     macro_bear = price < ema200_4h and ema50_4h < ema200_4h
 
-    # 1H EMAs
     n1h      = len(cl1h)
     ema200_1h = _ema(cl1h, min(200, n1h))[-1]
     ema50_1h  = _ema(cl1h, min(50, n1h))[-1]
     h1_bull = price > ema50_1h and price > ema200_1h
     h1_bear = price < ema50_1h and price < ema200_1h
 
-    # 15m MACD + RSI
     rsi_15m          = _rsi(cl15m)
     macd_l, macd_s, macd_h = _macd(cl15m)
     macd_bull = macd_l > macd_s and macd_h > 0
@@ -305,7 +303,6 @@ def _compute_score(data: dict) -> dict:
     rsi_os    = rsi_15m < 35
     rsi_ob    = rsi_15m > 65
 
-    # 5m EMAs
     ema9_5m   = _ema(cl5m, 9)
     ema21_5m  = _ema(cl5m, 21)
     ema50_5m  = _ema(cl5m, 50)
@@ -314,30 +311,24 @@ def _compute_score(data: dict) -> dict:
     ema_bull_cross = ema9_prev < ema21_prev and ema9_cur > ema21_cur
     ema_bear_cross = ema9_prev > ema21_prev and ema9_cur < ema21_cur
 
-    # Volume spike on 5m
     vols_5m  = [c["vol"] for c in c5m]
     vol_ma20 = sum(vols_5m[-21:-1]) / 20 if len(vols_5m) >= 21 else sum(vols_5m) / max(len(vols_5m), 1)
     vol_spike = vols_5m[-1] > vol_ma20 * 1.8
 
-    # VWAP
     vwap      = _vwap_daily(c5m)
     vwap_bull = price > vwap
     vwap_bear = price < vwap
 
-    # Volume profile
     vp    = _volume_profile(c5m)
     delta = _volume_delta(c5m)
 
-    # Swing levels on 1H
     swing = _swing_levels(c1h, lookback=50)
 
-    # Liquidation magnets
     liq_above = liq.get("above")
     liq_below = liq.get("below")
     liq_tp_bull = liq_above is not None and liq_above > price * 1.02
     liq_tp_bear = liq_below is not None and liq_below < price * 0.98
 
-    # Long/short ratio signals
     ls_bull = ls_ratio is not None and ls_ratio < 0.9
     ls_bear = ls_ratio is not None and ls_ratio > 1.1
 
@@ -345,7 +336,6 @@ def _compute_score(data: dict) -> dict:
         score  = 0.0
         detail = {}
 
-        # (1) 4H trend alignment — 0-2 pts
         if is_long:
             if macro_bull:            pts = 2.0
             elif price > ema50_4h:    pts = 1.0
@@ -356,7 +346,6 @@ def _compute_score(data: dict) -> dict:
             else:                     pts = 0.0
         score += pts; detail["4h_trend"] = pts
 
-        # (2) 1H EMA structure — 0-1 pt
         if is_long:
             if h1_bull:               pts = 1.0
             elif price > ema200_1h:   pts = 0.5
@@ -367,7 +356,6 @@ def _compute_score(data: dict) -> dict:
             else:                     pts = 0.0
         score += pts; detail["1h_ema"] = pts
 
-        # (3) 15m momentum (MACD + RSI) — 0-2 pts
         m = 0.0
         if is_long:
             if macd_bull:      m += 1.0
@@ -382,7 +370,6 @@ def _compute_score(data: dict) -> dict:
         pts = max(0.0, min(m, 2.0))
         score += pts; detail["15m_momentum"] = pts
 
-        # (4) 5m entry timing — 0-1 pt
         e = 0.0
         if is_long     and ema_bull_cross: e += 0.7
         if not is_long and ema_bear_cross: e += 0.7
@@ -390,11 +377,9 @@ def _compute_score(data: dict) -> dict:
         pts = min(e, 1.0)
         score += pts; detail["5m_entry"] = pts
 
-        # (5) VWAP position — 0-1 pt
         pts = 1.0 if (is_long and vwap_bull) or (not is_long and vwap_bear) else 0.0
         score += pts; detail["vwap"] = pts
 
-        # (6) TP magnet (S/R or liquidation cluster) — 0-1 pt
         above_sr = [h for h in swing["highs"] if h > price * 1.02]
         below_sr = [l for l in swing["lows"]  if l < price * 0.98]
         if is_long:
@@ -403,14 +388,12 @@ def _compute_score(data: dict) -> dict:
             pts = 1.0 if (liq_tp_bear or bool(below_sr)) else 0.0
         score += pts; detail["tp_magnet"] = pts
 
-        # (7) Volume delta — 0-1 pt
         if is_long:
             pts = 1.0 if delta > 0.15 else (0.5 if delta > 0 else 0.0)
         else:
             pts = 1.0 if delta < -0.15 else (0.5 if delta < 0 else 0.0)
         score += pts; detail["vol_delta"] = pts
 
-        # (8) L/S ratio imbalance — 0-1 pt
         if is_long:
             pts = 1.0 if ls_bull else (0.5 if ls_ratio is None else 0.0)
         else:
@@ -456,9 +439,6 @@ def _compute_score(data: dict) -> dict:
     }
 
 
-# ---------------------------------------------------------------------------
-# Trade parameters
-# ---------------------------------------------------------------------------
 def _trade_params(sig: dict, account_size: float) -> dict:
     price     = sig["price"]
     direction = sig["direction"]
@@ -474,39 +454,30 @@ def _trade_params(sig: dict, account_size: float) -> dict:
             reverse=True
         )
         entry = round(candidates[0] if candidates else price * 0.9990, 1)
-
         lows = sorted([l for l in swing["lows"] if l < entry * 0.997])
         sl   = round((max(lows) * 0.9975) if lows else entry * (1 - 0.025), 1)
-
         tp1_cands = [h for h in swing["highs"] if h > entry * 1.02]
         tp1_cands.append(vp["vah"] if vp["vah"] > entry * 1.02 else entry * 1.04)
         tp1 = round(min(tp1_cands), 1)
-
         tp2_cands = [h for h in swing["highs"] if h > tp1 * 1.015]
         tp2 = round(min(tp2_cands) if tp2_cands else tp1 * 1.065, 1)
-
-    else:  # SHORT
+    else:
         candidates = sorted(
             [v for v in [ema21, vwap, vp["vah"]] if v > price * 0.997]
         )
         entry = round(candidates[0] if candidates else price * 1.0010, 1)
-
         highs = sorted([h for h in swing["highs"] if h > entry * 1.003])
         sl    = round((min(highs) * 1.0025) if highs else entry * (1 + 0.025), 1)
-
         tp1_cands = [l for l in swing["lows"] if l < entry * 0.98]
         tp1_cands.append(vp["val"] if vp["val"] < entry * 0.98 else entry * 0.96)
         tp1 = round(max(tp1_cands), 1)
-
         tp2_cands = [l for l in swing["lows"] if l < tp1 * 0.985]
         tp2 = round(max(tp2_cands) if tp2_cands else tp1 * 0.935, 1)
 
-    # 2% account risk; position_size = notional USDT value
     sl_dist    = abs(entry - sl)
     sl_pct     = round(sl_dist / entry * 100, 2)
     risk_amt   = account_size * 0.02
     pos_sz     = round(risk_amt / (sl_pct / 100), 2) if sl_pct > 0 else account_size
-
     tp1_pct  = round(abs(tp1 - entry) / entry * 100, 2)
     tp2_pct  = round(abs(tp2 - entry) / entry * 100, 2)
     tp1_usd  = round(pos_sz * tp1_pct / 100, 2)
@@ -528,9 +499,6 @@ def _trade_params(sig: dict, account_size: float) -> dict:
     }
 
 
-# ---------------------------------------------------------------------------
-# Commentary
-# ---------------------------------------------------------------------------
 def _commentary(sig: dict) -> str:
     d         = sig["direction"]
     score     = sig["score"]
@@ -582,9 +550,6 @@ def _commentary(sig: dict) -> str:
         )
 
 
-# ---------------------------------------------------------------------------
-# Main scan
-# ---------------------------------------------------------------------------
 def run_scan(force: bool = False) -> Optional[dict]:
     """
     Full signal scan. Returns signal dict if fired, None if suppressed.
@@ -683,9 +648,6 @@ def run_scan(force: bool = False) -> Optional[dict]:
     return result
 
 
-# ---------------------------------------------------------------------------
-# Message formatter
-# ---------------------------------------------------------------------------
 def format_signal_message(sig: dict) -> str:
     return (
         f"\U0001f48e WBAGENT TRADING SIGNAL\n"
@@ -707,9 +669,6 @@ def format_signal_message(sig: dict) -> str:
     )
 
 
-# ---------------------------------------------------------------------------
-# wbtrade API logging
-# ---------------------------------------------------------------------------
 def log_trade_to_wbtrade(sig: dict, outcome: str, pnl_usdt: float,
                           exit_price: Optional[float] = None) -> bool:
     payload = {
@@ -760,9 +719,6 @@ def _save_failed_trade(payload: dict, sig: dict):
         pass
 
 
-# ---------------------------------------------------------------------------
-# CLI
-# ---------------------------------------------------------------------------
 if __name__ == "__main__":
     import sys
     force = "--test" in sys.argv

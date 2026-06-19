@@ -32,10 +32,10 @@ log = logging.getLogger("btc_signal")
 
 
 # ---------------------------------------------------------------------------
-# /btcsignal — on-demand scan (always returns result)
+# /btcsignal — on-demand scan (always returns result for testing)
 # ---------------------------------------------------------------------------
 async def cmd_btcsignal(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("\U0001f50d Scanning BTC/USDT... please wait.")
+    await update.message.reply_text("🔍 Scanning BTC/USDT... please wait.")
     try:
         sig = run_scan(force=True)
         if sig:
@@ -72,6 +72,7 @@ async def cmd_setaccount(update: Update, context: ContextTypes.DEFAULT_TYPE):
     state["account_size"] = amount
     _save_state(state)
 
+    # Best-effort .env update
     env_path = "/home/ubuntu/.env"
     try:
         if os.path.exists(env_path):
@@ -99,7 +100,7 @@ async def cmd_setaccount(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 # ---------------------------------------------------------------------------
-# /tradehistory
+# /tradehistory — last 10 signals with outcomes
 # ---------------------------------------------------------------------------
 async def cmd_tradehistory(update: Update, context: ContextTypes.DEFAULT_TYPE):
     state   = _load_state()
@@ -110,7 +111,7 @@ async def cmd_tradehistory(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     recent = history[-10:][::-1]
-    lines  = ["\U0001f4cb <b>Last signals:</b>\n"]
+    lines  = ["📋 <b>Last signals:</b>\n"]
     for s in recent:
         outcome = s.get("outcome", "open")
         icon    = {"win": "✅", "loss": "❌", "skip": "⏭️"}.get(outcome, "⏳")
@@ -151,8 +152,8 @@ async def cmd_todaypnl(update: Update, context: ContextTypes.DEFAULT_TYPE):
     sign      = "+" if total_pnl >= 0 else ""
 
     await update.message.reply_text(
-        f"\U0001f4c8 <b>Today's P&L</b>\n"
-        f"━" * 12 + "\n"
+        f"📈 <b>Today's P&L</b>\n"
+        f"━━━━━━━━━━━━\n"
         f"Trades : {len(wins)}W / {len(losses)}L\n"
         f"Total  : {sign}{total_pnl:.2f} USDT\n"
         f"Account: ${state.get('account_size', 1000):,.2f}",
@@ -181,8 +182,8 @@ async def cmd_signalstatus(update: Update, context: ContextTypes.DEFAULT_TYPE):
         pass
 
     await update.message.reply_text(
-        f"\U0001f527 <b>BTC Signal Scanner</b>\n"
-        f"━" * 15 + "\n"
+        f"🔧 <b>BTC Signal Scanner</b>\n"
+        f"━━━━━━━━━━━━━━━\n"
         f"Signals today : {count_today} / 5\n"
         f"Account size  : ${account:,.2f}\n"
         f"Last scan     : {last_scan}\n"
@@ -217,7 +218,7 @@ async def cmd_losstrade(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["awaiting_pnl"]  = signal_id
     context.user_data["pnl_outcome"]   = "loss"
     await update.message.reply_text(
-        f"\U0001f4dd Signal <code>{signal_id}</code> — enter your loss:\n"
+        f"📝 Signal <code>{signal_id}</code> — enter your loss:\n"
         f"Examples: <code>200</code> (USDT) or <code>2%</code>",
         parse_mode="HTML",
     )
@@ -229,10 +230,7 @@ async def cmd_skiptrade(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     signal_id = m.group(1)
     _record_outcome(signal_id, "skip", 0.0, 0.0)
-    await update.message.reply_text(
-        f"⏭️ Signal <code>{signal_id}</code> logged as skipped.",
-        parse_mode="HTML"
-    )
+    await update.message.reply_text(f"⏭️ Signal <code>{signal_id}</code> logged as skipped.", parse_mode="HTML")
 
 
 # ---------------------------------------------------------------------------
@@ -269,6 +267,7 @@ async def handle_pnl_reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data.pop("awaiting_pnl", None)
     context.user_data.pop("pnl_outcome", None)
 
+    # Count today's W/L
     state   = _load_state()
     history = state.get("signal_history", []) + state.get("signals_today", [])
     today   = datetime.now(WIB).strftime("%Y-%m-%d")
@@ -277,7 +276,7 @@ async def handle_pnl_reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
     tl = sum(1 for s in history if s.get("outcome") == "loss"
              and datetime.fromtimestamp(s.get("ts", 0), tz=WIB).strftime("%Y-%m-%d") == today)
 
-    icon = "\U0001f3c6" if outcome == "win" else "\U0001f4b8"
+    icon = "🏆" if outcome == "win" else "💸"
     sign = "+" if pnl_pct >= 0 else ""
     await update.message.reply_text(
         f"✅ Trade logged to dashboard\n"
@@ -285,6 +284,7 @@ async def handle_pnl_reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"Running today: {tw}W / {tl}L"
     )
 
+    # Log to wbtrade
     sig = next(
         (s for s in history if s.get("signal_id") == signal_id),
         None,
@@ -305,7 +305,7 @@ def _record_outcome(signal_id: str, outcome: str, pnl_usdt: float, pnl_pct: floa
 
 
 # ---------------------------------------------------------------------------
-# APScheduler job — fires every 7 minutes inside the bot process
+# APScheduler job (runs every 7 minutes inside the bot process)
 # ---------------------------------------------------------------------------
 async def _auto_scan_job(context: ContextTypes.DEFAULT_TYPE):
     chat_id = os.getenv("TELEGRAM_CHAT_ID", "")
@@ -320,7 +320,7 @@ async def _auto_scan_job(context: ContextTypes.DEFAULT_TYPE):
 
 
 # ---------------------------------------------------------------------------
-# Registration entrypoint
+# Registration entrypoint — called from bot.py
 # ---------------------------------------------------------------------------
 def register_btc_handlers(application: Application):
     """Register all BTC signal commands and the 7-minute scheduler."""
@@ -331,6 +331,7 @@ def register_btc_handlers(application: Application):
     application.add_handler(CommandHandler("todaypnl",     cmd_todaypnl))
     application.add_handler(CommandHandler("signalstatus", cmd_signalstatus))
 
+    # Dynamic command pattern handlers (/wintrade_XXXX, etc.)
     application.add_handler(
         MessageHandler(filters.Regex(r'^/wintrade_[a-f0-9]+'),  cmd_wintrade)
     )
@@ -341,12 +342,13 @@ def register_btc_handlers(application: Application):
         MessageHandler(filters.Regex(r'^/skiptrade_[a-f0-9]+'), cmd_skiptrade)
     )
 
-    # PnL reply — group=1 so existing screener handlers take priority
+    # PnL reply — plain text when we're awaiting input
     application.add_handler(
         MessageHandler(filters.TEXT & ~filters.COMMAND, handle_pnl_reply),
-        group=1,
+        group=1,  # lower priority than existing screener handlers
     )
 
+    # 7-minute auto-scan scheduler
     try:
         if application.job_queue:
             application.job_queue.run_repeating(
