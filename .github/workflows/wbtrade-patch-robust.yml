@@ -1,0 +1,32 @@
+name: WBTrade Patch Robust
+on:
+  push:
+    paths:
+      - '.github/scripts/wbtrade/patch_trades_robust.py'
+      - '.github/scripts/wbtrade/patch_database.py'
+      - '.github/scripts/wbtrade/fix_database_v2.py'
+      - '.github/scripts/wbtrade/verify_api.py'
+      - '.github/scripts/wbtrade/verify_api_full.py'
+      - '.github/workflows/wbtrade-patch-robust.yml'
+      - 'wbtrade/.patch-robust-trigger'
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup SSH
+        run: |
+          cp "ssh-key-2026-03-30 (1).key" /tmp/deploy_key
+          chmod 600 /tmp/deploy_key
+      - name: Patch and restart
+        run: |
+          SCP="scp -i /tmp/deploy_key -o StrictHostKeyChecking=no"
+          SSH="ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@williambunarto.duckdns.org"
+          $SCP .github/scripts/wbtrade/fix_database_v2.py ubuntu@williambunarto.duckdns.org:/tmp/
+          $SCP .github/scripts/wbtrade/patch_trades_robust.py ubuntu@williambunarto.duckdns.org:/tmp/
+          $SCP .github/scripts/wbtrade/verify_api_full.py ubuntu@williambunarto.duckdns.org:/tmp/
+          $SSH python3 /tmp/fix_database_v2.py
+          $SSH python3 /tmp/patch_trades_robust.py
+          $SSH sudo systemctl restart wbtrade
+          sleep 8
+          $SSH python3 /tmp/verify_api_full.py
