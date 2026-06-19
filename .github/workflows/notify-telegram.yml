@@ -1,0 +1,28 @@
+name: Notify Telegram
+
+on:
+  workflow_dispatch:
+    inputs:
+      message:
+        description: 'Message to send'
+        required: true
+        default: 'upgrade done'
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup SSH key
+        run: |
+          cp "ssh-key-2026-03-30 (1).key" /tmp/deploy_key
+          chmod 600 /tmp/deploy_key
+
+      - name: Send Telegram message
+        run: |
+          ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@williambunarto.duckdns.org \
+            "set -a && source /home/ubuntu/.env && set +a && \
+             curl -s \"https://api.telegram.org/bot\${TELEGRAM_BOT_TOKEN}/sendMessage\" \
+               -d \"chat_id=\${TELEGRAM_CHAT_ID}\" \
+               --data-urlencode \"text=${{ github.event.inputs.message }}\" | python3 -c 'import sys,json; r=json.load(sys.stdin); print(\"OK\" if r[\"ok\"] else r)'"
