@@ -644,22 +644,23 @@ def run_scan(force: bool = False) -> Optional[dict]:
 
 
 def format_signal_message(sig: dict) -> str:
+    sep = "━" * 16
     return (
         f"\U0001f48e WBAGENT TRADING SIGNAL\n"
-        f"━" * 16 + "\n"
+        f"{sep}\n"
         f"BTC/USDT • {sig['direction']} • 5x Isolated\n"
         f"{sig['date_str']} {sig['signal_time']} • Good until {sig['expiry_time']}\n"
-        f"━" * 16 + "\n"
+        f"{sep}\n"
         f"\U0001f4b0 Entry  : ${sig['entry']:,.1f}\n"
         f"\U0001f6d1 SL     : ${sig['sl']:,.1f} ({sig['sl_pct']}% | -${sig['sl_usd']:.2f} on ${sig['account_size']:,.0f})\n"
         f"\U0001f3af TP1    : ${sig['tp1']:,.1f} (+{sig['tp1_pct']}% | +${sig['tp1_usd']:.2f})\n"
         f"\U0001f680 TP2    : ${sig['tp2']:,.1f} (+{sig['tp2_pct']}% | +${sig['tp2_usd']:.2f})\n"
-        f"━" * 16 + "\n"
+        f"{sep}\n"
         f"\U0001f4ca AI Score     : {sig['score']}/10\n"
         f"\U0001f916 Confidence   : {sig['confidence']}/10\n"
-        f"━" * 16 + "\n"
+        f"{sep}\n"
         f"\U0001f4ac {sig['commentary']}\n"
-        f"━" * 16 + "\n"
+        f"{sep}\n"
         f"\U0001f4dd /wintrade_{sig['signal_id']} • /losstrade_{sig['signal_id']} • /skiptrade_{sig['signal_id']}"
     )
 
