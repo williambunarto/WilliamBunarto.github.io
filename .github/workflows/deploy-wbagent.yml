@@ -119,7 +119,7 @@ jobs:
           ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@williambunarto.duckdns.org \
             "cd /home/ubuntu && \
              python3 -c 'import btc_signal; print(\"btc_signal import OK\")' && \
-             python3 -c 'import btc_signal_handlers; print(\"btc_signal_handlers import OK\")'"
+             python3 -c 'import btc_signal_handlers; print(\"btc_signal_handlers import OK\")'"  
 
       - name: Run standalone test scan
         run: |
@@ -135,20 +135,25 @@ jobs:
               'sleep 2' \
               'cd /home/ubuntu' \
               'nohup python3 bot.py >> /home/ubuntu/bot.log 2>&1 &' \
-              'sleep 3' \
-              'pgrep -f python3.*bot.py > /tmp/bot_newpid.txt 2>&1 || echo none > /tmp/bot_newpid.txt' \
+              'sleep 5' \
+              'pgrep -a -f python3 > /tmp/bot_newpid.txt 2>&1 || echo none > /tmp/bot_newpid.txt' \
               > /tmp/restart_bot.sh && chmod +x /tmp/restart_bot.sh"
 
-      - name: Restart bot process (detached)
+      - name: Restart bot process (detached via setsid)
         run: |
           ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@williambunarto.duckdns.org \
-            "nohup bash /tmp/restart_bot.sh > /tmp/restart_bot.log 2>&1 & echo Restart initiated in background"
+            "setsid bash /tmp/restart_bot.sh > /tmp/restart_bot.log 2>&1 < /dev/null & echo Restart initiated in background"
 
       - name: Verify bot restarted
         run: |
-          sleep 10
+          sleep 15
           ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@williambunarto.duckdns.org \
-            "echo '=== Restart log ===' && cat /tmp/restart_bot.log 2>/dev/null || echo none; echo '=== Bot PID ===' && (cat /tmp/bot_newpid.txt 2>/dev/null || pgrep -f python3.*bot.py || echo 'not running')"
+            "echo '=== All python3 processes ===' && \
+             (pgrep -a -f python3 || echo 'none found'); \
+             echo '=== bot.log (last 30 lines) ===' && \
+             (tail -30 /home/ubuntu/bot.log 2>/dev/null || echo 'no bot.log yet'); \
+             echo '=== restart script log ===' && \
+             (cat /tmp/restart_bot.log 2>/dev/null || echo 'no restart log')"
 
       - name: Verify signal logs
         run: |
