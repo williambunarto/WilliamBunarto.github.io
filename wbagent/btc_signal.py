@@ -3,7 +3,7 @@ btc_signal.py — BTC/USDT perpetual trading signal engine for wbagent.
 Standalone module: imports nothing from existing screener code.
 """
 
-__version__ = "1.0.0"
+__version__ = "1.0.1"
 
 import hashlib
 import json
