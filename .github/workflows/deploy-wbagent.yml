@@ -30,6 +30,8 @@ jobs:
           HOST="ubuntu@williambunarto.duckdns.org"
           scp $OPTS wbagent/btc_signal.py          $HOST:/home/ubuntu/btc_signal.py
           scp $OPTS wbagent/btc_signal_handlers.py $HOST:/home/ubuntu/btc_signal_handlers.py
+          scp $OPTS wbagent/repair_bot.py          $HOST:/home/ubuntu/repair_bot.py
+          scp $OPTS wbagent/patch_bot.py           $HOST:/home/ubuntu/patch_bot.py
           echo "Files copied"
 
       - name: Install Python dependencies
@@ -37,127 +39,15 @@ jobs:
           ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@williambunarto.duckdns.org \
             "pip3 install --user --quiet requests python-dotenv 2>&1 | tail -3 || true"
 
-      - name: Show bot.py status and repair if broken
+      - name: Repair bot.py if broken
         run: |
           ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@williambunarto.duckdns.org \
-            'python3 - << PYEOF
-import subprocess, os, shutil
-
-BOT = "/home/ubuntu/bot.py"
-BAK = BOT + ".pre_btc_signal.bak"
-MARKER = "# BTC_SIGNAL_INJECTED"
-
-# Check current bot.py for syntax errors
-result = subprocess.run(["python3", "-m", "py_compile", BOT], capture_output=True, text=True)
-if result.returncode != 0:
-    print("SYNTAX ERROR in bot.py:")
-    print(result.stderr)
-    # Restore from backup if available
-    if os.path.exists(BAK):
-        print(f"Restoring from {BAK}...")
-        shutil.copy(BAK, BOT)
-        result2 = subprocess.run(["python3", "-m", "py_compile", BOT], capture_output=True, text=True)
-        if result2.returncode == 0:
-            print("Backup restored successfully — syntax OK")
-        else:
-            print(f"Backup also broken: {result2.stderr}")
-    else:
-        print("No backup found — cannot auto-restore")
-else:
-    print("bot.py syntax OK")
-    if MARKER in open(BOT).read():
-        print("bot.py already patched")
-    else:
-        print("bot.py NOT yet patched")
-PYEOF'
+            "python3 /home/ubuntu/repair_bot.py"
 
       - name: Patch bot.py (idempotent)
         run: |
           ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@williambunarto.duckdns.org \
-            'python3 - << PYEOF
-import os, shutil, subprocess
-
-BOT = "/home/ubuntu/bot.py"
-BAK = BOT + ".pre_btc_signal.bak"
-MARKER = "# BTC_SIGNAL_INJECTED"
-
-if not os.path.exists(BOT):
-    print(f"WARN: {BOT} not found")
-    raise SystemExit(0)
-
-with open(BOT) as f:
-    content = f.read()
-
-if MARKER in content:
-    print("Already patched")
-    raise SystemExit(0)
-
-# Backup before touching
-shutil.copy(BOT, BAK)
-print(f"Backed up to {BAK}")
-
-# Find last top-level import line
-lines = content.split("\n")
-last_import = 0
-for i, line in enumerate(lines):
-    s = line.strip()
-    if (s.startswith("import ") or s.startswith("from ")) and not line.startswith(" ") and not line.startswith("\t"):
-        last_import = i
-
-print(f"Last top-level import at line {last_import}: {lines[last_import]!r}")
-
-import_block = "\n" + MARKER + "\ntry:\n    from btc_signal_handlers import register_btc_handlers as _register_btc\n    _BTC_SIGNAL_OK = True\nexcept Exception as _btc_e:\n    print(f\"[WARN] btc_signal_handlers not loaded: {_btc_e}\")\n    _BTC_SIGNAL_OK = False\n"
-
-new_lines = lines[:last_import + 1] + import_block.split("\n") + lines[last_import + 1:]
-content = "\n".join(new_lines)
-
-# Find run_polling injection point — look for the actual call line
-injected = False
-for var in ("application", "app", "updater"):
-    pattern = var + ".run_polling"
-    if pattern in content:
-        # Find the line containing pattern and insert BEFORE that line
-        new_content_lines = content.split("\n")
-        for idx, ln in enumerate(new_content_lines):
-            if pattern in ln:
-                indent = len(ln) - len(ln.lstrip())
-                pad = " " * indent
-                inject_lines = [
-                    pad + "# BTC signal handlers",
-                    pad + "if _BTC_SIGNAL_OK:",
-                    pad + "    _register_btc(" + var + ")",
-                    "",
-                ]
-                new_content_lines = new_content_lines[:idx] + inject_lines + new_content_lines[idx:]
-                content = "\n".join(new_content_lines)
-                injected = True
-                print(f"Injected before line {idx}: {ln.strip()!r}")
-                break
-        if injected:
-            break
-
-if not injected:
-    print("Could not find run_polling — appending at end")
-    content += "\n# BTC signal handlers\nif _BTC_SIGNAL_OK:\n    _register_btc(application)\n"
-
-# Verify syntax before writing
-import tempfile
-with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as tmp:
-    tmp.write(content)
-    tmpname = tmp.name
-
-result = subprocess.run(["python3", "-m", "py_compile", tmpname], capture_output=True, text=True)
-os.unlink(tmpname)
-
-if result.returncode != 0:
-    print(f"PATCH WOULD CREATE SYNTAX ERROR: {result.stderr}")
-    print("Aborting patch to protect bot.py")
-    raise SystemExit(1)
-
-with open(BOT, "w") as f:
-    f.write(content)
-print("bot.py patched and syntax verified")
-PYEOF'
+            "python3 /home/ubuntu/patch_bot.py"
 
       - name: Verify imports
         run: |
