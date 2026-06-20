@@ -56,6 +56,13 @@ class Trade(Base):
     screenshot_path     = Column(String)
     notes               = Column(Text)
     plan_id             = Column(Integer, ForeignKey("trade_plans.id"), nullable=True)
+    market              = Column(Text,    nullable=True)
+    trade_type          = Column(Text,    nullable=True)
+    qty                 = Column(Float,   nullable=True)
+    opening_fee         = Column(Float,   nullable=True)
+    closing_fee         = Column(Float,   nullable=True)
+    funding_fee         = Column(Float,   nullable=True)
+    trade_datetime      = Column(DateTime, nullable=True)
 
 
 class SpotEntry(Base):

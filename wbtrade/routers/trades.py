@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from database import get_db, Trade, MarketState
 from typing import Optional
 from datetime import datetime
-import os, shutil, json
+import os, shutil, json, csv, io
 
 router = APIRouter(prefix="/api/trades", tags=["trades"])
 UPLOAD_DIR = os.environ.get("WBTRADE_UPLOADS", "/home/ubuntu/wbtrade/uploads")
@@ -32,6 +32,13 @@ def _trade_dict(t: Trade):
         "screenshot_path": t.screenshot_path,
         "notes": t.notes,
         "plan_id": t.plan_id,
+        "market": t.market,
+        "trade_type": t.trade_type,
+        "qty": t.qty,
+        "opening_fee": t.opening_fee,
+        "closing_fee": t.closing_fee,
+        "funding_fee": t.funding_fee,
+        "trade_datetime": t.trade_datetime.isoformat() if t.trade_datetime else None,
     }
 
 
@@ -153,3 +160,58 @@ def delete_trade(trade_id: int, db: Session = Depends(get_db)):
     db.delete(t)
     db.commit()
     return {"ok": True}
+
+
+@router.post("/import")
+async def import_bybit_csv(
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+):
+    """Import trades from Bybit All Perp Closed PnL CSV."""
+    content_bytes = await file.read()
+    text = content_bytes.decode("utf-8-sig")
+    reader = csv.DictReader(io.StringIO(text))
+    inserted = 0
+    skipped = 0
+    errors = []
+    for row in reader:
+        try:
+            market = (row.get("Market") or "").strip()
+            if not market:
+                continue
+            qty = float(row.get("Order Quantity") or 0)
+            entry = float(row.get("Entry Price") or 0)
+            exit_p = float(row.get("Exit Price") or 0)
+            open_fee = float(row.get("Opening Fee") or 0)
+            close_fee = float(row.get("Closing Fee") or 0)
+            fund_fee = float(row.get("Funding Fee") or 0)
+            ttype = (row.get("Trade Type") or "Trade").strip()
+            pnl = float(row.get("Realized P&L") or 0)
+            tstr = (row.get("Trade time") or "").strip()
+            trade_dt = datetime.strptime(tstr, "%H:%M %Y-%m-%d")
+            direction = "LONG" if exit_p >= entry else "SHORT"
+            outcome = "win" if pnl > 0 else "loss"
+            existing = db.query(Trade).filter(
+                Trade.market == market,
+                Trade.trade_datetime == trade_dt,
+                Trade.entry_price == entry,
+                Trade.qty == qty,
+            ).first()
+            if existing:
+                skipped += 1
+                continue
+            t = Trade(
+                market=market, trade_type=ttype, qty=qty,
+                entry_price=entry, exit_price=exit_p,
+                opening_fee=open_fee, closing_fee=close_fee, funding_fee=fund_fee,
+                pnl_usdt=round(pnl, 8), direction=direction, outcome=outcome,
+                trade_datetime=trade_dt,
+                position_size_usdt=round(entry * qty, 2),
+                leverage=1, rule_violations="[]",
+            )
+            db.add(t)
+            inserted += 1
+        except Exception as e:
+            errors.append(str(e))
+    db.commit()
+    return {"inserted": inserted, "skipped": skipped, "errors": errors[:20]}
