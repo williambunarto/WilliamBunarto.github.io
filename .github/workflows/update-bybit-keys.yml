@@ -1,0 +1,47 @@
+name: Update Bybit Keys on Server
+
+on:
+  push:
+    paths:
+      - '.github/workflows/update-bybit-keys.yml'
+  workflow_dispatch:
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup SSH key
+        run: |
+          cp "ssh-key-2026-03-30 (1).key" /tmp/deploy_key
+          chmod 600 /tmp/deploy_key
+
+      - name: Update Bybit keys in .env
+        env:
+          BYBIT_KEY: ${{ secrets.BYBIT_API_KEY }}
+          BYBIT_SECRET: ${{ secrets.BYBIT_API_SECRET }}
+        run: |
+          ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@williambunarto.duckdns.org "
+            grep -v 'BYBIT_API_KEY\|BYBIT_API_SECRET' /home/ubuntu/.env > /tmp/.env.tmp 2>/dev/null
+            mv /tmp/.env.tmp /home/ubuntu/.env
+            echo 'BYBIT_API_KEY=$BYBIT_KEY' >> /home/ubuntu/.env
+            echo 'BYBIT_API_SECRET=$BYBIT_SECRET' >> /home/ubuntu/.env
+            echo '.env updated'
+          "
+
+      - name: Verify and restart bot
+        run: |
+          ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@williambunarto.duckdns.org << 'EOF'
+          set -e
+          echo "=== .env keys (masked) ==="
+          sed 's/=.*/=***/' /home/ubuntu/.env
+
+          echo "=== Restart bot ==="
+          pkill -f 'python3 /home/ubuntu/bot.py' || true
+          sleep 1
+          export $(grep -v '^#' /home/ubuntu/.env | xargs)
+          nohup python3 /home/ubuntu/bot.py >> /home/ubuntu/bot.log 2>&1 &
+          sleep 3
+          pgrep -f 'python3 /home/ubuntu/bot.py' && echo 'Bot running OK' || echo 'ERROR: bot not running'
+          EOF
