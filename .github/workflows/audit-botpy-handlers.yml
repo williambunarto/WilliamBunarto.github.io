@@ -1,0 +1,32 @@
+name: Audit bot.py Handler Structure
+on:
+  push:
+    paths: ['.github/workflows/audit-botpy-handlers.yml']
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Audit bot.py handlers
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: 140.245.103.249
+          username: ubuntu
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            echo '=== IMPORTS (first 40 lines) ==='
+            head -40 /home/ubuntu/bot.py
+            echo ''
+            echo '=== MODELS/KEYS section ==='
+            grep -n 'MODELS\|GROQ_API_KEY\|GEMINI_API_KEY\|BYBIT\|TELEGRAM' /home/ubuntu/bot.py | head -20
+            echo ''
+            echo '=== call_groq function signature ==='
+            grep -n 'def call_groq\|def call_gemini\|def handle\|async def' /home/ubuntu/bot.py | head -40
+            echo ''
+            echo '=== Handler registration (add_handler lines) ==='
+            grep -n 'add_handler\|ApplicationBuilder\|application.run' /home/ubuntu/bot.py
+            echo ''
+            echo '=== Last 60 lines (main/app setup) ==='
+            tail -60 /home/ubuntu/bot.py
+            echo ''
+            echo '=== Installed packages ==='
+            pip list 2>/dev/null | grep -iE 'telegram|groq|google|httpx|pillow|PIL|aiohttp'
