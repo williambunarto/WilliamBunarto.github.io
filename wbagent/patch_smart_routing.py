@@ -1,11 +1,7 @@
 #!/usr/bin/env python3
 """
 Smart model routing patch for WBAgent bot.py
-
-Adds:
-  - /img <prompt>        -> Pollinations.ai FLUX (free, no key)
-  - Photo messages       -> Gemini 2.5 Flash vision (analyze / edit)
-  - smart_call()         -> routes to best free model per task
+Version: v3 (loop-strip all blocks)
 """
 import sys, os, re, subprocess
 
@@ -14,63 +10,61 @@ BOT_PATH = '/home/ubuntu/bot.py'
 with open(BOT_PATH, 'r') as f:
     content = f.read()
 
-# ── 0. Strip previous broken patch if present ────────────────────────────────
-if 'generate_image_pollinations' in content:
+# -- 0. Strip ALL previous broken patches (loop until none remain) -------------
+if 'generate_image_pollinations' in content or 'SMART MODEL ROUTER' in content:
     check = subprocess.run(['python3', '-m', 'py_compile', BOT_PATH],
                            capture_output=True, text=True)
-    if check.returncode == 0:
+    if check.returncode == 0 and 'generate_image_pollinations' in content:
         print('Already patched and syntax OK -- nothing to do.')
         sys.exit(0)
-    print(f'Broken patch detected: {check.stderr.strip()}')
-    print('Stripping using line-based approach...')
-    lines = content.split('\n')
-    start_line = None
-    end_line = None
-    for i, line in enumerate(lines):
-        stripped = line.strip()
-        if 'SMART MODEL ROUTER' in stripped and 'END' not in stripped:
-            # Include the separator line one row above
-            start_line = max(0, i - 1)
-        if 'END SMART MODEL ROUTER' in stripped:
-            # Include separator line one row below
-            end_line = min(len(lines), i + 2)
-    if start_line is not None and end_line is not None:
-        content = '\n'.join(lines[:start_line] + lines[end_line:])
-        print(f'Stripped lines {start_line}-{end_line} (block removed).')
-    else:
-        print('WARNING: Could not find block boundaries -- force-stripping by function name')
-        # Fallback: remove everything from the line containing the broken function
-        # to the end of the file would be too destructive; instead strip known names
-        for fn in ('def generate_image_pollinations', 'def detect_task',
-                   'def smart_call', 'def analyze_image_gemini_sync',
-                   'async def handle_img_command', 'async def handle_photo_message'):
-            # Remove 10 lines around each function definition as a last resort
-            lines2 = content.split('\n')
-            for i2, l2 in enumerate(lines2):
-                if fn in l2:
-                    content = '\n'.join(lines2[:i2] + lines2[i2+200:])
-                    break
-    # Also strip the injected imports
-    content = content.replace('\nimport io\n', '\n', 1)
-    content = content.replace('\nimport urllib.parse\n', '\n', 1)
-    content = re.sub(r'\ntry:\n    import httpx as _httpx_mod[\s\S]*?_httpx_mod = None\n',
-                     '\n', content, count=1)
-    # Strip injected handlers block using line approach
-    lines3 = content.split('\n')
-    h_start = None
-    h_end = None
-    for i3, l3 in enumerate(lines3):
-        if '# Smart routing handlers (added by patch_smart_routing.py)' in l3:
-            h_start = i3
-        if h_start is not None and 'handle_photo_message' in l3 and 'add_handler' in l3:
-            h_end = i3 + 1
-            break
-    if h_start is not None and h_end is not None:
-        content = '\n'.join(lines3[:h_start] + lines3[h_end:])
-        print('Stripped handler registration block.')
-    print('Strip complete. Reapplying fresh patch...')
+    if check.returncode != 0:
+        print(f'Syntax error in existing bot.py - stripping all smart routing blocks...')
 
-# ── 1. New imports ────────────────────────────────────────────────────────────
+    removed_count = 0
+    while True:
+        lines = content.split('\n')
+        start_line = None
+        end_line = None
+        for i, line in enumerate(lines):
+            s = line.strip()
+            if 'SMART MODEL ROUTER' in s and 'END' not in s:
+                start_line = max(0, i - 1)
+            elif 'END SMART MODEL ROUTER' in s:
+                if start_line is not None:
+                    end_line = min(len(lines), i + 2)
+                    break
+        if start_line is None or end_line is None:
+            break
+        content = '\n'.join(lines[:start_line] + lines[end_line:])
+        removed_count += 1
+        print(f'Stripped block #{removed_count} (was lines {start_line}-{end_line}).')
+
+    # Strip injected imports (may have multiple copies too)
+    for _ in range(5):
+        content = content.replace('\nimport io\n', '\n', 1)
+        content = content.replace('\nimport urllib.parse\n', '\n', 1)
+    content = re.sub(r'\ntry:\n    import httpx as _httpx_mod[\s\S]*?_httpx_mod = None\n',
+                     '\n', content)
+
+    # Strip handler registrations
+    while True:
+        lines = content.split('\n')
+        h_start = None
+        h_end = None
+        for i, l in enumerate(lines):
+            if '# Smart routing handlers (added by patch_smart_routing.py)' in l:
+                h_start = i
+            if h_start is not None and 'handle_photo_message' in l and 'add_handler' in l:
+                h_end = i + 1
+                break
+        if h_start is None or h_end is None:
+            break
+        content = '\n'.join(lines[:h_start] + lines[h_end:])
+        print('Stripped handler registration block.')
+
+    print(f'Strip complete ({removed_count} function blocks removed). Reapplying...')
+
+# -- 1. New imports ------------------------------------------------------------
 NEW_IMPORTS = """
 import io
 import urllib.parse
@@ -81,7 +75,8 @@ except ImportError:
 """
 content = content.replace('import os\n', 'import os\n' + NEW_IMPORTS, 1)
 
-# ── 2. New functions block ────────────────────────────────────────────────────
+# -- 2. New functions block ----------------------------------------------------
+# NOTE: Use \\n inside triple-quoted string to write literal \n in the output file
 NEW_FUNCTIONS = '''
 # =============================================================================
 # SMART MODEL ROUTER
@@ -127,7 +122,7 @@ def smart_call(messages, system=None, max_tokens=1200):
 
 def analyze_image_gemini_sync(image_bytes, question):
     if not GEMINI_API_KEY:
-        return '❌ Image analysis requires Gemini API key (not configured).'
+        return '❌ Image analysis requires Gemini API key.'
     try:
         import google.generativeai as _genai
         model = _genai.GenerativeModel('gemini-2.5-flash')
@@ -162,25 +157,19 @@ def generate_image_pollinations(prompt):
 async def handle_img_command(update, context):
     prompt = ' '.join(context.args) if context.args else ''
     if not prompt:
-        await update.message.reply_text(
-            'Usage: /img <your image prompt>\n'
-            'Example: /img a futuristic city at sunset, digital art'
-        )
+        await update.message.reply_text('Usage: /img <prompt>')
         return
-    status = await update.message.reply_text('\U0001f3a8 Generating image... (up to 30s)')
+    status = await update.message.reply_text('Generating image... (up to 30s)')
     try:
         import asyncio
         img_bytes = await asyncio.get_event_loop().run_in_executor(
             None, generate_image_pollinations, prompt
         )
-        await update.message.reply_photo(
-            photo=img_bytes,
-            caption=f'\U0001f5bc {prompt[:900]}'
-        )
+        await update.message.reply_photo(photo=img_bytes, caption=prompt[:900])
         await status.delete()
     except Exception as exc:
         log.error(f'Image generation failed: {exc}')
-        await status.edit_text(f'❌ Image generation failed. Try a different prompt.\nError: {exc}')
+        await status.edit_text(f'❌ Image generation failed: {exc}')
 
 
 async def handle_photo_message(update, context):
@@ -193,24 +182,24 @@ async def handle_photo_message(update, context):
     image_bytes = buf.getvalue()
     import asyncio
     if task == 'image_edit':
-        status = await update.message.reply_text('\U0001f50d Analyzing image before editing...')
+        status = await update.message.reply_text('Analyzing image before editing...')
         description = await asyncio.get_event_loop().run_in_executor(
             None, analyze_image_gemini_sync, image_bytes,
             'Describe this image with precise visual details for an image generation prompt.'
         )
-        combined_prompt = f'{description}. Modification: {caption}'
-        await status.edit_text('\U0001f3a8 Generating edited version...')
+        combined_prompt = description + '. Modification: ' + caption
+        await status.edit_text('Generating edited version...')
         try:
             edited_bytes = await asyncio.get_event_loop().run_in_executor(
                 None, generate_image_pollinations, combined_prompt
             )
-            await update.message.reply_photo(photo=edited_bytes, caption=f'Edited: {caption[:900]}')
+            await update.message.reply_photo(photo=edited_bytes, caption='Edited: ' + caption[:900])
             await status.delete()
         except Exception as exc:
             log.error(f'Image edit failed: {exc}')
             await status.edit_text(f'❌ Edit generation failed: {exc}')
     else:
-        status = await update.message.reply_text('\U0001f50d Analyzing image...')
+        status = await update.message.reply_text('Analyzing image...')
         result = await asyncio.get_event_loop().run_in_executor(
             None, analyze_image_gemini_sync, image_bytes, caption
         )
@@ -234,18 +223,18 @@ if main_match:
 else:
     content = content + NEW_FUNCTIONS
 
-# ── 3. Detect application variable name ──────────────────────────────────────
+# -- 3. Detect app variable ---------------------------------------------------
 app_var_match = re.search(r'(\w+)\s*=\s*ApplicationBuilder', content)
 app_var = app_var_match.group(1) if app_var_match else 'application'
 print(f'Detected application variable: {app_var}')
 
-# ── 4. Register handlers before run_polling() ────────────────────────────────
-NEW_HANDLERS = f"""
-    # Smart routing handlers (added by patch_smart_routing.py)
-    from telegram.ext import CommandHandler as _CH, MessageHandler as _MH, filters as _F
-    {app_var}.add_handler(_CH('img', handle_img_command))
-    {app_var}.add_handler(_MH(_F.PHOTO, handle_photo_message))
-"""
+# -- 4. Register handlers before run_polling() --------------------------------
+NEW_HANDLERS = (
+    '\n    # Smart routing handlers (added by patch_smart_routing.py)\n'
+    '    from telegram.ext import CommandHandler as _CH, MessageHandler as _MH, filters as _F\n'
+    f'    {app_var}.add_handler(_CH(\'img\', handle_img_command))\n'
+    f'    {app_var}.add_handler(_MH(_F.PHOTO, handle_photo_message))\n'
+)
 
 run_match = re.search(r'(\n    \w+\.run_polling)', content)
 if run_match:
@@ -259,7 +248,7 @@ else:
     else:
         print('WARNING: could not find run_polling -- handlers NOT registered.')
 
-# ── 5. Write and verify ───────────────────────────────────────────────────────
+# -- 5. Write and verify ------------------------------------------------------
 with open(BOT_PATH, 'w') as f:
     f.write(content)
 

@@ -1,6 +1,8 @@
 name: Deploy Smart Model Routing
+
 on:
   push:
+    branches: [claude/trusting-archimedes-yb9d8l]
     paths:
       - 'wbagent/patch_smart_routing.py'
       - '.github/workflows/deploy-smart-routing.yml'
@@ -19,7 +21,7 @@ jobs:
       - name: Install dependencies on server
         run: |
           ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@williambunarto.duckdns.org \
-            "pip3 install httpx pillow --break-system-packages -q 2>&1 || pip3 install httpx pillow -q 2>&1 || echo 'pip note: may already be installed'"
+            "pip3 install httpx pillow -q 2>&1 || echo 'pip note: may already be installed'"
 
       - name: Copy patch script to server
         run: |
@@ -32,7 +34,13 @@ jobs:
           ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@williambunarto.duckdns.org << 'ENDSSH'
           echo "=== Running patch ==="
           python3 /tmp/patch_smart_routing.py
-          echo "Patch exit: $?"
+          PATCH_EXIT=$?
+          echo "Patch exit: $PATCH_EXIT"
+
+          if [ "$PATCH_EXIT" != "0" ]; then
+            echo "ERROR: Patch failed with exit $PATCH_EXIT -- NOT restarting bot"
+            exit 1
+          fi
 
           echo "=== Restarting bot ==="
           pkill -f 'python3 /home/ubuntu/bot.py' || true
@@ -44,6 +52,6 @@ jobs:
           echo "=== Bot process check ==="
           pgrep -f 'python3 /home/ubuntu/bot.py' && echo 'RUNNING' || echo 'NOT RUNNING'
 
-          echo "=== Last 50 lines of bot.log ==="
-          tail -50 /home/ubuntu/bot.log
+          echo "=== Last 30 lines of bot.log ==="
+          tail -30 /home/ubuntu/bot.log
           ENDSSH
