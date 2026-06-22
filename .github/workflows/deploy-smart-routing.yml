@@ -19,7 +19,7 @@ jobs:
       - name: Install dependencies on server
         run: |
           ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@williambunarto.duckdns.org \
-            "pip3 install httpx pillow --break-system-packages -q 2>&1 || pip3 install httpx pillow -q 2>&1 || echo 'pip note: packages may already be installed'"
+            "pip3 install httpx pillow --break-system-packages -q 2>&1 || pip3 install httpx pillow -q 2>&1 || echo 'pip note: may already be installed'"
 
       - name: Copy patch script to server
         run: |
@@ -29,16 +29,29 @@ jobs:
 
       - name: Apply patch and restart bot
         run: |
-          ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@williambunarto.duckdns.org << 'EOF'
-          set -e
-
+          ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@williambunarto.duckdns.org << 'ENDSSH'
+          echo "=== Running patch ==="
           python3 /tmp/patch_smart_routing.py
+          PATCH_EXIT=$?
+          echo "Patch exit code: $PATCH_EXIT"
+          if [ $PATCH_EXIT -ne 0 ]; then
+            echo "ERROR: Patch failed."
+            exit 1
+          fi
 
+          echo "=== Restarting bot ==="
           pkill -f 'python3 /home/ubuntu/bot.py' || true
           sleep 2
           export $(grep -v '^#' /home/ubuntu/.env | xargs)
           nohup python3 /home/ubuntu/bot.py >> /home/ubuntu/bot.log 2>&1 &
-          sleep 4
-          pgrep -f 'python3 /home/ubuntu/bot.py' && echo 'Bot running OK.' || \
-            (echo 'ERROR: bot not running'; tail -30 /home/ubuntu/bot.log; exit 1)
-          EOF
+          sleep 6
+
+          echo "=== Checking bot status ==="
+          if pgrep -f 'python3 /home/ubuntu/bot.py' > /dev/null; then
+            echo "Bot running OK."
+          else
+            echo "ERROR: bot not running. Last log:"
+            tail -40 /home/ubuntu/bot.log
+            exit 1
+          fi
+          ENDSSH
