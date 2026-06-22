@@ -1,0 +1,61 @@
+name: Deploy Smart Model Routing
+on:
+  push:
+    paths:
+      - 'wbagent/patch_smart_routing.py'
+      - '.github/workflows/deploy-smart-routing.yml'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install httpx on server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: 140.245.103.249
+          username: ubuntu
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            pip3 install --quiet httpx pillow
+            echo "Dependencies installed."
+
+      - name: Copy patch script to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: 140.245.103.249
+          username: ubuntu
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: wbagent/patch_smart_routing.py
+          target: /home/ubuntu/
+          strip_components: 1
+
+      - name: Apply patch
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: 140.245.103.249
+          username: ubuntu
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            python3 /home/ubuntu/patch_smart_routing.py
+
+      - name: Restart bot
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: 140.245.103.249
+          username: ubuntu
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            pkill -f 'python3 /home/ubuntu/bot.py' || true
+            sleep 2
+            export $(grep -v '^#' /home/ubuntu/.env | xargs)
+            nohup python3 /home/ubuntu/bot.py >> /home/ubuntu/bot.log 2>&1 &
+            sleep 3
+            if pgrep -f 'python3 /home/ubuntu/bot.py' > /dev/null; then
+              echo "Bot restarted successfully."
+            else
+              echo "ERROR: Bot failed to start. Last log:"
+              tail -20 /home/ubuntu/bot.log
+              exit 1
+            fi
