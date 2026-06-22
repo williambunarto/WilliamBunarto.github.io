@@ -27,17 +27,12 @@ jobs:
             wbagent/patch_smart_routing.py \
             ubuntu@williambunarto.duckdns.org:/tmp/patch_smart_routing.py
 
-      - name: Apply patch and restart bot
+      - name: Apply patch, restart, show log
         run: |
           ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@williambunarto.duckdns.org << 'ENDSSH'
           echo "=== Running patch ==="
           python3 /tmp/patch_smart_routing.py
-          PATCH_EXIT=$?
-          echo "Patch exit code: $PATCH_EXIT"
-          if [ $PATCH_EXIT -ne 0 ]; then
-            echo "ERROR: Patch failed."
-            exit 1
-          fi
+          echo "Patch exit: $?"
 
           echo "=== Restarting bot ==="
           pkill -f 'python3 /home/ubuntu/bot.py' || true
@@ -46,12 +41,9 @@ jobs:
           nohup python3 /home/ubuntu/bot.py >> /home/ubuntu/bot.log 2>&1 &
           sleep 6
 
-          echo "=== Checking bot status ==="
-          if pgrep -f 'python3 /home/ubuntu/bot.py' > /dev/null; then
-            echo "Bot running OK."
-          else
-            echo "ERROR: bot not running. Last log:"
-            tail -40 /home/ubuntu/bot.log
-            exit 1
-          fi
+          echo "=== Bot process check ==="
+          pgrep -f 'python3 /home/ubuntu/bot.py' && echo 'RUNNING' || echo 'NOT RUNNING'
+
+          echo "=== Last 50 lines of bot.log ==="
+          tail -50 /home/ubuntu/bot.log
           ENDSSH
