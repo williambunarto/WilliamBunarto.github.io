@@ -1,0 +1,57 @@
+name: Move GROQ_API_KEY to .env on server
+
+on:
+  push:
+    paths:
+      - 'wbagent/patch_groq_env.py'
+      - '.github/workflows/deploy-groq-env.yml'
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup SSH key
+        run: |
+          cp "ssh-key-2026-03-30 (1).key" /tmp/deploy_key
+          chmod 600 /tmp/deploy_key
+
+      - name: Write GROQ_API_KEY to server .env
+        env:
+          GROQ_KEY: ${{ secrets.GROQ_API_KEY }}
+        run: |
+          ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@williambunarto.duckdns.org \
+            "grep -v GROQ_API_KEY /home/ubuntu/.env > /tmp/.env.tmp 2>/dev/null; mv /tmp/.env.tmp /home/ubuntu/.env; echo 'GROQ_API_KEY=$GROQ_KEY' >> /home/ubuntu/.env; echo '.env updated'"
+
+      - name: SCP and run patch script
+        env:
+          GROQ_KEY: ${{ secrets.GROQ_API_KEY }}
+        run: |
+          scp -i /tmp/deploy_key -o StrictHostKeyChecking=no \
+            wbagent/patch_groq_env.py ubuntu@williambunarto.duckdns.org:/tmp/patch_groq_env.py
+          ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@williambunarto.duckdns.org \
+            "GROQ_API_KEY='$GROQ_KEY' python3 /tmp/patch_groq_env.py"
+
+      - name: Verify .env, syntax check, restart
+        run: |
+          ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@williambunarto.duckdns.org << 'EOF'
+          set -e
+          echo "=== .env keys (masked) ==="
+          sed 's/=.*/=***/' /home/ubuntu/.env
+
+          echo "=== Syntax check ==="
+          python3 -m py_compile /home/ubuntu/bot.py && echo 'Syntax OK'
+
+          echo "=== Verify GROQ reads from env ==="
+          grep -n 'GROQ_API_KEY' /home/ubuntu/bot.py | head -5
+
+          echo "=== Restart bot ==="
+          pkill -f 'python3 /home/ubuntu/bot.py' || true
+          sleep 1
+          export $(grep -v '^#' /home/ubuntu/.env | xargs)
+          nohup python3 /home/ubuntu/bot.py >> /home/ubuntu/bot.log 2>&1 &
+          sleep 3
+          pgrep -f 'python3 /home/ubuntu/bot.py' && echo 'Bot running OK' || echo 'ERROR: bot not running'
+          EOF
