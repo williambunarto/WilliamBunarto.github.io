@@ -5,6 +5,7 @@ on:
     branches: [claude/trusting-archimedes-yb9d8l]
     paths:
       - 'wbagent/patch_smart_routing.py'
+      - 'wbagent/patch_fix_ai_error.py'
       - '.github/workflows/deploy-smart-routing.yml'
 
 jobs:
@@ -23,33 +24,53 @@ jobs:
           ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@williambunarto.duckdns.org \
             "pip3 install httpx pillow -q 2>&1 || echo 'pip note: may already be installed'"
 
-      - name: Copy patch script to server
+      - name: Copy patch scripts to server
         run: |
           scp -i /tmp/deploy_key -o StrictHostKeyChecking=no \
             wbagent/patch_smart_routing.py \
             ubuntu@williambunarto.duckdns.org:/tmp/patch_smart_routing.py
+          scp -i /tmp/deploy_key -o StrictHostKeyChecking=no \
+            wbagent/patch_fix_ai_error.py \
+            ubuntu@williambunarto.duckdns.org:/tmp/patch_fix_ai_error.py
 
-      - name: Apply patch, restart, show log
+      - name: Apply patches, fix instances, restart bot
         run: |
           ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@williambunarto.duckdns.org << 'ENDSSH'
-          echo "=== Running patch ==="
+          echo "=== Applying smart routing patch ==="
           python3 /tmp/patch_smart_routing.py
           PATCH_EXIT=$?
-          echo "Patch exit: $PATCH_EXIT"
-
+          echo "Smart routing patch exit: $PATCH_EXIT"
           if [ "$PATCH_EXIT" != "0" ]; then
-            echo "ERROR: Patch failed with exit $PATCH_EXIT -- NOT restarting bot"
+            echo "ERROR: Smart routing patch failed -- NOT restarting bot"
             exit 1
           fi
 
-          echo "=== Restarting bot ==="
-          pkill -f 'python3 /home/ubuntu/bot.py' || true
-          sleep 2
+          echo "=== Applying AI error fix ==="
+          python3 /tmp/patch_fix_ai_error.py
+          AI_EXIT=$?
+          echo "AI error fix exit: $AI_EXIT"
+          if [ "$AI_EXIT" != "0" ]; then
+            echo "WARNING: AI error fix failed (non-fatal)"
+          fi
+
+          echo "=== Stopping all bot instances (including cron restart loop) ==="
+          pkill -f 'while true; do python3' || true
+          sleep 1
+          pkill -f 'python3.*bot.py' || true
+          pkill -f 'python3 bot.py' || true
+          sleep 3
+          echo "Remaining bot processes after kill:"
+          pgrep -af 'bot.py' || echo "(none)"
+
+          echo "=== Starting bot with auto-restart loop ==="
           export $(grep -v '^#' /home/ubuntu/.env | xargs)
-          nohup python3 /home/ubuntu/bot.py >> /home/ubuntu/bot.log 2>&1 &
+          nohup bash -c 'while true; do python3 /home/ubuntu/bot.py >> /home/ubuntu/bot.log 2>&1; echo "[restart] bot exited, restarting in 5s..." >> /home/ubuntu/bot.log; sleep 5; done' > /dev/null 2>&1 &
           sleep 6
 
           echo "=== Bot process check ==="
+          PROCS=$(pgrep -af 'bot.py' | wc -l)
+          echo "Bot-related processes: $PROCS"
+          pgrep -af 'bot.py' || echo "(none)"
           pgrep -f 'python3 /home/ubuntu/bot.py' && echo 'RUNNING' || echo 'NOT RUNNING'
 
           echo "=== Last 30 lines of bot.log ==="
