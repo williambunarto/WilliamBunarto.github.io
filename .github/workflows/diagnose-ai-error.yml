@@ -15,15 +15,18 @@ jobs:
         run: |
           cp "ssh-key-2026-03-30 (1).key" /tmp/deploy_key
           chmod 600 /tmp/deploy_key
-      - name: Inspect bot.py for AI error
+      - name: Deep inspect
         run: |
           ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@140.245.103.249 << 'ENDSSH'
-          echo "=== grep: AI error / scan / report functions ==="
-          grep -n 'AI error\|ai_analysis\|ai_insight\|Connection error\|_auto_scan\|end_of_day\|daily_report\|eod\|scan_job\|def.*report\|def.*insight\|def.*ai_' /home/ubuntu/bot.py | head -80
+          echo "=== Lines 120-145 (AI error handler) ==="
+          sed -n '120,145p' /home/ubuntu/bot.py
           echo
-          echo "=== grep: call_groq / call_gemini call sites in scan ==="
-          grep -n -A3 'call_groq\|call_gemini\|smart_call' /home/ubuntu/bot.py | grep -A3 'scan\|report\|stock\|saham' | head -60
+          echo "=== Lines 1130-1170 (scheduled_eod_report) ==="
+          sed -n '1130,1170p' /home/ubuntu/bot.py
           echo
-          echo "=== Last 30 lines of bot.log ==="
-          tail -30 /home/ubuntu/bot.log
+          echo "=== Running bot processes ==="
+          ps aux | grep bot.py | grep -v grep
+          echo
+          echo "=== Crontab ==="
+          crontab -l 2>/dev/null || echo 'no crontab'
           ENDSSH
