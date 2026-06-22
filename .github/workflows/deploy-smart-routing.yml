@@ -9,33 +9,36 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Deploy smart routing to server
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: 140.245.103.249
-          username: ubuntu
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: |
-            set -e
+      - uses: actions/checkout@v4
 
-            # Install dependencies (httpx for image gen, pillow for Gemini vision)
-            pip3 install httpx pillow --break-system-packages -q 2>&1 || \
-            pip3 install httpx pillow -q 2>&1 || \
-            echo "pip install warning (may already be installed)"
+      - name: Setup SSH key
+        run: |
+          cp "ssh-key-2026-03-30 (1).key" /tmp/deploy_key
+          chmod 600 /tmp/deploy_key
 
-            # Fetch latest patch script from repo
-            curl -fsSL \
-              "https://raw.githubusercontent.com/williambunarto/WilliamBunarto.github.io/main/wbagent/patch_smart_routing.py" \
-              -o /tmp/patch_smart_routing.py
+      - name: Install dependencies on server
+        run: |
+          ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@williambunarto.duckdns.org \
+            "pip3 install httpx pillow --break-system-packages -q 2>&1 || pip3 install httpx pillow -q 2>&1 || echo 'pip note: packages may already be installed'"
 
-            # Apply patch (idempotent)
-            python3 /tmp/patch_smart_routing.py
+      - name: Copy patch script to server
+        run: |
+          scp -i /tmp/deploy_key -o StrictHostKeyChecking=no \
+            wbagent/patch_smart_routing.py \
+            ubuntu@williambunarto.duckdns.org:/tmp/patch_smart_routing.py
 
-            # Restart bot with env loaded from .env
-            pkill -f 'python3 /home/ubuntu/bot.py' || true
-            sleep 2
-            export $(grep -v '^#' /home/ubuntu/.env | xargs)
-            nohup python3 /home/ubuntu/bot.py >> /home/ubuntu/bot.log 2>&1 &
-            sleep 4
-            pgrep -f 'python3 /home/ubuntu/bot.py' && echo "Bot running OK." || \
-              (echo "ERROR: bot not running"; tail -30 /home/ubuntu/bot.log; exit 1)
+      - name: Apply patch and restart bot
+        run: |
+          ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@williambunarto.duckdns.org << 'EOF'
+          set -e
+
+          python3 /tmp/patch_smart_routing.py
+
+          pkill -f 'python3 /home/ubuntu/bot.py' || true
+          sleep 2
+          export $(grep -v '^#' /home/ubuntu/.env | xargs)
+          nohup python3 /home/ubuntu/bot.py >> /home/ubuntu/bot.log 2>&1 &
+          sleep 4
+          pgrep -f 'python3 /home/ubuntu/bot.py' && echo 'Bot running OK.' || \
+            (echo 'ERROR: bot not running'; tail -30 /home/ubuntu/bot.log; exit 1)
+          EOF
