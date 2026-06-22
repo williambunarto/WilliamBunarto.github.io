@@ -11,19 +11,44 @@ Adds:
       code tasks               -> Gemini first
       everything else          -> Groq (fastest)
 """
-import sys, os, re
+import sys, os, re, subprocess
 
 BOT_PATH = '/home/ubuntu/bot.py'
 
 with open(BOT_PATH, 'r') as f:
     content = f.read()
 
+# -- 0. Handle already-patched state (possibly broken) -----------------------
 if 'generate_image_pollinations' in content:
-    print('Already patched -- nothing to do.')
-    sys.exit(0)
+    check = subprocess.run(['python3', '-m', 'py_compile', BOT_PATH], capture_output=True, text=True)
+    if check.returncode == 0:
+        print('Already patched and syntax OK -- nothing to do.')
+        sys.exit(0)
+    print(f'Previous patch has syntax error: {check.stderr.strip()}')
+    print('Stripping broken patch and reapplying...')
+    content = re.sub(
+        r'\n# [=]+\n# SMART MODEL ROUTER.*?# END SMART MODEL ROUTER\n# [=]+\n',
+        '\n',
+        content,
+        flags=re.DOTALL
+    )
+    content = re.sub(r'\nimport io\n', '\n', content)
+    content = re.sub(
+        r'\ntry:\n    import httpx as _httpx_mod.*?_httpx_mod = None\n',
+        '\n',
+        content,
+        flags=re.DOTALL
+    )
+    content = re.sub(
+        r'\n    # Smart routing handlers.*?handle_photo_message\)\)\n',
+        '\n',
+        content,
+        flags=re.DOTALL
+    )
+    content = re.sub(r'\nimport urllib\.parse\n', '\n', content)
+    print('Stripped old broken patch.')
 
-# ── 1. New imports ────────────────────────────────────────────────────────────
-# Insert after 'import os' (guaranteed present)
+# -- 1. New imports -----------------------------------------------------------
 NEW_IMPORTS = """
 import io
 import urllib.parse
@@ -34,25 +59,21 @@ except ImportError:
 """
 content = content.replace('import os\n', 'import os\n' + NEW_IMPORTS, 1)
 
-# ── 2. New functions block ────────────────────────────────────────────────────
+# -- 2. New functions block ---------------------------------------------------
 NEW_FUNCTIONS = '''
-# ═══════════════════════════════════════════════════════════════════════════════
+# =============================================================================
 # SMART MODEL ROUTER
-# ═══════════════════════════════════════════════════════════════════════════════
+# =============================================================================
 
 _ROUTE_GEMINI_FIRST = (
-    # reasoning / math
     'calculate', 'solve', 'math', 'equation', 'proof', 'prove',
     'step by step', 'think through', 'explain in depth',
-    # code
     'write code', 'write a script', 'debug this', 'fix this error',
     'implement', 'python script', 'javascript', 'typescript',
     'write a function', 'write a class',
-    # long documents (detected by length below)
 )
 
-def detect_task(text: str, has_photo: bool = False) -> str:
-    """Return task type string used for routing."""
+def detect_task(text, has_photo=False):
     t = (text or '').lower()
     if has_photo:
         edit_words = ('edit ', 'modify ', 'change the ', 'make it ', 'transform',
@@ -71,7 +92,6 @@ def detect_task(text: str, has_photo: bool = False) -> str:
 
 
 def smart_call(messages, system=None, max_tokens=1200):
-    """Route to the best available free model for the detected task."""
     if system is None:
         system = SYSTEM_PROMPT
     last_text = messages[-1]['content'] if messages else ''
@@ -80,18 +100,16 @@ def smart_call(messages, system=None, max_tokens=1200):
         result = call_gemini(messages, system=system, max_tokens=max_tokens)
         if not result.startswith('❌'):
             return result
-    # Default path: Groq (already falls back to Gemini internally)
     return call_groq(messages, system=system, max_tokens=max_tokens)
 
 
-def analyze_image_gemini_sync(image_bytes: bytes, question: str) -> str:
-    """Analyze/describe an image using Gemini 2.5 Flash vision (synchronous)."""
+def analyze_image_gemini_sync(image_bytes, question):
     if not GEMINI_API_KEY:
         return '❌ Image analysis requires Gemini API key (not configured).'
     try:
         import google.generativeai as _genai
         model = _genai.GenerativeModel('gemini-2.5-flash')
-        prompt = question if question.strip() else 'Describe this image in detail. Be thorough and helpful.'
+        prompt = question if question.strip() else 'Describe this image in detail.'
         response = model.generate_content([
             prompt,
             {"mime_type": "image/jpeg", "data": image_bytes}
@@ -102,8 +120,7 @@ def analyze_image_gemini_sync(image_bytes: bytes, question: str) -> str:
         return f'❌ Image analysis failed: {exc}'
 
 
-def generate_image_pollinations(prompt: str) -> bytes:
-    """Generate image via Pollinations.ai FLUX (free, no API key needed)."""
+def generate_image_pollinations(prompt):
     if _httpx_mod is None:
         raise RuntimeError('httpx not installed')
     url = (
@@ -121,15 +138,14 @@ def generate_image_pollinations(prompt: str) -> bytes:
 
 
 async def handle_img_command(update, context):
-    """Handler for /img <prompt> — generate image via Pollinations.ai."""
     prompt = ' '.join(context.args) if context.args else ''
     if not prompt:
         await update.message.reply_text(
-            '\U0001f5bc Usage: /img <your image prompt>\n'
+            'Usage: /img <your image prompt>\n'
             'Example: /img a futuristic city at sunset, digital art'
         )
         return
-    status = await update.message.reply_text('\U0001f3a8 Generating image… (may take up to 30s)')
+    status = await update.message.reply_text('\U0001f3a8 Generating image... (may take up to 30s)')
     try:
         import asyncio
         img_bytes = await asyncio.get_event_loop().run_in_executor(
@@ -143,112 +159,94 @@ async def handle_img_command(update, context):
     except Exception as exc:
         log.error(f'Image generation failed: {exc}')
         await status.edit_text(
-            f'❌ Image generation failed. Try a different prompt.\n_Error: {exc}_',
-            parse_mode='Markdown'
+            f'❌ Image generation failed. Try a different prompt.\nError: {exc}'
         )
 
 
 async def handle_photo_message(update, context):
-    """Handler for incoming photo messages — analyze or edit via Gemini vision."""
     caption = (update.message.caption or '').strip()
     task = detect_task(caption, has_photo=True)
-
-    # Download photo (highest resolution)
     photo = update.message.photo[-1]
     file_obj = await context.bot.get_file(photo.file_id)
     buf = io.BytesIO()
     await file_obj.download_to_memory(buf)
     image_bytes = buf.getvalue()
 
+    import asyncio
     if task == 'image_edit':
-        status = await update.message.reply_text('\U0001f50d Analyzing image before editing…')
-        import asyncio
+        status = await update.message.reply_text('\U0001f50d Analyzing image before editing...')
         description = await asyncio.get_event_loop().run_in_executor(
             None, analyze_image_gemini_sync, image_bytes,
-            'Describe this image with precise visual details for use as an image generation prompt. Include style, colors, composition, and subjects.'
+            'Describe this image with precise visual details for an image generation prompt.'
         )
-        combined_prompt = f'{description}. Modification requested: {caption}'
-        await status.edit_text('\U0001f3a8 Generating edited version…')
+        combined_prompt = f'{description}. Modification: {caption}'
+        await status.edit_text('\U0001f3a8 Generating edited version...')
         try:
             edited_bytes = await asyncio.get_event_loop().run_in_executor(
                 None, generate_image_pollinations, combined_prompt
             )
-            await update.message.reply_photo(
-                photo=edited_bytes,
-                caption=f'✏️ Edited: {caption[:900]}'
-            )
+            await update.message.reply_photo(photo=edited_bytes, caption=f'Edited: {caption[:900]}')
             await status.delete()
         except Exception as exc:
-            log.error(f'Image edit generation failed: {exc}')
+            log.error(f'Image edit failed: {exc}')
             await status.edit_text(f'❌ Edit generation failed: {exc}')
     else:
-        status = await update.message.reply_text('\U0001f50d Analyzing image…')
-        import asyncio
+        status = await update.message.reply_text('\U0001f50d Analyzing image...')
         result = await asyncio.get_event_loop().run_in_executor(
             None, analyze_image_gemini_sync, image_bytes, caption
         )
-        # Telegram message limit is 4096 chars
         if len(result) <= 4096:
             await status.edit_text(result)
         else:
             await status.delete()
-            # Split into chunks
             for i in range(0, len(result), 4000):
                 await update.message.reply_text(result[i:i+4000])
 
 
-# ═══════════════════════════════════════════════════════════════════════════════
+# =============================================================================
 # END SMART MODEL ROUTER
-# ═══════════════════════════════════════════════════════════════════════════════
+# =============================================================================
 '''
 
-# Insert new functions just before 'def main():' or before ApplicationBuilder
 main_match = re.search(r'\ndef main\(\):', content)
-app_match = re.search(r'\n    application = ApplicationBuilder', content)
-
 if main_match:
     pos = main_match.start()
     content = content[:pos] + NEW_FUNCTIONS + content[pos:]
-elif app_match:
-    pos = app_match.start()
-    content = content[:pos] + NEW_FUNCTIONS + content[pos:]
 else:
-    # Fallback: append before last block
     content = content + NEW_FUNCTIONS
 
-# ── 3. Register new handlers ─────────────────────────────────────────────────
-# Strategy: insert before run_polling() call
-NEW_HANDLERS = """
+# -- 3. Detect application variable name -------------------------------------
+app_var_match = re.search(r'(\w+)\s*=\s*ApplicationBuilder', content)
+app_var = app_var_match.group(1) if app_var_match else 'application'
+print(f'Detected application variable: {app_var}')
+
+# -- 4. Register handlers before run_polling() --------------------------------
+NEW_HANDLERS = f"""
     # Smart routing handlers (added by patch_smart_routing.py)
     from telegram.ext import CommandHandler as _CH, MessageHandler as _MH, filters as _F
-    application.add_handler(_CH('img', handle_img_command))
-    application.add_handler(_MH(_F.PHOTO, handle_photo_message))
+    {app_var}.add_handler(_CH('img', handle_img_command))
+    {app_var}.add_handler(_MH(_F.PHOTO, handle_photo_message))
 """
 
-run_match = re.search(r'(\n    application\.run_polling)', content)
+run_match = re.search(r'(\n    \w+\.run_polling)', content)
 if run_match:
     pos = run_match.start()
     content = content[:pos] + NEW_HANDLERS + content[pos:]
 else:
-    # Fallback: look for .run_polling( anywhere
     run_match2 = re.search(r'(\.run_polling\()', content)
     if run_match2:
-        # Find the start of that line
         line_start = content.rfind('\n', 0, run_match2.start()) + 1
         content = content[:line_start] + NEW_HANDLERS + content[line_start:]
     else:
-        print('WARNING: could not find run_polling -- handlers NOT registered automatically.')
-        print('Add manually: application.add_handler(CommandHandler("img", handle_img_command))')
-        print('              application.add_handler(MessageHandler(filters.PHOTO, handle_photo_message))')
+        print('WARNING: could not find run_polling -- handlers NOT registered.')
 
-# ── 4. Write and verify ───────────────────────────────────────────────────────
+# -- 5. Write and verify ------------------------------------------------------
 with open(BOT_PATH, 'w') as f:
     f.write(content)
 
-import subprocess
 result = subprocess.run(['python3', '-m', 'py_compile', BOT_PATH], capture_output=True, text=True)
 if result.returncode != 0:
-    print(f'SYNTAX ERROR: {result.stderr}')
+    print(f'SYNTAX ERROR after patch: {result.stderr}')
     sys.exit(1)
 
 print('Patch applied and syntax verified OK.')
