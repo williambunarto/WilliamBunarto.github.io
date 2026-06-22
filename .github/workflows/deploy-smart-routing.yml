@@ -9,241 +9,33 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Deploy smart routing patch
+      - name: Deploy smart routing to server
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: 140.245.103.249
           username: ubuntu
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script_stop: true
           script: |
-            # Install dependencies
-            pip3 install --quiet httpx pillow --break-system-packages 2>/dev/null || \
-            pip3 install --quiet httpx pillow 2>/dev/null || \
-            pip install --quiet httpx pillow --break-system-packages 2>/dev/null || true
-            echo "Deps done."
+            set -e
 
-            # Write patch script inline
-            cat > /tmp/patch_smart_routing.py << 'PATCHEOF'
-            import sys, os, re
+            # Install dependencies (httpx for image gen, pillow for Gemini vision)
+            pip3 install httpx pillow --break-system-packages -q 2>&1 || \
+            pip3 install httpx pillow -q 2>&1 || \
+            echo "pip install warning (may already be installed)"
 
-            BOT_PATH = '/home/ubuntu/bot.py'
+            # Fetch latest patch script from repo
+            curl -fsSL \
+              "https://raw.githubusercontent.com/williambunarto/WilliamBunarto.github.io/main/wbagent/patch_smart_routing.py" \
+              -o /tmp/patch_smart_routing.py
 
-            with open(BOT_PATH, 'r') as f:
-                content = f.read()
-
-            if 'generate_image_pollinations' in content:
-                print('Already patched -- nothing to do.')
-                sys.exit(0)
-
-            NEW_IMPORTS = '''
-import io
-import urllib.parse
-try:
-    import httpx as _httpx_mod
-except ImportError:
-    _httpx_mod = None
-'''
-            content = content.replace('import os\n', 'import os\n' + NEW_IMPORTS, 1)
-
-            NEW_FUNCTIONS = '''
-# ===== SMART MODEL ROUTER =====
-
-_ROUTE_GEMINI_FIRST = (
-    'calculate', 'solve', 'math', 'equation', 'proof', 'prove',
-    'step by step', 'think through', 'explain in depth',
-    'write code', 'write a script', 'debug this', 'fix this error',
-    'implement', 'python script', 'javascript', 'typescript',
-    'write a function', 'write a class',
-)
-
-def detect_task(text, has_photo=False):
-    t = (text or '').lower()
-    if has_photo:
-        edit_words = ('edit ', 'modify ', 'change the ', 'make it ', 'transform',
-                      'add to ', 'remove the ', 'filter', 'style it')
-        return 'image_edit' if any(w in t for w in edit_words) else 'image_analyze'
-    gen_words = ('draw ', 'generate image', 'create image', 'make image',
-                 'paint ', 'illustrate', 'sketch ', 'design an image',
-                 'image of ', 'picture of ', 'generate a photo', 'create a photo')
-    if any(w in t for w in gen_words):
-        return 'image_generate'
-    if len(text or '') > 6000:
-        return 'long_context'
-    if any(w in t for w in _ROUTE_GEMINI_FIRST):
-        return 'gemini_preferred'
-    return 'chat'
-
-
-def smart_call(messages, system=None, max_tokens=1200):
-    if system is None:
-        system = SYSTEM_PROMPT
-    last_text = messages[-1]['content'] if messages else ''
-    task = detect_task(last_text)
-    if task in ('long_context', 'gemini_preferred') and GEMINI_API_KEY:
-        result = call_gemini(messages, system=system, max_tokens=max_tokens)
-        if not result.startswith('❌'):
-            return result
-    return call_groq(messages, system=system, max_tokens=max_tokens)
-
-
-def analyze_image_gemini_sync(image_bytes, question):
-    if not GEMINI_API_KEY:
-        return '❌ Image analysis requires Gemini API key.'
-    try:
-        import google.generativeai as _genai
-        model = _genai.GenerativeModel('gemini-2.5-flash')
-        prompt = question if (question or '').strip() else 'Describe this image in detail.'
-        response = model.generate_content([
-            prompt,
-            {"mime_type": "image/jpeg", "data": image_bytes}
-        ])
-        return response.text
-    except Exception as exc:
-        log.error(f'Gemini vision error: {exc}')
-        return f'❌ Image analysis failed: {exc}'
-
-
-def generate_image_pollinations(prompt):
-    if _httpx_mod is None:
-        raise RuntimeError('httpx not installed')
-    url = (
-        'https://image.pollinations.ai/prompt/'
-        + urllib.parse.quote(prompt)
-        + '?model=flux&width=1024&height=1024&nologo=true&enhance=true'
-    )
-    with _httpx_mod.Client(timeout=120, follow_redirects=True) as client:
-        resp = client.get(url)
-        resp.raise_for_status()
-        ct = resp.headers.get('content-type', '')
-        if not ct.startswith('image'):
-            raise ValueError(f'Unexpected content-type: {ct}')
-        return resp.content
-
-
-async def handle_img_command(update, context):
-    prompt = ' '.join(context.args) if context.args else ''
-    if not prompt:
-        await update.message.reply_text(
-            '\U0001f5bc Usage: /img <your image prompt>\n'
-            'Example: /img a futuristic city at sunset, digital art'
-        )
-        return
-    status = await update.message.reply_text('\U0001f3a8 Generating image... (up to 30s)')
-    try:
-        import asyncio
-        img_bytes = await asyncio.get_event_loop().run_in_executor(
-            None, generate_image_pollinations, prompt
-        )
-        await update.message.reply_photo(
-            photo=img_bytes,
-            caption=f'\U0001f5bc {prompt[:900]}'
-        )
-        await status.delete()
-    except Exception as exc:
-        log.error(f'Image generation failed: {exc}')
-        await status.edit_text(f'❌ Image generation failed. Try a different prompt.')
-
-
-async def handle_photo_message(update, context):
-    caption = (update.message.caption or '').strip()
-    task = detect_task(caption, has_photo=True)
-    photo = update.message.photo[-1]
-    file_obj = await context.bot.get_file(photo.file_id)
-    buf = io.BytesIO()
-    await file_obj.download_to_memory(buf)
-    image_bytes = buf.getvalue()
-
-    if task == 'image_edit':
-        status = await update.message.reply_text('\U0001f50d Analyzing image before editing...')
-        import asyncio
-        description = await asyncio.get_event_loop().run_in_executor(
-            None, analyze_image_gemini_sync, image_bytes,
-            'Describe this image with precise visual details for an image generation prompt. Include style, colors, composition, subjects.'
-        )
-        combined_prompt = f'{description}. Modification: {caption}'
-        await status.edit_text('\U0001f3a8 Generating edited version...')
-        try:
-            edited_bytes = await asyncio.get_event_loop().run_in_executor(
-                None, generate_image_pollinations, combined_prompt
-            )
-            await update.message.reply_photo(
-                photo=edited_bytes,
-                caption=f'✏️ Edited: {caption[:900]}'
-            )
-            await status.delete()
-        except Exception as exc:
-            log.error(f'Image edit failed: {exc}')
-            await status.edit_text(f'❌ Edit generation failed: {exc}')
-    else:
-        status = await update.message.reply_text('\U0001f50d Analyzing image...')
-        import asyncio
-        result = await asyncio.get_event_loop().run_in_executor(
-            None, analyze_image_gemini_sync, image_bytes, caption
-        )
-        if len(result) <= 4096:
-            await status.edit_text(result)
-        else:
-            await status.delete()
-            for i in range(0, len(result), 4000):
-                await update.message.reply_text(result[i:i+4000])
-
-# ===== END SMART MODEL ROUTER =====
-'''
-
-            main_match = re.search(r'\nde f main\(\):', content)  # space intentional – see below
-            main_match = re.search(r'\ndef main\(\):', content)
-            app_match = re.search(r'\n    application = ApplicationBuilder', content)
-
-            if main_match:
-                pos = main_match.start()
-                content = content[:pos] + NEW_FUNCTIONS + content[pos:]
-            elif app_match:
-                pos = app_match.start()
-                content = content[:pos] + NEW_FUNCTIONS + content[pos:]
-            else:
-                content = content + NEW_FUNCTIONS
-
-            NEW_HANDLERS = '''
-    from telegram.ext import CommandHandler as _CH, MessageHandler as _MH, filters as _F
-    application.add_handler(_CH('img', handle_img_command))
-    application.add_handler(_MH(_F.PHOTO, handle_photo_message))
-'''
-            run_match = re.search(r'(\n    application\.run_polling)', content)
-            if run_match:
-                pos = run_match.start()
-                content = content[:pos] + NEW_HANDLERS + content[pos:]
-            else:
-                run_match2 = re.search(r'(\.run_polling\()', content)
-                if run_match2:
-                    line_start = content.rfind('\n', 0, run_match2.start()) + 1
-                    content = content[:line_start] + NEW_HANDLERS + content[line_start:]
-
-            with open(BOT_PATH, 'w') as f:
-                f.write(content)
-
-            import subprocess
-            result2 = subprocess.run(['python3', '-m', 'py_compile', BOT_PATH], capture_output=True, text=True)
-            if result2.returncode != 0:
-                print(f'SYNTAX ERROR: {result2.stderr}')
-                sys.exit(1)
-            print('Patch applied and syntax verified OK.')
-            PATCHEOF
-
+            # Apply patch (idempotent)
             python3 /tmp/patch_smart_routing.py
 
-            # Restart bot
+            # Restart bot with env loaded from .env
             pkill -f 'python3 /home/ubuntu/bot.py' || true
             sleep 2
             export $(grep -v '^#' /home/ubuntu/.env | xargs)
             nohup python3 /home/ubuntu/bot.py >> /home/ubuntu/bot.log 2>&1 &
-            sleep 3
-            if pgrep -f 'python3 /home/ubuntu/bot.py' > /dev/null; then
-              echo "Bot restarted successfully."
-            else
-              echo "ERROR: Bot failed to start."
-              tail -20 /home/ubuntu/bot.log
-              exit 1
-            fi
+            sleep 4
+            pgrep -f 'python3 /home/ubuntu/bot.py' && echo "Bot running OK." || \
+              (echo "ERROR: bot not running"; tail -30 /home/ubuntu/bot.log; exit 1)
