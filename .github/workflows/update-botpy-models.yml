@@ -19,43 +19,25 @@ jobs:
 
       - name: Update Groq MODELS list in bot.py
         run: |
-          ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@williambunarto.duckdns.org 'bash -s' << 'ENDSSH'
-            set -e
-            echo "=== Backing up bot.py ==="
-            cp /home/ubuntu/bot.py /home/ubuntu/bot.py.pre_model_update.bak
+          ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@williambunarto.duckdns.org << 'EOF'
+          set -e
+          echo "=== Backing up ==="
+          cp /home/ubuntu/bot.py /home/ubuntu/bot.py.pre_model_update.bak
 
-            echo "=== Patching MODELS list ==="
-            python3 - << 'PYEOF'
-import sys
+          echo "=== Patching ==="
+          sed -i 's/"mixtral-8x7b-32768",/"llama-3.1-8b-instant",/' /home/ubuntu/bot.py
+          sed -i '/"gemma2-9b-it",/d' /home/ubuntu/bot.py
 
-with open('/home/ubuntu/bot.py', 'r') as f:
-    content = f.read()
+          echo "=== Verify ==="
+          grep -A4 'MODELS = ' /home/ubuntu/bot.py | head -6
 
-old = 'MODELS = [\n    "llama-3.3-70b-versatile",\n    "mixtral-8x7b-32768",\n    "gemma2-9b-it",\n]'
-new = 'MODELS = [\n    "llama-3.3-70b-versatile",\n    "llama-3.1-8b-instant",\n]'
+          echo "=== Syntax check ==="
+          python3 -m py_compile /home/ubuntu/bot.py && echo 'Syntax OK'
 
-if old not in content:
-    print('ERROR: expected MODELS block not found — aborting')
-    sys.exit(1)
-
-content = content.replace(old, new)
-
-with open('/home/ubuntu/bot.py', 'w') as f:
-    f.write(content)
-
-print('Patch applied OK')
-PYEOF
-
-            echo "=== Verifying patch ==="
-            grep -A4 'MODELS = ' /home/ubuntu/bot.py | head -6
-
-            echo "=== Syntax check ==="
-            python3 -m py_compile /home/ubuntu/bot.py && echo 'Syntax OK'
-
-            echo "=== Restarting bot ==="
-            pkill -f 'python3 /home/ubuntu/bot.py' || true
-            sleep 1
-            nohup python3 /home/ubuntu/bot.py >> /home/ubuntu/bot.log 2>&1 &
-            sleep 3
-            pgrep -f 'python3 /home/ubuntu/bot.py' && echo 'Bot is running' || echo 'ERROR: bot not running'
-          ENDSSH
+          echo "=== Restart bot ==="
+          pkill -f 'python3 /home/ubuntu/bot.py' || true
+          sleep 1
+          nohup python3 /home/ubuntu/bot.py >> /home/ubuntu/bot.log 2>&1 &
+          sleep 3
+          pgrep -f 'python3 /home/ubuntu/bot.py' && echo 'Bot running OK' || echo 'ERROR: bot not running'
+          EOF
