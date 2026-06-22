@@ -1,0 +1,34 @@
+name: Audit bot.py Model Config
+
+on:
+  push:
+    paths:
+      - '.github/workflows/audit-botpy-models.yml'
+  workflow_dispatch:
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup SSH key
+        run: |
+          cp "ssh-key-2026-03-30 (1).key" /tmp/deploy_key
+          chmod 600 /tmp/deploy_key
+
+      - name: Audit bot.py model config
+        run: |
+          ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@williambunarto.duckdns.org 'bash -s' << 'ENDSSH'
+            echo "=== MODEL/PROVIDER LINES ==="
+            grep -n -iE "(model|groq|gemini|gemma|llama|mixtral|whisper|provider|api_key|GROQ|GEMINI)" /home/ubuntu/bot.py | grep -v "^.*#" | head -60
+            echo ""
+            echo "=== .env contents (keys masked) ==="
+            sed 's/=.*/=***/' /home/ubuntu/.env 2>/dev/null || echo "no .env"
+            echo ""
+            echo "=== bot.py line count ==="
+            wc -l /home/ubuntu/bot.py
+            echo ""
+            echo "=== bot.py full model section (lines 1-80) ==="
+            sed -n '1,80p' /home/ubuntu/bot.py
+          ENDSSH
