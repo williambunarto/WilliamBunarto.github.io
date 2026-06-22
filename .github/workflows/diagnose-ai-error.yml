@@ -1,0 +1,24 @@
+name: Diagnose AI Error
+
+on:
+  workflow_dispatch:
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup SSH key
+        run: |
+          cp "ssh-key-2026-03-30 (1).key" /tmp/deploy_key
+          chmod 600 /tmp/deploy_key
+      - name: Inspect bot.py for AI error
+        run: |
+          ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@140.245.103.249 << 'ENDSSH'
+          echo "=== Lines around 'AI error' ==="
+          grep -n 'AI error\|ai_analysis\|ai_insight\|stock.*ai\|call_groq\|call_gemini\|Connection error\|_auto_scan\|end_of_day\|daily_report\|eod_report\|scan_job' /home/ubuntu/bot.py | head -60
+          echo "=== Function that generates AI insight ==="
+          grep -n 'def.*scan\|def.*report\|def.*insight\|def.*analysis\|def.*ai_' /home/ubuntu/bot.py
+          echo "=== Last 20 lines of bot.log ==="
+          tail -20 /home/ubuntu/bot.log
+          ENDSSH
