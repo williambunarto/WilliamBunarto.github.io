@@ -1,0 +1,58 @@
+name: Deploy Gemini Patch to WBAgent
+
+on:
+  push:
+    paths:
+      - 'wbagent/patch_gemini.py'
+      - '.github/workflows/deploy-gemini-patch.yml'
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup SSH key
+        run: |
+          cp "ssh-key-2026-03-30 (1).key" /tmp/deploy_key
+          chmod 600 /tmp/deploy_key
+
+      - name: Install google-generativeai on server
+        run: |
+          ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@williambunarto.duckdns.org \
+            'pip3 install -q google-generativeai && echo "google-generativeai installed OK"'
+
+      - name: Write GEMINI_API_KEY to server .env
+        env:
+          GEMINI_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@williambunarto.duckdns.org \
+            "grep -v GEMINI_API_KEY /home/ubuntu/.env > /tmp/.env.tmp 2>/dev/null; mv /tmp/.env.tmp /home/ubuntu/.env; echo 'GEMINI_API_KEY=$GEMINI_KEY' >> /home/ubuntu/.env; echo '.env updated'"
+
+      - name: SCP and run patch script
+        env:
+          GEMINI_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          scp -i /tmp/deploy_key -o StrictHostKeyChecking=no \
+            wbagent/patch_gemini.py ubuntu@williambunarto.duckdns.org:/tmp/patch_gemini.py
+          ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@williambunarto.duckdns.org \
+            "GEMINI_API_KEY='$GEMINI_KEY' python3 /tmp/patch_gemini.py"
+
+      - name: Syntax check, verify, restart
+        run: |
+          ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@williambunarto.duckdns.org << 'EOF'
+          set -e
+          echo "=== Syntax check ==="
+          python3 -m py_compile /home/ubuntu/bot.py && echo 'Syntax OK'
+
+          echo "=== Verify Gemini wired ==="
+          grep -n 'call_gemini\|GEMINI\|genai' /home/ubuntu/bot.py | head -10
+
+          echo "=== Restart bot ==="
+          pkill -f 'python3 /home/ubuntu/bot.py' || true
+          sleep 1
+          nohup python3 /home/ubuntu/bot.py >> /home/ubuntu/bot.log 2>&1 &
+          sleep 3
+          pgrep -f 'python3 /home/ubuntu/bot.py' && echo 'Bot running OK' || echo 'ERROR: bot not running'
+          EOF
