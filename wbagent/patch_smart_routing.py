@@ -3,13 +3,9 @@
 Smart model routing patch for WBAgent bot.py
 
 Adds:
-  - /img <prompt>        -> image generation via Pollinations.ai (free, no key)
+  - /img <prompt>        -> Pollinations.ai FLUX (free, no key)
   - Photo messages       -> Gemini 2.5 Flash vision (analyze / edit)
-  - smart_call()         -> routes text tasks to best free model:
-      long context (>6k chars) -> Gemini first
-      reasoning / math         -> Gemini first
-      code tasks               -> Gemini first
-      everything else          -> Groq (fastest)
+  - smart_call()         -> routes to best free model per task
 """
 import sys, os, re, subprocess
 
@@ -18,37 +14,63 @@ BOT_PATH = '/home/ubuntu/bot.py'
 with open(BOT_PATH, 'r') as f:
     content = f.read()
 
-# -- 0. Handle already-patched state (possibly broken) -----------------------
+# ── 0. Strip previous broken patch if present ────────────────────────────────
 if 'generate_image_pollinations' in content:
-    check = subprocess.run(['python3', '-m', 'py_compile', BOT_PATH], capture_output=True, text=True)
+    check = subprocess.run(['python3', '-m', 'py_compile', BOT_PATH],
+                           capture_output=True, text=True)
     if check.returncode == 0:
         print('Already patched and syntax OK -- nothing to do.')
         sys.exit(0)
-    print(f'Previous patch has syntax error: {check.stderr.strip()}')
-    print('Stripping broken patch and reapplying...')
-    content = re.sub(
-        r'\n# [=]+\n# SMART MODEL ROUTER.*?# END SMART MODEL ROUTER\n# [=]+\n',
-        '\n',
-        content,
-        flags=re.DOTALL
-    )
-    content = re.sub(r'\nimport io\n', '\n', content)
-    content = re.sub(
-        r'\ntry:\n    import httpx as _httpx_mod.*?_httpx_mod = None\n',
-        '\n',
-        content,
-        flags=re.DOTALL
-    )
-    content = re.sub(
-        r'\n    # Smart routing handlers.*?handle_photo_message\)\)\n',
-        '\n',
-        content,
-        flags=re.DOTALL
-    )
-    content = re.sub(r'\nimport urllib\.parse\n', '\n', content)
-    print('Stripped old broken patch.')
+    print(f'Broken patch detected: {check.stderr.strip()}')
+    print('Stripping using line-based approach...')
+    lines = content.split('\n')
+    start_line = None
+    end_line = None
+    for i, line in enumerate(lines):
+        stripped = line.strip()
+        if 'SMART MODEL ROUTER' in stripped and 'END' not in stripped:
+            # Include the separator line one row above
+            start_line = max(0, i - 1)
+        if 'END SMART MODEL ROUTER' in stripped:
+            # Include separator line one row below
+            end_line = min(len(lines), i + 2)
+    if start_line is not None and end_line is not None:
+        content = '\n'.join(lines[:start_line] + lines[end_line:])
+        print(f'Stripped lines {start_line}-{end_line} (block removed).')
+    else:
+        print('WARNING: Could not find block boundaries -- force-stripping by function name')
+        # Fallback: remove everything from the line containing the broken function
+        # to the end of the file would be too destructive; instead strip known names
+        for fn in ('def generate_image_pollinations', 'def detect_task',
+                   'def smart_call', 'def analyze_image_gemini_sync',
+                   'async def handle_img_command', 'async def handle_photo_message'):
+            # Remove 10 lines around each function definition as a last resort
+            lines2 = content.split('\n')
+            for i2, l2 in enumerate(lines2):
+                if fn in l2:
+                    content = '\n'.join(lines2[:i2] + lines2[i2+200:])
+                    break
+    # Also strip the injected imports
+    content = content.replace('\nimport io\n', '\n', 1)
+    content = content.replace('\nimport urllib.parse\n', '\n', 1)
+    content = re.sub(r'\ntry:\n    import httpx as _httpx_mod[\s\S]*?_httpx_mod = None\n',
+                     '\n', content, count=1)
+    # Strip injected handlers block using line approach
+    lines3 = content.split('\n')
+    h_start = None
+    h_end = None
+    for i3, l3 in enumerate(lines3):
+        if '# Smart routing handlers (added by patch_smart_routing.py)' in l3:
+            h_start = i3
+        if h_start is not None and 'handle_photo_message' in l3 and 'add_handler' in l3:
+            h_end = i3 + 1
+            break
+    if h_start is not None and h_end is not None:
+        content = '\n'.join(lines3[:h_start] + lines3[h_end:])
+        print('Stripped handler registration block.')
+    print('Strip complete. Reapplying fresh patch...')
 
-# -- 1. New imports -----------------------------------------------------------
+# ── 1. New imports ────────────────────────────────────────────────────────────
 NEW_IMPORTS = """
 import io
 import urllib.parse
@@ -59,7 +81,7 @@ except ImportError:
 """
 content = content.replace('import os\n', 'import os\n' + NEW_IMPORTS, 1)
 
-# -- 2. New functions block ---------------------------------------------------
+# ── 2. New functions block ────────────────────────────────────────────────────
 NEW_FUNCTIONS = '''
 # =============================================================================
 # SMART MODEL ROUTER
@@ -145,7 +167,7 @@ async def handle_img_command(update, context):
             'Example: /img a futuristic city at sunset, digital art'
         )
         return
-    status = await update.message.reply_text('\U0001f3a8 Generating image... (may take up to 30s)')
+    status = await update.message.reply_text('\U0001f3a8 Generating image... (up to 30s)')
     try:
         import asyncio
         img_bytes = await asyncio.get_event_loop().run_in_executor(
@@ -158,9 +180,7 @@ async def handle_img_command(update, context):
         await status.delete()
     except Exception as exc:
         log.error(f'Image generation failed: {exc}')
-        await status.edit_text(
-            f'❌ Image generation failed. Try a different prompt.\nError: {exc}'
-        )
+        await status.edit_text(f'❌ Image generation failed. Try a different prompt.\nError: {exc}')
 
 
 async def handle_photo_message(update, context):
@@ -171,7 +191,6 @@ async def handle_photo_message(update, context):
     buf = io.BytesIO()
     await file_obj.download_to_memory(buf)
     image_bytes = buf.getvalue()
-
     import asyncio
     if task == 'image_edit':
         status = await update.message.reply_text('\U0001f50d Analyzing image before editing...')
@@ -215,12 +234,12 @@ if main_match:
 else:
     content = content + NEW_FUNCTIONS
 
-# -- 3. Detect application variable name -------------------------------------
+# ── 3. Detect application variable name ──────────────────────────────────────
 app_var_match = re.search(r'(\w+)\s*=\s*ApplicationBuilder', content)
 app_var = app_var_match.group(1) if app_var_match else 'application'
 print(f'Detected application variable: {app_var}')
 
-# -- 4. Register handlers before run_polling() --------------------------------
+# ── 4. Register handlers before run_polling() ────────────────────────────────
 NEW_HANDLERS = f"""
     # Smart routing handlers (added by patch_smart_routing.py)
     from telegram.ext import CommandHandler as _CH, MessageHandler as _MH, filters as _F
@@ -240,11 +259,12 @@ else:
     else:
         print('WARNING: could not find run_polling -- handlers NOT registered.')
 
-# -- 5. Write and verify ------------------------------------------------------
+# ── 5. Write and verify ───────────────────────────────────────────────────────
 with open(BOT_PATH, 'w') as f:
     f.write(content)
 
-result = subprocess.run(['python3', '-m', 'py_compile', BOT_PATH], capture_output=True, text=True)
+result = subprocess.run(['python3', '-m', 'py_compile', BOT_PATH],
+                        capture_output=True, text=True)
 if result.returncode != 0:
     print(f'SYNTAX ERROR after patch: {result.stderr}')
     sys.exit(1)
