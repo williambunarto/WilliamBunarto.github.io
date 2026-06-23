@@ -1,6 +1,10 @@
 name: Restore API Keys & Backtest
 
 on:
+  push:
+    branches: [claude/trusting-archimedes-yb9d8l]
+    paths:
+      - '.github/workflows/restore-api-keys.yml'
   workflow_dispatch:
 
 jobs:
@@ -19,25 +23,21 @@ jobs:
           GROQ_KEY: ${{ secrets.GROQ_API_KEY }}
           GEMINI_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
-          ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@140.245.103.249 bash -s << ENDSSH
+          ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@140.245.103.249 bash << ENDSSH
           set -e
-          # Update GROQ_API_KEY
           if grep -q '^GROQ_API_KEY=' /home/ubuntu/.env; then
             sed -i "s|^GROQ_API_KEY=.*|GROQ_API_KEY=${GROQ_KEY}|" /home/ubuntu/.env
           else
             echo "GROQ_API_KEY=${GROQ_KEY}" >> /home/ubuntu/.env
           fi
-          # Update GEMINI_API_KEY
           if grep -q '^GEMINI_API_KEY=' /home/ubuntu/.env; then
             sed -i "s|^GEMINI_API_KEY=.*|GEMINI_API_KEY=${GEMINI_KEY}|" /home/ubuntu/.env
           else
             echo "GEMINI_API_KEY=${GEMINI_KEY}" >> /home/ubuntu/.env
           fi
-          echo "Keys written. Verifying (lengths only):"
-          GROQ_LEN=$(grep '^GROQ_API_KEY=' /home/ubuntu/.env | cut -d= -f2 | wc -c)
-          GEM_LEN=$(grep '^GEMINI_API_KEY=' /home/ubuntu/.env | cut -d= -f2 | wc -c)
-          echo "GROQ key length: $GROQ_LEN"
-          echo "GEMINI key length: $GEM_LEN"
+          echo "Keys written. Lengths:"
+          echo "GROQ: \$(grep '^GROQ_API_KEY=' /home/ubuntu/.env | cut -d= -f2 | wc -c) chars"
+          echo "GEMINI: \$(grep '^GEMINI_API_KEY=' /home/ubuntu/.env | cut -d= -f2 | wc -c) chars"
           ENDSSH
 
       - name: Restart bot with fresh env
