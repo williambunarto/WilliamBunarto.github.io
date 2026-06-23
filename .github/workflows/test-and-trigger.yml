@@ -1,0 +1,55 @@
+name: Full Test & Trigger Scheduled Tasks
+
+on:
+  push:
+    branches: [claude/trusting-archimedes-yb9d8l]
+    paths:
+      - '.github/workflows/test-and-trigger.yml'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup SSH key
+        run: |
+          cp "ssh-key-2026-03-30 (1).key" /tmp/deploy_key
+          chmod 600 /tmp/deploy_key
+
+      - name: Run full AI backtest
+        run: |
+          scp -i /tmp/deploy_key -o StrictHostKeyChecking=no \
+            wbagent/backtest_ai.py ubuntu@140.245.103.249:/tmp/backtest_ai.py
+          ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@140.245.103.249 \
+            "bash --login -c 'python3 /tmp/backtest_ai.py'"
+
+      - name: Trigger open_pulse then eod_report via bot internals
+        run: |
+          ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@140.245.103.249 << 'ENDSSH'
+          export $(grep -v '^#' /home/ubuntu/.env | xargs)
+          python3 - << 'PYEOF'
+import asyncio, os, sys
+sys.path.insert(0, '/home/ubuntu')
+
+# Load env
+from dotenv import load_dotenv
+load_dotenv('/home/ubuntu/.env', override=True)
+
+import importlib.util
+spec = importlib.util.spec_from_file_location('bot', '/home/ubuntu/bot.py')
+bot_mod = importlib.util.load_from_spec(spec)
+spec.loader.exec_module(bot_mod)
+
+async def run():
+    print('=== Triggering scheduled_open_pulse ===')
+    await bot_mod.scheduled_open_pulse()
+    print('=== open_pulse sent ===')
+    await asyncio.sleep(3)
+    print('=== Triggering scheduled_eod_report ===')
+    await bot_mod.scheduled_eod_report()
+    print('=== eod_report sent ===')
+
+asyncio.run(run())
+PYEOF
+          ENDSSH
