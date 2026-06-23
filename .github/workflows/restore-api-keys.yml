@@ -1,0 +1,64 @@
+name: Restore API Keys & Backtest
+
+on:
+  workflow_dispatch:
+
+jobs:
+  restore:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup SSH key
+        run: |
+          cp "ssh-key-2026-03-30 (1).key" /tmp/deploy_key
+          chmod 600 /tmp/deploy_key
+
+      - name: Write API keys to server .env
+        env:
+          GROQ_KEY: ${{ secrets.GROQ_API_KEY }}
+          GEMINI_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@140.245.103.249 bash -s << ENDSSH
+          set -e
+          # Update GROQ_API_KEY
+          if grep -q '^GROQ_API_KEY=' /home/ubuntu/.env; then
+            sed -i "s|^GROQ_API_KEY=.*|GROQ_API_KEY=${GROQ_KEY}|" /home/ubuntu/.env
+          else
+            echo "GROQ_API_KEY=${GROQ_KEY}" >> /home/ubuntu/.env
+          fi
+          # Update GEMINI_API_KEY
+          if grep -q '^GEMINI_API_KEY=' /home/ubuntu/.env; then
+            sed -i "s|^GEMINI_API_KEY=.*|GEMINI_API_KEY=${GEMINI_KEY}|" /home/ubuntu/.env
+          else
+            echo "GEMINI_API_KEY=${GEMINI_KEY}" >> /home/ubuntu/.env
+          fi
+          echo "Keys written. Verifying (lengths only):"
+          GROQ_LEN=$(grep '^GROQ_API_KEY=' /home/ubuntu/.env | cut -d= -f2 | wc -c)
+          GEM_LEN=$(grep '^GEMINI_API_KEY=' /home/ubuntu/.env | cut -d= -f2 | wc -c)
+          echo "GROQ key length: $GROQ_LEN"
+          echo "GEMINI key length: $GEM_LEN"
+          ENDSSH
+
+      - name: Restart bot with fresh env
+        run: |
+          ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@140.245.103.249 << 'ENDSSH'
+          pkill -f 'while true; do python3' || true
+          sleep 1
+          pkill -f 'python3.*bot.py' || true
+          sleep 3
+          export $(grep -v '^#' /home/ubuntu/.env | xargs)
+          nohup bash -c 'while true; do python3 /home/ubuntu/bot.py >> /home/ubuntu/bot.log 2>&1; echo "[restart] bot exited, restarting in 5s..." >> /home/ubuntu/bot.log; sleep 5; done' > /dev/null 2>&1 &
+          sleep 6
+          pgrep -f 'python3 /home/ubuntu/bot.py' && echo 'BOT: RUNNING' || echo 'BOT: NOT RUNNING'
+          echo "=== Last 20 lines of bot.log ==="
+          tail -20 /home/ubuntu/bot.log
+          ENDSSH
+
+      - name: Copy and run backtest
+        run: |
+          scp -i /tmp/deploy_key -o StrictHostKeyChecking=no \
+            wbagent/backtest_ai.py \
+            ubuntu@140.245.103.249:/tmp/backtest_ai.py
+          ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@140.245.103.249 \
+            "bash --login -c 'python3 /tmp/backtest_ai.py'"
