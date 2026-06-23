@@ -1,0 +1,91 @@
+name: Diagnose API Keys
+
+on:
+  push:
+    branches: [claude/trusting-archimedes-yb9d8l]
+    paths:
+      - '.github/workflows/diagnose-api.yml'
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup SSH key
+        run: |
+          cp "ssh-key-2026-03-30 (1).key" /tmp/deploy_key
+          chmod 600 /tmp/deploy_key
+
+      - name: Live API test
+        run: |
+          ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@140.245.103.249 << 'ENDSSH'
+          echo "=== .env contents (keys masked) ==="
+          grep -E 'GROQ|GEMINI|API' /home/ubuntu/.env | sed 's/=.*/=****/'
+
+          echo
+          echo "=== Test Groq API ==="
+          python3 - << 'PYEOF'
+import os, sys
+from dotenv import load_dotenv
+load_dotenv('/home/ubuntu/.env')
+key = os.getenv('GROQ_API_KEY', '')
+print(f'GROQ_API_KEY set: {bool(key)} (len={len(key)})')
+if key:
+    try:
+        from groq import Groq
+        client = Groq(api_key=key)
+        r = client.chat.completions.create(
+            model='llama-3.3-70b-versatile',
+            messages=[{'role':'user','content':'Say OK in 1 word'}],
+            max_tokens=5
+        )
+        print(f'Groq llama-3.3-70b: OK -> {r.choices[0].message.content.strip()}')
+    except Exception as e:
+        print(f'Groq llama-3.3-70b ERROR: {type(e).__name__}: {e}')
+    try:
+        from groq import Groq
+        client = Groq(api_key=key)
+        r = client.chat.completions.create(
+            model='llama3-8b-8192',
+            messages=[{'role':'user','content':'Say OK in 1 word'}],
+            max_tokens=5
+        )
+        print(f'Groq llama3-8b: OK -> {r.choices[0].message.content.strip()}')
+    except Exception as e:
+        print(f'Groq llama3-8b ERROR: {type(e).__name__}: {e}')
+PYEOF
+
+          echo
+          echo "=== Test Gemini API ==="
+          python3 - << 'PYEOF'
+import os
+from dotenv import load_dotenv
+load_dotenv('/home/ubuntu/.env')
+key = os.getenv('GEMINI_API_KEY', '')
+print(f'GEMINI_API_KEY set: {bool(key)} (len={len(key)})')
+if key:
+    try:
+        import google.generativeai as genai
+        genai.configure(api_key=key)
+        model = genai.GenerativeModel('gemini-2.5-flash')
+        r = model.generate_content('Say OK in 1 word')
+        print(f'Gemini 2.5-flash: OK -> {r.text.strip()}')
+    except Exception as e:
+        print(f'Gemini 2.5-flash ERROR: {type(e).__name__}: {e}')
+    try:
+        model2 = genai.GenerativeModel('gemini-1.5-flash')
+        r2 = model2.generate_content('Say OK in 1 word')
+        print(f'Gemini 1.5-flash: OK -> {r2.text.strip()}')
+    except Exception as e:
+        print(f'Gemini 1.5-flash ERROR: {type(e).__name__}: {e}')
+PYEOF
+
+          echo
+          echo "=== call_groq / call_gemini functions in bot.py ==="
+          grep -n 'def call_groq\|def call_gemini\|GEMINI_API_KEY\|genai.configure\|load_dotenv' /home/ubuntu/bot.py | head -30
+
+          echo
+          echo "=== Recent bot.log errors ==="
+          grep -i 'error\|groq\|gemini\|quota\|connection' /home/ubuntu/bot.log | tail -30
+          ENDSSH
