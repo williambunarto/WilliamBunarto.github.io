@@ -4,12 +4,12 @@ on:
   push:
     branches: [claude/trusting-archimedes-yb9d8l]
     paths:
-      - '.github/workflows/test-and-trigger.yml'
       - 'wbagent/trigger_scheduled.py'
       - 'wbagent/backtest_ai.py'
+      - '.github/workflows/test-and-trigger.yml'
 
 jobs:
-  test:
+  test-and-trigger:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -19,7 +19,7 @@ jobs:
           cp "ssh-key-2026-03-30 (1).key" /tmp/deploy_key
           chmod 600 /tmp/deploy_key
 
-      - name: Run full AI backtest
+      - name: Run full AI backtest on server
         continue-on-error: true
         run: |
           scp -i /tmp/deploy_key -o StrictHostKeyChecking=no \
@@ -27,12 +27,7 @@ jobs:
           ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@140.245.103.249 \
             "bash --login -c 'python3 /tmp/backtest_ai.py'"
 
-      - name: Inspect bot scheduled function signatures
-        run: |
-          ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@140.245.103.249 \
-            "grep -n 'async def scheduled_\|BOT_TOKEN\|TELEGRAM_TOKEN\|CHAT_ID\|chat_id' /home/ubuntu/bot.py | head -40"
-
-      - name: Copy and run trigger script (sends results to Telegram)
+      - name: Run trigger script (send Telegram proof)
         run: |
           scp -i /tmp/deploy_key -o StrictHostKeyChecking=no \
             wbagent/trigger_scheduled.py ubuntu@140.245.103.249:/tmp/trigger_scheduled.py

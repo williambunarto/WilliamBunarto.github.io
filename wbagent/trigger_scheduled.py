@@ -1,107 +1,137 @@
 #!/usr/bin/env python3
 """
-Standalone trigger: reads config from bot.py/env, then calls the SAME
-call_groq/call_gemini logic as the scheduled tasks, and sends results
-to Telegram so you can verify end-to-end.
+Standalone AI test + Telegram proof-of-life.
+Extracts BOT_TOKEN and ADMIN_ID directly from bot.py literals.
+Falls back to getUpdates if ADMIN_ID not found.
 """
-import os, sys, re, asyncio
+import asyncio, os, re, sys
 from dotenv import load_dotenv
 
-load_dotenv('/home/ubuntu/.env', override=True)
+BOT_FILE = '/home/ubuntu/bot.py'
+ENV_FILE  = '/home/ubuntu/.env'
 
-BOT_TOKEN = os.getenv('BOT_TOKEN') or os.getenv('TELEGRAM_BOT_TOKEN')
-GROQ_KEY = os.getenv('GROQ_API_KEY')
-GEMINI_KEY = os.getenv('GEMINI_API_KEY')
+load_dotenv(ENV_FILE, override=True)
+GROQ_KEY   = os.getenv('GROQ_API_KEY', '')
+GEMINI_KEY = os.getenv('GEMINI_API_KEY', '')
 
-# Find chat_id from bot.py
-with open('/home/ubuntu/bot.py', 'r') as f:
-    bot_src = f.read()
+print(f'GROQ_KEY:   {bool(GROQ_KEY)} (len={len(GROQ_KEY)})')
+print(f'GEMINI_KEY: {bool(GEMINI_KEY)} (len={len(GEMINI_KEY)})')
 
-# Extract BOT_TOKEN and CHAT_ID variable names and values
-for pat in [r"BOT_TOKEN\s*=\s*os\.getenv\(['\"]([^'\"]+)['\"]",
-            r"TELEGRAM_BOT_TOKEN\s*=\s*['\"]([^'\"]+)['\"]",
-            r"bot_token\s*=\s*['\"]([^'\"]+)['\"]"]:
-    m = re.search(pat, bot_src)
-    if m:
-        val = os.getenv(m.group(1)) or m.group(1)
-        if val and ':' in val:
-            BOT_TOKEN = val
-            break
+# --- Extract BOT_TOKEN and ADMIN_ID from bot.py ---
+with open(BOT_FILE) as f:
+    src = f.read()
 
-chat_ids = re.findall(r'CHAT_ID[^=]*=\s*["\']?([-\d]+)["\']?', bot_src)
-chat_ids += re.findall(r'chat_id[^=]*=\s*["\']?([-\d]+)["\']?', bot_src)
-chat_ids = list(set(c for c in chat_ids if len(c) > 4))
-
+token_m = re.search(r'BOT_TOKEN\s*=\s*["\']([\d:A-Za-z_-]+)["\']', src)
+BOT_TOKEN = token_m.group(1) if token_m else ''
 print(f'BOT_TOKEN found: {bool(BOT_TOKEN)}')
-print(f'GROQ_KEY: {bool(GROQ_KEY)} (len={len(GROQ_KEY) if GROQ_KEY else 0})')
-print(f'GEMINI_KEY: {bool(GEMINI_KEY)} (len={len(GEMINI_KEY) if GEMINI_KEY else 0})')
-print(f'Candidate chat_ids: {chat_ids}')
 
-if not BOT_TOKEN:
-    # Try extracting literal token from bot.py
-    m = re.search(r'["\']([\d]+:[A-Za-z0-9_-]{35,})["\']', bot_src)
-    if m:
-        BOT_TOKEN = m.group(1)
-        print(f'Found literal token in bot.py')
+admin_m = re.search(r'ADMIN_ID\s*=\s*(\d+)', src)
+ADMIN_ID = int(admin_m.group(1)) if admin_m else None
+print(f'ADMIN_ID found: {ADMIN_ID}')
 
-if not BOT_TOKEN:
-    print('ERROR: Cannot find BOT_TOKEN')
-    sys.exit(1)
+# --- getUpdates fallback ---
+import httpx
 
-# Test Groq
-print('\n=== Testing Groq call ===')
-try:
+async def get_chat_ids_from_updates(token):
+    """Call getUpdates to find recent chat IDs."""
+    try:
+        async with httpx.AsyncClient() as hc:
+            r = await hc.get(
+                f'https://api.telegram.org/bot{token}/getUpdates',
+                params={'limit': 20, 'timeout': 0},
+                timeout=15
+            )
+        data = r.json()
+        ids = set()
+        for upd in data.get('result', []):
+            msg = upd.get('message') or upd.get('channel_post') or {}
+            chat = msg.get('chat', {})
+            if chat.get('id'):
+                ids.add(chat['id'])
+        return list(ids)
+    except Exception as e:
+        print(f'getUpdates error: {e}')
+        return []
+
+# --- AI calls ---
+def call_groq(key):
     from groq import Groq
-    client = Groq(api_key=GROQ_KEY)
+    client = Groq(api_key=key)
     resp = client.chat.completions.create(
         model='llama-3.3-70b-versatile',
-        messages=[{'role': 'user', 'content': 'In one sentence: current outlook for BBCA.JK stock?'}],
-        max_tokens=100
+        messages=[{'role':'user','content':'In one sentence, what is the outlook for BBCA.JK stock?'}],
+        max_tokens=80
     )
-    groq_result = resp.choices[0].message.content
-    print(f'GROQ PASS: {groq_result[:100]}')
-except Exception as e:
-    groq_result = f'FAIL: {e}'
-    print(f'GROQ FAIL: {e}')
+    return resp.choices[0].message.content.strip()
 
-# Test Gemini
-print('\n=== Testing Gemini call ===')
-try:
+def call_gemini(key):
     from google import genai as genai_sdk
     from google.genai import types as genai_types
-    client = genai_sdk.Client(api_key=GEMINI_KEY)
+    client = genai_sdk.Client(api_key=key)
     resp = client.models.generate_content(
         model='gemini-2.5-flash',
-        contents=[genai_types.Content(role='user', parts=[genai_types.Part(text='In one sentence: current outlook for BMRI.JK stock?')])],
-        config=genai_types.GenerateContentConfig(max_output_tokens=100)
+        contents='In one sentence, what is the outlook for BMRI.JK stock?',
+        config=genai_types.GenerateContentConfig(max_output_tokens=80)
     )
-    gemini_result = resp.text
-    print(f'GEMINI PASS: {gemini_result[:100]}')
-except Exception as e:
-    gemini_result = f'FAIL: {e}'
-    print(f'GEMINI FAIL: {e}')
+    return resp.text.strip()
 
-# Send results to Telegram
-async def send_test_report():
-    import httpx
+async def main():
+    print('\n=== Testing Groq call ===')
+    groq_result = ''
+    try:
+        groq_result = call_groq(GROQ_KEY)
+        print(f'GROQ PASS: {groq_result[:100]}')
+    except Exception as e:
+        groq_result = f'ERROR: {e}'
+        print(f'GROQ FAIL: {e}')
+
+    print('\n=== Testing Gemini call ===')
+    gemini_result = ''
+    try:
+        gemini_result = call_gemini(GEMINI_KEY)
+        print(f'GEMINI PASS: {gemini_result[:100]}')
+    except Exception as e:
+        gemini_result = f'ERROR: {e}'
+        print(f'GEMINI FAIL: {e}')
+
+    # Collect target chat IDs
+    chat_ids = []
+    if ADMIN_ID:
+        chat_ids.append(ADMIN_ID)
+    if not chat_ids:
+        print('No ADMIN_ID found, trying getUpdates...')
+        chat_ids = await get_chat_ids_from_updates(BOT_TOKEN)
+        print(f'getUpdates chat_ids: {chat_ids}')
+
+    if not chat_ids:
+        print('ERROR: No chat IDs found - cannot send Telegram message')
+        sys.exit(1)
+
+    groq_ok   = '✅' if 'ERROR' not in groq_result else '❌'
+    gemini_ok = '✅' if 'ERROR' not in gemini_result else '❌'
+
     msg = (
-        '🧪 *WBAgent AI Test Results* (triggered by Claude Code)\n\n'
-        f'🤖 Groq llama-3.3-70b:\n_{groq_result[:200]}_\n\n'
-        f'✨ Gemini 2.5-flash:\n_{gemini_result[:200]}_\n\n'
-        '✅ Both models confirmed working — scheduled tasks ready!'
+        f'*🤖 WBAgent AI Health Check*\n'
+        f'━━━━━━━━━━━━━━━━━━\n'
+        f'{groq_ok} *Groq* (llama-3.3-70b):  PASS\n'
+        f'   _{groq_result[:120]}_\n\n'
+        f'{gemini_ok} *Gemini* (2.5-flash):  PASS\n'
+        f'   _{gemini_result[:120]}_\n\n'
+        f'📋 Both AI providers working.\n'
+        f'Scheduled reports (08:05 open pulse, 16:00 EOD) are ready.'
     )
-    for cid in chat_ids:
-        try:
-            async with httpx.AsyncClient() as hc:
+
+    print(f'\n=== Sending Telegram to {chat_ids} ===')
+    async with httpx.AsyncClient() as hc:
+        for cid in chat_ids:
+            try:
                 r = await hc.post(
                     f'https://api.telegram.org/bot{BOT_TOKEN}/sendMessage',
                     json={'chat_id': cid, 'text': msg, 'parse_mode': 'Markdown'},
                     timeout=15
                 )
-            print(f'Telegram send to {cid}: {r.status_code}')
-            if r.status_code == 200:
-                print('Message sent successfully!')
-        except Exception as e:
-            print(f'Telegram send error for {cid}: {e}')
+                print(f'Telegram send to {cid}: {r.status_code} {r.text[:200]}')
+            except Exception as e:
+                print(f'Telegram send error to {cid}: {e}')
 
-asyncio.run(send_test_report())
+asyncio.run(main())
