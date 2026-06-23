@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Migrate bot.py from deprecated google.generativeai to google.genai SDK.
-Also fixes call_gemini to properly handle exceptions and fall back gracefully.
+Safe approach: read current state, fix any prior partial patches, apply cleanly.
 """
 import sys, subprocess, re
 
@@ -13,68 +13,97 @@ result = subprocess.run(
     ['pip3', 'install', 'google-genai', '-q'],
     capture_output=True, text=True
 )
-print(result.stdout or result.stderr or 'installed')
+print(result.stdout.strip() or result.stderr.strip() or 'ok')
 
 with open(BOT_PATH, 'r') as f:
     content = f.read()
 
-# --- 1. Replace import ---
+# Show current state around the known problem line
+lines = content.split('\n')
+print(f'\nbot.py has {len(lines)} lines')
+print('Lines 110-125:')
+for i, l in enumerate(lines[109:125], start=110):
+    print(f'  {i}: {repr(l)}')
+
+# --- Fix 1: Repair IndentationError from previous partial patch ---
+# The genai.configure replacement left `if GEMINI_API_KEY:` with only a comment body
+# Comments are not valid statements - need `pass`
+if '# genai configured per-call via genai_sdk.Client(api_key=...)' in content:
+    content = content.replace(
+        '# genai configured per-call via genai_sdk.Client(api_key=...)',
+        'pass  # genai_sdk.Client(api_key=GEMINI_API_KEY) used per-call'
+    )
+    print('Fixed: empty if-block comment -> pass')
+
+# Also catch the raw configure line if not yet replaced
+if 'genai.configure(api_key=GEMINI_API_KEY)' in content:
+    content = content.replace(
+        'genai.configure(api_key=GEMINI_API_KEY)',
+        'pass  # genai_sdk.Client(api_key=GEMINI_API_KEY) used per-call'
+    )
+    print('Fixed: genai.configure -> pass')
+
+# --- Fix 2: Replace import if still using old SDK ---
 if 'import google.generativeai as genai' in content:
     content = content.replace(
         'import google.generativeai as genai',
         'from google import genai as genai_sdk\nfrom google.genai import types as genai_types',
         1
     )
-    print('Replaced import google.generativeai -> google.genai')
+    print('Replaced import: google.generativeai -> google.genai')
 elif 'from google import genai as genai_sdk' in content:
-    print('Import already migrated.')
+    print('Import already migrated OK.')
 else:
-    print('ERROR: Could not find genai import line.')
-    # Show context
-    for i, line in enumerate(content.split('\n')[:40]):
-        if 'genai' in line.lower() or 'google' in line.lower():
-            print(f'  {i}: {line}')
-    sys.exit(1)
+    print('WARNING: genai import line not found - check manually')
 
-# --- 2. Replace genai.configure ---
-if 'genai.configure(api_key=' in content:
-    content = content.replace(
-        'genai.configure(api_key=GEMINI_API_KEY)',
-        '# genai configured per-call via genai_sdk.Client(api_key=...)'
-    )
-    print('Removed genai.configure (no longer needed with new SDK)')
-
-# --- 3. Replace call_gemini function body ---
-# Find and replace the core API call inside call_gemini
-OLD_GENAI_CALL = 'model = genai.GenerativeModel('
-if OLD_GENAI_CALL in content:
-    # Replace the entire call_gemini try block
-    OLD_TRY = '''    try:
-        model = genai.GenerativeModel(
-            model_name="gemini-2.5-flash",
-            system_instruction=system,'''
-    # Find a larger chunk to be precise
-    # Locate call_gemini function
+# --- Fix 3: Replace call_gemini function body if still using old SDK call ---
+if 'genai.GenerativeModel' in content or 'genai_sdk.GenerativeModel' in content:
+    # Find call_gemini
     idx = content.find('def call_gemini(')
     if idx == -1:
         print('ERROR: call_gemini not found')
         sys.exit(1)
-    func_slice = content[idx:idx+1500]
-    print('call_gemini found, replacing API calls...')
     
-    # Replace the entire try block - find start/end
-    try_start = func_slice.find('    try:')
-    if try_start == -1:
+    func_end = content.find('\ndef ', idx + 10)
+    if func_end == -1:
+        func_end = len(content)
+    func_body = content[idx:func_end]
+    
+    # Build replacement - keep the signature and early returns, replace the try block
+    # Find if-not-key guard
+    guard_end = func_body.find('\n    try:')
+    if guard_end == -1:
         print('ERROR: try block not found in call_gemini')
+        print('Function body (first 500 chars):', repr(func_body[:500]))
         sys.exit(1)
     
-    # Build new implementation
-    NEW_IMPL = '''    try:
+    preamble = func_body[:guard_end]  # everything up to try:
+    
+    # Find end of try block - look for `except` at 4-space indent
+    except_pos = func_body.find('\n    except ', guard_end)
+    if except_pos == -1:
+        except_pos = func_body.find('\n    except:', guard_end)
+    
+    if except_pos == -1:
+        print('ERROR: except block not found in call_gemini')
+        sys.exit(1)
+    
+    # Get except block through end of function
+    except_block = func_body[except_pos:]
+    
+    # Rebuild the function
+    new_try_block = '''
+    try:
         client = genai_sdk.Client(api_key=GEMINI_API_KEY)
         gemini_msgs = []
         for m in messages:
             role = 'user' if m.get('role') == 'user' else 'model'
-            gemini_msgs.append(genai_types.Content(role=role, parts=[genai_types.Part(text=m['content'])]))
+            gemini_msgs.append(
+                genai_types.Content(
+                    role=role,
+                    parts=[genai_types.Part(text=str(m.get('content', '')))]
+                )
+            )
         resp = client.models.generate_content(
             model='gemini-2.5-flash',
             contents=gemini_msgs,
@@ -86,32 +115,13 @@ if OLD_GENAI_CALL in content:
         )
         return resp.text'''
     
-    # Find the old try block end (return statement)
-    old_try_block_end = func_slice.find('\n        return resp')
-    if old_try_block_end == -1:
-        old_try_block_end = func_slice.find('\n        return response')
-    if old_try_block_end == -1:
-        print('ERROR: could not find return in call_gemini try block')
-        # Print the function for debugging
-        print(func_slice[:600])
-        sys.exit(1)
-    
-    # Find end of return line
-    ret_end = func_slice.find('\n', old_try_block_end + 1)
-    old_try_block = func_slice[try_start:ret_end]
-    
-    print(f'Replacing try block ({len(old_try_block)} chars)...')
-    content = content[:idx] + func_slice.replace(old_try_block, NEW_IMPL, 1) + content[idx+1500:]
-    print('call_gemini API call updated to google.genai SDK.')
+    new_func = preamble + new_try_block + except_block
+    content = content[:idx] + new_func + content[func_end:]
+    print('call_gemini updated to google.genai SDK.')
 else:
-    print('genai.GenerativeModel not found - call_gemini may already be migrated.')
+    print('call_gemini API calls already migrated or not found with old pattern.')
 
-# --- 4. Fix except block in call_gemini to show real error ---
-# Find call_gemini except block and ensure it returns descriptive error
-if 'except Exception as exc:' in content:
-    pass  # probably already fixed
-
-# --- 5. Fix analyze_image_gemini_sync if present ---
+# --- Fix 4: Replace analyze_image_gemini_sync if still using old _genai ---
 if 'import google.generativeai as _genai' in content:
     OLD_IMG = '''        import google.generativeai as _genai
         model = _genai.GenerativeModel('gemini-2.5-flash')
@@ -136,37 +146,90 @@ if 'import google.generativeai as _genai' in content:
         return _resp.text'''
     if OLD_IMG in content:
         content = content.replace(OLD_IMG, NEW_IMG, 1)
-        print('analyze_image_gemini_sync updated to google.genai SDK.')
+        print('analyze_image_gemini_sync updated.')
     else:
-        print('WARNING: analyze_image_gemini_sync not updated (pattern not matched - may already be fixed or different structure)')
+        print('WARNING: analyze_image_gemini_sync old pattern not matched exactly.')
+        # Try a simpler targeted replacement
+        if "import google.generativeai as _genai" in content:
+            content = content.replace(
+                'import google.generativeai as _genai\n        model = _genai.GenerativeModel',
+                'from google import genai as _genai_sdk\n        model = _genai_sdk',
+            )
+            print('Applied partial analyze_image fix.')
+else:
+    print('analyze_image_gemini_sync: old import not present, skipping.')
 
 with open(BOT_PATH, 'w') as f:
     f.write(content)
 
+# Verify syntax
 result = subprocess.run(['python3', '-m', 'py_compile', BOT_PATH], capture_output=True, text=True)
 if result.returncode != 0:
-    print(f'SYNTAX ERROR after patch: {result.stderr}')
+    print(f'SYNTAX ERROR: {result.stderr}')
+    # Show lines around error
+    import re as _re
+    m = _re.search(r'line (\d+)', result.stderr)
+    if m:
+        err_line = int(m.group(1))
+        lines = content.split('\n')
+        for i, l in enumerate(lines[max(0,err_line-5):err_line+5], start=max(1,err_line-4)):
+            print(f'  {i}: {repr(l)}')
     sys.exit(1)
 
-print('Gemini SDK migration applied and syntax OK.')
+print('Syntax OK!')
 
-# Quick live test
-print('\nTesting google.genai SDK...')
+# Live test
+print('\nTesting Gemini API with new SDK...')
 test = subprocess.run(['python3', '-c', '''
 import os
 from dotenv import load_dotenv
 load_dotenv("/home/ubuntu/.env")
 key = os.getenv("GEMINI_API_KEY", "")
-print(f"GEMINI_API_KEY set: {bool(key)} len={len(key)}")
+print(f"GEMINI_API_KEY present: {bool(key)} (len={len(key)})")
 if key:
-    from google import genai as _sdk
-    from google.genai import types as _t
-    c = _sdk.Client(api_key=key)
-    r = c.models.generate_content(model="gemini-2.5-flash", contents="Say OK")
-    print(f"Gemini test: {r.text.strip()[:50]}")
+    try:
+        from google import genai as sdk
+        from google.genai import types as t
+        c = sdk.Client(api_key=key)
+        r = c.models.generate_content(
+            model="gemini-2.5-flash",
+            contents="Reply with just the word OK"
+        )
+        print(f"Gemini response: {r.text.strip()[:80]}")
+        print("GEMINI: WORKING")
+    except Exception as e:
+        print(f"Gemini ERROR: {type(e).__name__}: {e}")
 else:
-    print("ERROR: GEMINI_API_KEY not set in .env")
+    print("ERROR: GEMINI_API_KEY not in .env")
 '''], capture_output=True, text=True)
 print(test.stdout)
 if test.stderr:
-    print('STDERR:', test.stderr[:500])
+    print('STDERR:', test.stderr[:300])
+
+# Test Groq too
+print('Testing Groq API...')
+groq_test = subprocess.run(['python3', '-c', '''
+import os
+from dotenv import load_dotenv
+load_dotenv("/home/ubuntu/.env")
+key = os.getenv("GROQ_API_KEY", "")
+print(f"GROQ_API_KEY present: {bool(key)} (len={len(key)})")
+if key:
+    try:
+        from groq import Groq
+        c = Groq(api_key=key)
+        r = c.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[{"role":"user","content":"Reply with just the word OK"}],
+            max_tokens=5
+        )
+        print(f"Groq response: {r.choices[0].message.content.strip()}")
+        print("GROQ: WORKING")
+    except Exception as e:
+        print(f"Groq ERROR: {type(e).__name__}: {e}")
+'''], capture_output=True, text=True)
+print(groq_test.stdout)
+if groq_test.stderr:
+    print('STDERR:', groq_test.stderr[:300])
+
+print('\nMigration complete. Ready to restart bot.')
