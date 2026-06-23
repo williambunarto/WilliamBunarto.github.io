@@ -5,6 +5,8 @@ on:
     branches: [claude/trusting-archimedes-yb9d8l]
     paths:
       - 'wbagent/patch_fix_gemini_sdk.py'
+      - 'wbagent/patch_fix_env_loading.py'
+      - 'wbagent/backtest_ai.py'
       - '.github/workflows/fix-gemini-sdk.yml'
 
 jobs:
@@ -18,46 +20,71 @@ jobs:
           cp "ssh-key-2026-03-30 (1).key" /tmp/deploy_key
           chmod 600 /tmp/deploy_key
 
-      - name: Migrate Gemini SDK and restart bot
+      - name: Deploy fixes and run backtest
         run: |
           scp -i /tmp/deploy_key -o StrictHostKeyChecking=no \
             wbagent/patch_fix_gemini_sdk.py \
-            ubuntu@140.245.103.249:/tmp/patch_fix_gemini_sdk.py
+            wbagent/patch_fix_env_loading.py \
+            wbagent/backtest_ai.py \
+            ubuntu@140.245.103.249:/tmp/
 
           ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@140.245.103.249 << 'ENDSSH'
-          echo "=== Checking current GEMINI_API_KEY ==="
-          grep 'GEMINI' /home/ubuntu/.env | sed 's/=.*/=****/'
-
-          echo
-          echo "=== Running Gemini SDK migration ==="
+          echo "=== Step 1: Gemini SDK migration ==="
           python3 /tmp/patch_fix_gemini_sdk.py
-          FIX_EXIT=$?
-          echo "Migration exit: $FIX_EXIT"
-
-          if [ "$FIX_EXIT" != "0" ]; then
-            echo "ERROR: Migration failed"
-            exit 1
-          fi
+          if [ $? -ne 0 ]; then echo "ERROR: Gemini SDK migration failed"; exit 1; fi
 
           echo
-          echo "=== Stopping all bot instances ==="
+          echo "=== Step 2: Fix .env loading in bot.py ==="
+          python3 /tmp/patch_fix_env_loading.py
+          if [ $? -ne 0 ]; then echo "ERROR: env loading fix failed"; exit 1; fi
+
+          echo
+          echo "=== Step 3: Run AI backtest ==="
+          # Source .env properly before running the backtest
+          set -a
+          source /home/ubuntu/.env
+          set +a
+          python3 /tmp/backtest_ai.py
+          BACKTEST_EXIT=$?
+          echo "Backtest exit: $BACKTEST_EXIT"
+
+          echo
+          echo "=== Step 4: Stop all bot instances ==="
           pkill -f 'while true; do python3' || true
           sleep 1
           pkill -f 'python3.*bot.py' || true
           sleep 3
-          echo "Processes after kill:"
+          echo "Remaining after kill:"
           pgrep -af 'bot.py' || echo "(none)"
 
           echo
-          echo "=== Restarting bot ==="
-          nohup bash -c 'while true; do python3 /home/ubuntu/bot.py >> /home/ubuntu/bot.log 2>&1; echo "[restart] bot exited, restarting in 5s..." >> /home/ubuntu/bot.log; sleep 5; done' > /dev/null 2>&1 &
-          sleep 6
+          echo "=== Step 5: Restart bot (with proper env) ==="
+          set -a
+          source /home/ubuntu/.env
+          set +a
+          nohup bash -c '
+            set -a
+            source /home/ubuntu/.env
+            set +a
+            while true; do
+              python3 /home/ubuntu/bot.py >> /home/ubuntu/bot.log 2>&1
+              echo "[restart] bot exited, restarting in 5s..." >> /home/ubuntu/bot.log
+              sleep 5
+            done
+          ' > /dev/null 2>&1 &
+          sleep 7
 
-          echo "=== Bot status ==="
+          echo "=== Step 6: Final verification ==="
           pgrep -af 'bot.py' || echo "(none)"
-          pgrep -f 'python3 /home/ubuntu/bot.py' && echo 'RUNNING' || echo 'NOT RUNNING'
+          pgrep -f 'python3 /home/ubuntu/bot.py' && echo 'BOT: RUNNING' || echo 'BOT: NOT RUNNING'
 
           echo
-          echo "=== Last 20 lines bot.log ==="
-          tail -20 /home/ubuntu/bot.log
+          echo "=== Last 25 lines bot.log ==="
+          tail -25 /home/ubuntu/bot.log
+
+          if [ "$BACKTEST_EXIT" != "0" ]; then
+            echo
+            echo "WARNING: Backtest had failures - check logs above"
+            exit 1
+          fi
           ENDSSH
