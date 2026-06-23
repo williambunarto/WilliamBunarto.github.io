@@ -1,0 +1,41 @@
+name: Fix Decommissioned Groq Model
+
+on:
+  push:
+    branches: [claude/trusting-archimedes-yb9d8l]
+    paths:
+      - 'wbagent/patch_fix_groq_models.py'
+      - '.github/workflows/fix-groq-models.yml'
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup SSH key
+        run: |
+          cp "ssh-key-2026-03-30 (1).key" /tmp/deploy_key
+          chmod 600 /tmp/deploy_key
+
+      - name: Apply patch
+        run: |
+          scp -i /tmp/deploy_key -o StrictHostKeyChecking=no \
+            wbagent/patch_fix_groq_models.py \
+            ubuntu@140.245.103.249:/tmp/patch_fix_groq_models.py
+          ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@140.245.103.249 \
+            'python3 /tmp/patch_fix_groq_models.py'
+
+      - name: Restart bot
+        run: |
+          ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@140.245.103.249 << 'ENDSSH'
+          pkill -f 'while true; do python3' || true
+          sleep 1
+          pkill -f 'python3.*bot.py' || true
+          sleep 3
+          export $(grep -v '^#' /home/ubuntu/.env | xargs)
+          nohup bash -c 'while true; do python3 /home/ubuntu/bot.py >> /home/ubuntu/bot.log 2>&1; echo "[restart] bot exited, restarting in 5s..." >> /home/ubuntu/bot.log; sleep 5; done' > /dev/null 2>&1 &
+          sleep 6
+          pgrep -f 'python3 /home/ubuntu/bot.py' && echo 'BOT: RUNNING' || echo 'BOT: NOT RUNNING'
+          tail -10 /home/ubuntu/bot.log
+          ENDSSH
