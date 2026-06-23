@@ -1,0 +1,63 @@
+name: Fix Gemini SDK Migration
+
+on:
+  push:
+    branches: [claude/trusting-archimedes-yb9d8l]
+    paths:
+      - 'wbagent/patch_fix_gemini_sdk.py'
+      - '.github/workflows/fix-gemini-sdk.yml'
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup SSH key
+        run: |
+          cp "ssh-key-2026-03-30 (1).key" /tmp/deploy_key
+          chmod 600 /tmp/deploy_key
+
+      - name: Migrate Gemini SDK and restart bot
+        run: |
+          scp -i /tmp/deploy_key -o StrictHostKeyChecking=no \
+            wbagent/patch_fix_gemini_sdk.py \
+            ubuntu@140.245.103.249:/tmp/patch_fix_gemini_sdk.py
+
+          ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@140.245.103.249 << 'ENDSSH'
+          echo "=== Checking current GEMINI_API_KEY ==="
+          grep 'GEMINI' /home/ubuntu/.env | sed 's/=.*/=****/'
+
+          echo
+          echo "=== Running Gemini SDK migration ==="
+          python3 /tmp/patch_fix_gemini_sdk.py
+          FIX_EXIT=$?
+          echo "Migration exit: $FIX_EXIT"
+
+          if [ "$FIX_EXIT" != "0" ]; then
+            echo "ERROR: Migration failed"
+            exit 1
+          fi
+
+          echo
+          echo "=== Stopping all bot instances ==="
+          pkill -f 'while true; do python3' || true
+          sleep 1
+          pkill -f 'python3.*bot.py' || true
+          sleep 3
+          echo "Processes after kill:"
+          pgrep -af 'bot.py' || echo "(none)"
+
+          echo
+          echo "=== Restarting bot ==="
+          nohup bash -c 'while true; do python3 /home/ubuntu/bot.py >> /home/ubuntu/bot.log 2>&1; echo "[restart] bot exited, restarting in 5s..." >> /home/ubuntu/bot.log; sleep 5; done' > /dev/null 2>&1 &
+          sleep 6
+
+          echo "=== Bot status ==="
+          pgrep -af 'bot.py' || echo "(none)"
+          pgrep -f 'python3 /home/ubuntu/bot.py' && echo 'RUNNING' || echo 'NOT RUNNING'
+
+          echo
+          echo "=== Last 20 lines bot.log ==="
+          tail -20 /home/ubuntu/bot.log
+          ENDSSH
