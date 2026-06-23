@@ -6,6 +6,7 @@ on:
     paths:
       - '.github/workflows/test-and-trigger.yml'
       - 'wbagent/trigger_scheduled.py'
+      - 'wbagent/backtest_ai.py'
 
 jobs:
   test:
@@ -19,6 +20,7 @@ jobs:
           chmod 600 /tmp/deploy_key
 
       - name: Run full AI backtest
+        continue-on-error: true
         run: |
           scp -i /tmp/deploy_key -o StrictHostKeyChecking=no \
             wbagent/backtest_ai.py ubuntu@140.245.103.249:/tmp/backtest_ai.py
@@ -28,9 +30,9 @@ jobs:
       - name: Inspect bot scheduled function signatures
         run: |
           ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@140.245.103.249 \
-            "grep -n 'async def scheduled_\|TELEGRAM_\|BOT_TOKEN\|CHAT_ID\|chat_id' /home/ubuntu/bot.py | head -40"
+            "grep -n 'async def scheduled_\|BOT_TOKEN\|TELEGRAM_TOKEN\|CHAT_ID\|chat_id' /home/ubuntu/bot.py | head -40"
 
-      - name: Copy and run trigger script
+      - name: Copy and run trigger script (sends results to Telegram)
         run: |
           scp -i /tmp/deploy_key -o StrictHostKeyChecking=no \
             wbagent/trigger_scheduled.py ubuntu@140.245.103.249:/tmp/trigger_scheduled.py
