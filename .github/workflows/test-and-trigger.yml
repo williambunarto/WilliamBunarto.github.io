@@ -5,6 +5,7 @@ on:
     branches: [claude/trusting-archimedes-yb9d8l]
     paths:
       - '.github/workflows/test-and-trigger.yml'
+      - 'wbagent/trigger_scheduled.py'
 
 jobs:
   test:
@@ -24,32 +25,14 @@ jobs:
           ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@140.245.103.249 \
             "bash --login -c 'python3 /tmp/backtest_ai.py'"
 
-      - name: Trigger open_pulse then eod_report via bot internals
+      - name: Inspect bot scheduled function signatures
         run: |
-          ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@140.245.103.249 << 'ENDSSH'
-          export $(grep -v '^#' /home/ubuntu/.env | xargs)
-          python3 - << 'PYEOF'
-import asyncio, os, sys
-sys.path.insert(0, '/home/ubuntu')
+          ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@140.245.103.249 \
+            "grep -n 'async def scheduled_\|TELEGRAM_\|BOT_TOKEN\|CHAT_ID\|chat_id' /home/ubuntu/bot.py | head -40"
 
-# Load env
-from dotenv import load_dotenv
-load_dotenv('/home/ubuntu/.env', override=True)
-
-import importlib.util
-spec = importlib.util.spec_from_file_location('bot', '/home/ubuntu/bot.py')
-bot_mod = importlib.util.load_from_spec(spec)
-spec.loader.exec_module(bot_mod)
-
-async def run():
-    print('=== Triggering scheduled_open_pulse ===')
-    await bot_mod.scheduled_open_pulse()
-    print('=== open_pulse sent ===')
-    await asyncio.sleep(3)
-    print('=== Triggering scheduled_eod_report ===')
-    await bot_mod.scheduled_eod_report()
-    print('=== eod_report sent ===')
-
-asyncio.run(run())
-PYEOF
-          ENDSSH
+      - name: Copy and run trigger script
+        run: |
+          scp -i /tmp/deploy_key -o StrictHostKeyChecking=no \
+            wbagent/trigger_scheduled.py ubuntu@140.245.103.249:/tmp/trigger_scheduled.py
+          ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@140.245.103.249 \
+            "bash --login -c 'python3 /tmp/trigger_scheduled.py'"
