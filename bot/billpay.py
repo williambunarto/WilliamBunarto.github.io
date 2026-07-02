@@ -8,6 +8,8 @@ Writes to the current month tab in Google Sheet:
   - Adds <amount> to Paid column (cumulative)
   - Sets Date Paid to today
   - Recomputes Status: ✓ Paid / ◑ Partial / ✗ Unpaid
+
+Sheet: 1Y8d7A1C8Kn3GmweZp7h4ihJgOpgT43wlpNQr5n61Z24
 """
 
 import asyncio
