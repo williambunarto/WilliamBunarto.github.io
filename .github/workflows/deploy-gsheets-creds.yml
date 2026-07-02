@@ -1,7 +1,10 @@
 name: Deploy GSheets Creds (one-time)
 
 on:
-  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/deploy-gsheets-creds.yml'
 
 jobs:
   deploy:
