@@ -22,7 +22,7 @@ from telegram.ext import ContextTypes
 
 log = logging.getLogger(__name__)
 
-SHEET_ID   = "1zBx1FcJq7PSjMjYujNCAwaNiX5ulWPe6"
+SHEET_ID   = "1Y8d7A1C8Kn3GmweZp7h4ihJgOpgT43wlpNQr5n61Z24"
 CREDS_FILE = "/home/ubuntu/wbagent/gsheets-creds.json"
 SCOPES     = ["https://www.googleapis.com/auth/spreadsheets"]
 
