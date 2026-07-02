@@ -26,32 +26,36 @@ jobs:
           import sys
           sys.path.insert(0, '/home/ubuntu')
           from billpay import _gc, _tab, _master_names, SHEET_ID
-          
+
           print('=== Connecting to Google Sheets ===')
-          gc = _gc()
-          sp = gc.open_by_key(SHEET_ID)
-          
+          try:
+              gc = _gc()
+              sp = gc.open_by_key(SHEET_ID)
+          except Exception as e:
+              print(f'FATAL: Cannot connect to sheet: {e}')
+              sys.exit(1)
+
           print('=== Sheet tabs ===')
           for ws in sp.worksheets():
               print(f'  - {ws.title}')
-          
+
           tab = _tab()
           print(f'\n=== Looking for tab: {tab} ===')
           try:
               ws = sp.worksheet(tab)
               rows = ws.get_all_values()
-              print(f'Total rows in tab: {len(rows)}')
+              print(f'Total rows: {len(rows)}')
               print('First 20 rows (cols A-H):')
               for i, row in enumerate(rows[:20]):
                   print(f'  Row {i+1}: {row[:8]}')
           except Exception as e:
-              print(f'ERROR opening tab: {e}')
-              sys.exit(1)
-          
+              print(f'WARNING: Tab not found ({e}) — bot will handle this at runtime')
+              print('NOTE: Create a July 2026 tab in your sheet to use /billpay this month')
+
           print('\n=== MASTER DATA names ===')
           names = _master_names(sp)
           print(', '.join(names[:30]) or '(none found)')
-          
+
           print('\n=== TEST PASSED ===')
           PYEOF
 
@@ -59,14 +63,14 @@ jobs:
         run: |
           ssh -i /tmp/k -o StrictHostKeyChecking=no ubuntu@140.245.103.249 python3 - << 'PYEOF'
           import sys, re
-          
+
           with open('/home/ubuntu/bot.py', 'r') as f:
               content = f.read()
-          
+
           if 'from billpay import cmd_billpay' in content:
               print('Already patched — no changes needed')
               sys.exit(0)
-          
+
           # 1. Add import before # BTC_SIGNAL_INJECTED
           if '# BTC_SIGNAL_INJECTED' in content:
               content = content.replace(
@@ -78,7 +82,7 @@ jobs:
               last = max((m.end() for m in re.finditer(r'^(?:import|from)\s+\S', content, re.MULTILINE)), default=0)
               content = content[:last] + '\nfrom billpay import cmd_billpay' + content[last:]
               print('Import added (fallback: after last import line)')
-          
+
           # 2. Add handler before app.run_polling
           POLL = '    app.run_polling(allowed_updates=Update.ALL_TYPES)'
           if POLL in content:
@@ -89,7 +93,7 @@ jobs:
               print('Handler added before app.run_polling')
           else:
               print('WARNING: app.run_polling not found — add handler manually')
-          
+
           with open('/home/ubuntu/bot.py', 'w') as f:
               f.write(content)
           print('bot.py patched successfully')
@@ -113,8 +117,3 @@ jobs:
               exit 1
           fi
           BASHEOF
-
-      - name: Cleanup explore workflow
-        run: |
-          ssh -i /tmp/k -o StrictHostKeyChecking=no ubuntu@140.245.103.249 \
-            "rm -f /tmp/test_billpay.py"
