@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>William Bunarto · Senior IT Project Manager &amp; Scrum Master</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Playfair+Display:ital,wght@0,400;0,700;1,400;1,600&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/lenis@1.1.16/dist/lenis.min.js"></script>
 <style>
 /* ─── CSS VARIABLES ─────────────────────────────────────────── */
 :root {
@@ -41,7 +42,7 @@ body.night {
 }
 /* ─── RESET & BASE ──────────────────────────────────────────── */
 *,*::before,*::after { box-sizing: border-box; margin: 0; padding: 0; }
-html { scroll-behavior: smooth; }
+/* html scroll-behavior handled by Lenis */
 body {
   background: var(--bg);
   color: var(--text);
@@ -1612,6 +1613,23 @@ footer {
 </footer>
 
 <script>
+// ═══════════════════════════════════════════════════════
+// LENIS SMOOTH SCROLL
+// ═══════════════════════════════════════════════════════
+const lenis = new Lenis({
+  duration: 1.2,
+  easing: t => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+  orientation: 'vertical',
+  smoothWheel: true,
+  wheelMultiplier: 1,
+  touchMultiplier: 2,
+  infinite: false,
+});
+(function lenisRaf(time){
+  lenis.raf(time);
+  requestAnimationFrame(lenisRaf);
+})(0);
+
 // CUSTOM CURSOR
 const dot = document.getElementById('cur-dot');
 const ring = document.getElementById('cur-ring');
@@ -1627,11 +1645,10 @@ document.querySelectorAll('a,button,input,select,textarea,.tag,.tc,.cc,.pcard,.m
   el.addEventListener('mouseleave',()=>document.body.classList.remove('hovering'));
 });
 
-// SCROLL PROGRESS
+// SCROLL PROGRESS (driven by Lenis)
 const bar = document.getElementById('scroll-bar');
-window.addEventListener('scroll',()=>{
-  const pct = (window.scrollY/(document.documentElement.scrollHeight-window.innerHeight))*100;
-  bar.style.width=pct+'%';
+lenis.on('scroll', ({ scroll, limit }) => {
+  bar.style.width = (scroll / limit * 100) + '%';
 });
 
 // SCROLL REVEAL
@@ -1716,12 +1733,14 @@ document.querySelectorAll('.ind-panel').forEach(el=>barObs.observe(el));
   setTimeout(()=>{card.style.opacity='1';card.style.transform='perspective(1000px) rotateX(0deg) translateY(0)'},350);
 })();
 
-// SMOOTH NAV SCROLL
+// SMOOTH NAV SCROLL (via Lenis)
 document.querySelectorAll('a[href^="#"]').forEach(a=>{
   a.addEventListener('click',e=>{
     e.preventDefault();
-    const t=document.querySelector(a.getAttribute('href'));
-    if(t) t.scrollIntoView({behavior:'smooth',block:'start'});
+    const href = a.getAttribute('href');
+    if(href === '#') { lenis.scrollTo(0); return; }
+    const t = document.querySelector(href);
+    if(t) lenis.scrollTo(t, { offset: -72, duration: 1.4 });
   });
 });
 
