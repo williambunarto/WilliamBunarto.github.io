@@ -16,77 +16,45 @@ jobs:
           cp "ssh-key-2026-03-30 (1).key" /tmp/deploy_key
           chmod 600 /tmp/deploy_key
 
-      - name: Bot service + logs
+      - name: nohup.out tail + process info
         run: |
           SSH="ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@williambunarto.duckdns.org"
           $SSH bash << 'ENDSSH'
-          echo '===== systemctl status wbagent ====='
-          sudo systemctl status wbagent --no-pager 2>&1 || echo "no wbagent unit"
+          echo '===== nohup.out last 200 lines ====='
+          tail -200 /home/ubuntu/nohup.out 2>&1 || echo "no nohup.out"
           echo ''
-          echo '===== journalctl -u wbagent -n 150 ====='
-          sudo journalctl -u wbagent -n 150 --no-pager 2>&1 || echo "no journal for wbagent"
+          echo '===== nohup.out grep pulse/timeout/error (last 100 matches) ====='
+          grep -i "pulse\|timeout\|timed out\|error\|exception" /home/ubuntu/nohup.out 2>/dev/null | tail -100 || echo "no matches"
           echo ''
-          echo '===== journalctl -u wbagent --since today ====='
-          sudo journalctl -u wbagent --since today --no-pager 2>&1 || echo "no journal since today"
+          echo '===== bot.py process start time ====='
+          ps -o pid,lstart,etime,cmd -p $(pgrep -f 'python3 bot.py' | head -1) 2>&1 || echo "not found"
           echo ''
-          echo '===== running python processes ====='
-          pgrep -a -f python3 || echo "none running"
-          echo ''
-          echo '===== crontab -l ====='
-          crontab -l 2>&1 || echo "no crontab"
-          echo ''
-          echo '===== systemd unit file ====='
-          cat /etc/systemd/system/wbagent.service 2>&1 || echo "no unit file at that path"
-          find /etc/systemd/system -iname "*wbagent*" -o -iname "*bot*" 2>/dev/null
+          echo '===== ls -la /home/ubuntu/*.log /home/ubuntu/nohup.out ====='
+          ls -la /home/ubuntu/*.log /home/ubuntu/nohup.out 2>&1
           ENDSSH
 
-      - name: Find scheduler / pulse / daily notification files
+      - name: bot.py relevant code sections
         run: |
           SSH="ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@williambunarto.duckdns.org"
           $SSH bash << 'ENDSSH'
-          echo '===== files mentioning pulse/scheduler/APScheduler/daily/morning/insight ====='
-          find /home/ubuntu -maxdepth 3 -name "*.py" 2>/dev/null | xargs grep -l "pulse\|scheduler\|APScheduler\|daily\|morning\|insight" 2>/dev/null
+          echo '===== bot.py imports (first 40 lines) ====='
+          sed -n '1,40p' /home/ubuntu/bot.py
           echo ''
-          echo '===== grep "pulse" occurrences with context ====='
-          find /home/ubuntu -maxdepth 3 -name "*.py" 2>/dev/null | xargs grep -n "pulse" 2>/dev/null
+          echo '===== bot.py scheduled_open_pulse (1100-1150) ====='
+          sed -n '1100,1150p' /home/ubuntu/bot.py
           echo ''
-          echo '===== grep scheduler.add_job / APScheduler setup ====='
-          find /home/ubuntu -maxdepth 3 -name "*.py" 2>/dev/null | xargs grep -n "add_job\|BackgroundScheduler\|AsyncIOScheduler\|BlockingScheduler" 2>/dev/null
+          echo '===== bot.py scheduler setup (1240,1275p) ====='
+          sed -n '1240,1275p' /home/ubuntu/bot.py
           echo ''
-          echo '===== requests.get / requests.post calls ====='
-          find /home/ubuntu -maxdepth 3 -name "*.py" 2>/dev/null | xargs grep -n "requests\.get(\|requests\.post(" 2>/dev/null
+          echo '===== bot.py ApplicationBuilder setup ====='
+          grep -n "ApplicationBuilder\|HTTPXRequest\|connect_timeout\|read_timeout\|pool_timeout\|write_timeout" /home/ubuntu/bot.py
           echo ''
-          echo '===== bot log tail ====='
-          tail -150 /home/ubuntu/bot.log 2>&1 || echo "no bot.log"
+          echo '===== bot.py grok references ====='
+          grep -n -i "grok" /home/ubuntu/bot.py | head -30
           echo ''
-          echo '===== bot.log timeout/error grep ====='
-          grep -i "pulse\|timeout\|timed out\|error" /home/ubuntu/bot.log 2>/dev/null | tail -80 || echo "no matches"
-          ENDSSH
-
-      - name: External connectivity + system resources
-        run: |
-          SSH="ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@williambunarto.duckdns.org"
-          $SSH bash << 'ENDSSH'
-          echo '===== Bybit API ====='
-          curl -m 10 -s -o /dev/null -w "http_code=%{http_code} time_total=%{time_total}\n" "https://api.bybit.com/v5/market/tickers?category=linear&symbol=BTCUSDT" || echo "bybit curl failed"
-          echo '===== Alternative.me FNG ====='
-          curl -m 10 -s -o /dev/null -w "http_code=%{http_code} time_total=%{time_total}\n" "https://api.alternative.me/fng/" || echo "fng curl failed"
-          echo '===== api.telegram.org ====='
-          curl -m 10 -s -o /dev/null -w "http_code=%{http_code} time_total=%{time_total}\n" "https://api.telegram.org" || echo "telegram curl failed"
-          echo '===== grok/x.ai ====='
-          curl -m 10 -s -o /dev/null -w "http_code=%{http_code} time_total=%{time_total}\n" "https://api.grok.x.ai" || echo "grok unreachable"
+          echo '===== bot.py logging setup ====='
+          grep -n "logging.basicConfig\|FileHandler\|log = \|getLogger" /home/ubuntu/bot.py | head -20
           echo ''
-          echo '===== ping bybit ====='
-          ping -c 5 api.bybit.com 2>&1 || true
-          echo '===== ping 8.8.8.8 ====='
-          ping -c 5 8.8.8.8 2>&1 || true
-          echo ''
-          echo '===== free -h ====='
-          free -h
-          echo '===== df -h ====='
-          df -h
-          echo '===== top ====='
-          top -bn1 | head -20
-          echo '===== uptime ====='
-          uptime
+          echo '===== portfolio.py get prices / bybit fetch functions (first 100 lines) ====='
+          sed -n '1,100p' /home/ubuntu/portfolio.py
           ENDSSH
