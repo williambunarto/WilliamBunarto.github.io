@@ -16,23 +16,16 @@ jobs:
           cp "ssh-key-2026-03-30 (1).key" /tmp/deploy_key
           chmod 600 /tmp/deploy_key
 
-      - name: get_prices / get_btc_price / build_open_pulse + versions
+      - name: full get_prices / get_btc_price / build_open_pulse source
         run: |
           SSH="ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@williambunarto.duckdns.org"
           $SSH bash << 'ENDSSH'
-          echo '===== portfolio.py grep get_prices/get_btc_price/yfinance/Ticker/timeout ====='
-          grep -n "def get_prices\|def get_btc_price\|def build_open_pulse\|yfinance\|yf\.\|Ticker(\|\.download(\|timeout" /home/ubuntu/portfolio.py
+          echo '===== portfolio.py lines 185,260 (get_prices) ====='
+          sed -n '185,260p' /home/ubuntu/portfolio.py
           echo ''
-          echo '===== get_prices function body ====='
-          awk '/^def get_prices/,/^def [a-z]/{print NR": "$0}' /home/ubuntu/portfolio.py | head -60
+          echo '===== portfolio.py lines 460,545 (get_btc_price + build_open_pulse start) ====='
+          sed -n '460,545p' /home/ubuntu/portfolio.py
           echo ''
-          echo '===== get_btc_price function body ====='
-          awk '/^def get_btc_price/,/^def [a-z]/{print NR": "$0}' /home/ubuntu/portfolio.py | head -60
-          echo ''
-          echo '===== pip versions ====='
-          pip3 show yfinance 2>/dev/null | grep -E "Name|Version"
-          pip3 show requests 2>/dev/null | grep -E "Name|Version"
-          pip3 show python-telegram-bot 2>/dev/null | grep -E "Name|Version"
-          pip3 show httpx 2>/dev/null | grep -E "Name|Version"
-          pip3 show apscheduler 2>/dev/null | grep -E "Name|Version"
+          echo '===== wc -l portfolio.py bot.py ====='
+          wc -l /home/ubuntu/portfolio.py /home/ubuntu/bot.py
           ENDSSH
