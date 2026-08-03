@@ -16,16 +16,23 @@ jobs:
           cp "ssh-key-2026-03-30 (1).key" /tmp/deploy_key
           chmod 600 /tmp/deploy_key
 
-      - name: scheduled_eod_report full body + BOT_TOKEN/ADMIN_ID defs
+      - name: Verify patched bot.py sections
         run: |
           SSH="ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@williambunarto.duckdns.org"
           $SSH bash << 'ENDSSH'
-          echo '===== bot.py lines 1145,1220 (scheduled_eod_report) ====='
-          sed -n '1145,1220p' /home/ubuntu/bot.py
+          echo '===== ApplicationBuilder ====='
+          grep -n -A8 "app = (" /home/ubuntu/bot.py | head -12
           echo ''
-          echo '===== BOT_TOKEN / ADMIN_ID / TZ defs ====='
-          grep -n "^BOT_TOKEN\|^ADMIN_ID\|^TZ " /home/ubuntu/bot.py
+          echo '===== scheduled_open_pulse (patched) ====='
+          grep -n "async def scheduled_open_pulse" /home/ubuntu/bot.py
+          sed -n '/async def scheduled_open_pulse/,/^async def scheduled_eod_report/p' /home/ubuntu/bot.py
           echo ''
-          echo '===== ls -la /home/ubuntu/wbagent/logs ====='
-          ls -la /home/ubuntu/wbagent/logs 2>&1 || echo "dir missing"
+          echo '===== scheduler.add_job blocks ====='
+          grep -n -B1 -A5 "scheduler.add_job" /home/ubuntu/bot.py
+          echo ''
+          echo '===== current bot.py process (single instance check) ====='
+          pgrep -a -f "python3 bot.py"
+          echo ''
+          echo '===== health.log ====='
+          cat /home/ubuntu/wbagent/logs/health.log 2>&1 || echo "no entries yet (expected - open_pulse runs at 08:05 WIB)"
           ENDSSH
