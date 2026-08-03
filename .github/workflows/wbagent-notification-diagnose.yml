@@ -16,16 +16,16 @@ jobs:
           cp "ssh-key-2026-03-30 (1).key" /tmp/deploy_key
           chmod 600 /tmp/deploy_key
 
-      - name: full get_prices / get_btc_price / build_open_pulse source
+      - name: scheduled_eod_report full body + BOT_TOKEN/ADMIN_ID defs
         run: |
           SSH="ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@williambunarto.duckdns.org"
           $SSH bash << 'ENDSSH'
-          echo '===== portfolio.py lines 185,260 (get_prices) ====='
-          sed -n '185,260p' /home/ubuntu/portfolio.py
+          echo '===== bot.py lines 1145,1220 (scheduled_eod_report) ====='
+          sed -n '1145,1220p' /home/ubuntu/bot.py
           echo ''
-          echo '===== portfolio.py lines 460,545 (get_btc_price + build_open_pulse start) ====='
-          sed -n '460,545p' /home/ubuntu/portfolio.py
+          echo '===== BOT_TOKEN / ADMIN_ID / TZ defs ====='
+          grep -n "^BOT_TOKEN\|^ADMIN_ID\|^TZ " /home/ubuntu/bot.py
           echo ''
-          echo '===== wc -l portfolio.py bot.py ====='
-          wc -l /home/ubuntu/portfolio.py /home/ubuntu/bot.py
+          echo '===== ls -la /home/ubuntu/wbagent/logs ====='
+          ls -la /home/ubuntu/wbagent/logs 2>&1 || echo "dir missing"
           ENDSSH
