@@ -16,23 +16,30 @@ jobs:
           cp "ssh-key-2026-03-30 (1).key" /tmp/deploy_key
           chmod 600 /tmp/deploy_key
 
-      - name: Verify patched bot.py sections
+      - name: Final verification pass
         run: |
           SSH="ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@williambunarto.duckdns.org"
           $SSH bash << 'ENDSSH'
-          echo '===== ApplicationBuilder ====='
-          grep -n -A8 "app = (" /home/ubuntu/bot.py | head -12
+          echo '===== fallback send line (should have NO parse_mode) ====='
+          grep -n -A1 "_send_admin_message(app, fallback" /home/ubuntu/bot.py
           echo ''
-          echo '===== scheduled_open_pulse (patched) ====='
-          grep -n "async def scheduled_open_pulse" /home/ubuntu/bot.py
-          sed -n '/async def scheduled_open_pulse/,/^async def scheduled_eod_report/p' /home/ubuntu/bot.py
+          echo '===== crontab ====='
+          crontab -l
           echo ''
-          echo '===== scheduler.add_job blocks ====='
-          grep -n -B1 -A5 "scheduler.add_job" /home/ubuntu/bot.py
-          echo ''
-          echo '===== current bot.py process (single instance check) ====='
+          echo '===== bot.py process (single instance) ====='
           pgrep -a -f "python3 bot.py"
           echo ''
-          echo '===== health.log ====='
-          cat /home/ubuntu/wbagent/logs/health.log 2>&1 || echo "no entries yet (expected - open_pulse runs at 08:05 WIB)"
+          echo '===== py_compile check ====='
+          python3 -m py_compile /home/ubuntu/bot.py /home/ubuntu/portfolio.py && echo "syntax OK"
+          echo ''
+          echo '===== nohup.out tail (confirm clean startup, no errors) ====='
+          tail -25 /home/ubuntu/nohup.out
+          echo ''
+          echo '===== backup files present (rollback safety net) ====='
+          ls -la /home/ubuntu/*.bak.* 2>&1
+          echo ''
+          echo '===== disk space sanity ====='
+          df -h / | tail -1
+          echo '===== memory sanity ====='
+          free -h | grep Mem
           ENDSSH
