@@ -2,9 +2,9 @@ name: Deploy Notification Reliability Patch
 
 on:
   push:
-    branches: [main]
     paths:
       - 'wbagent/patch_notification_reliability.py'
+      - '.github/workflows/deploy-notification-reliability-patch.yml'
   workflow_dispatch:
 
 jobs:
