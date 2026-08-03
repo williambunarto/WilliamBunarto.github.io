@@ -133,7 +133,9 @@ else:
         '            f"_Error: {type(e).__name__}: {e}_"\n'
         "        )\n"
         "        try:\n"
-        '            await _send_admin_message(app, fallback, parse_mode="Markdown", retries=2, delay=3)\n'
+        "            # No parse_mode: fallback embeds raw, unescaped exception text --\n"
+        "            # Markdown mode would risk a \"can't parse entities\" send failure.\n"
+        '            await _send_admin_message(app, fallback, retries=2, delay=3)\n'
         "        except Exception:\n"
         "            pass"
     )
