@@ -16,45 +16,23 @@ jobs:
           cp "ssh-key-2026-03-30 (1).key" /tmp/deploy_key
           chmod 600 /tmp/deploy_key
 
-      - name: nohup.out tail + process info
+      - name: get_prices / get_btc_price / build_open_pulse + versions
         run: |
           SSH="ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@williambunarto.duckdns.org"
           $SSH bash << 'ENDSSH'
-          echo '===== nohup.out last 200 lines ====='
-          tail -200 /home/ubuntu/nohup.out 2>&1 || echo "no nohup.out"
+          echo '===== portfolio.py grep get_prices/get_btc_price/yfinance/Ticker/timeout ====='
+          grep -n "def get_prices\|def get_btc_price\|def build_open_pulse\|yfinance\|yf\.\|Ticker(\|\.download(\|timeout" /home/ubuntu/portfolio.py
           echo ''
-          echo '===== nohup.out grep pulse/timeout/error (last 100 matches) ====='
-          grep -i "pulse\|timeout\|timed out\|error\|exception" /home/ubuntu/nohup.out 2>/dev/null | tail -100 || echo "no matches"
+          echo '===== get_prices function body ====='
+          awk '/^def get_prices/,/^def [a-z]/{print NR": "$0}' /home/ubuntu/portfolio.py | head -60
           echo ''
-          echo '===== bot.py process start time ====='
-          ps -o pid,lstart,etime,cmd -p $(pgrep -f 'python3 bot.py' | head -1) 2>&1 || echo "not found"
+          echo '===== get_btc_price function body ====='
+          awk '/^def get_btc_price/,/^def [a-z]/{print NR": "$0}' /home/ubuntu/portfolio.py | head -60
           echo ''
-          echo '===== ls -la /home/ubuntu/*.log /home/ubuntu/nohup.out ====='
-          ls -la /home/ubuntu/*.log /home/ubuntu/nohup.out 2>&1
-          ENDSSH
-
-      - name: bot.py relevant code sections
-        run: |
-          SSH="ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@williambunarto.duckdns.org"
-          $SSH bash << 'ENDSSH'
-          echo '===== bot.py imports (first 40 lines) ====='
-          sed -n '1,40p' /home/ubuntu/bot.py
-          echo ''
-          echo '===== bot.py scheduled_open_pulse (1100-1150) ====='
-          sed -n '1100,1150p' /home/ubuntu/bot.py
-          echo ''
-          echo '===== bot.py scheduler setup (1240,1275p) ====='
-          sed -n '1240,1275p' /home/ubuntu/bot.py
-          echo ''
-          echo '===== bot.py ApplicationBuilder setup ====='
-          grep -n "ApplicationBuilder\|HTTPXRequest\|connect_timeout\|read_timeout\|pool_timeout\|write_timeout" /home/ubuntu/bot.py
-          echo ''
-          echo '===== bot.py grok references ====='
-          grep -n -i "grok" /home/ubuntu/bot.py | head -30
-          echo ''
-          echo '===== bot.py logging setup ====='
-          grep -n "logging.basicConfig\|FileHandler\|log = \|getLogger" /home/ubuntu/bot.py | head -20
-          echo ''
-          echo '===== portfolio.py get prices / bybit fetch functions (first 100 lines) ====='
-          sed -n '1,100p' /home/ubuntu/portfolio.py
+          echo '===== pip versions ====='
+          pip3 show yfinance 2>/dev/null | grep -E "Name|Version"
+          pip3 show requests 2>/dev/null | grep -E "Name|Version"
+          pip3 show python-telegram-bot 2>/dev/null | grep -E "Name|Version"
+          pip3 show httpx 2>/dev/null | grep -E "Name|Version"
+          pip3 show apscheduler 2>/dev/null | grep -E "Name|Version"
           ENDSSH
