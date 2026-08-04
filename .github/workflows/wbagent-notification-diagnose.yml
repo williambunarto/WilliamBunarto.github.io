@@ -16,30 +16,53 @@ jobs:
           cp "ssh-key-2026-03-30 (1).key" /tmp/deploy_key
           chmod 600 /tmp/deploy_key
 
-      - name: Final verification pass
+      - name: Live status check
         run: |
           SSH="ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@williambunarto.duckdns.org"
           $SSH bash << 'ENDSSH'
-          echo '===== fallback send line (should have NO parse_mode) ====='
-          grep -n -A1 "_send_admin_message(app, fallback" /home/ubuntu/bot.py
+          echo '===== bot.py process + uptime ====='
+          pgrep -a -f "python3 bot.py"
+          ps -o pid,lstart,etime,cmd -p $(pgrep -f "python3 bot.py" | head -1)
           echo ''
-          echo '===== crontab ====='
+          echo '===== crontab (confirm supervisor + watchdog present) ====='
           crontab -l
           echo ''
-          echo '===== bot.py process (single instance) ====='
-          pgrep -a -f "python3 bot.py"
+          echo '===== nohup.out tail (last 15, confirm no errors since restart) ====='
+          tail -15 /home/ubuntu/nohup.out
           echo ''
-          echo '===== py_compile check ====='
-          python3 -m py_compile /home/ubuntu/bot.py /home/ubuntu/portfolio.py && echo "syntax OK"
-          echo ''
-          echo '===== nohup.out tail (confirm clean startup, no errors) ====='
-          tail -25 /home/ubuntu/nohup.out
-          echo ''
-          echo '===== backup files present (rollback safety net) ====='
-          ls -la /home/ubuntu/*.bak.* 2>&1
-          echo ''
-          echo '===== disk space sanity ====='
-          df -h / | tail -1
-          echo '===== memory sanity ====='
-          free -h | grep Mem
+          echo '===== deployed fallback send line (confirm hotfix live) ====='
+          grep -n "_send_admin_message(app, fallback" /home/ubuntu/bot.py
+          ENDSSH
+
+      - name: Live functional test - send real Telegram message via hardened path
+        run: |
+          SSH="ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@williambunarto.duckdns.org"
+          $SSH bash << 'ENDSSH'
+          cd /home/ubuntu
+          python3 << 'PYEOF'
+          import asyncio, re
+          from telegram import Bot
+          from telegram.request import HTTPXRequest
+          from datetime import datetime
+
+          # Read constants from source (not imported) to avoid executing bot.py's module body
+          src = open('/home/ubuntu/bot.py', encoding='utf-8').read()
+          BOT_TOKEN = re.search(r'BOT_TOKEN\s*=\s*"([^"]+)"', src).group(1)
+          ADMIN_ID = int(re.search(r'ADMIN_ID\s*=\s*(\d+)', src).group(1))
+
+          async def main():
+              req = HTTPXRequest(connect_timeout=30, read_timeout=30, write_timeout=30, pool_timeout=30)
+              bot = Bot(token=BOT_TOKEN, request=req)
+              async with bot:
+                  text = (
+                      "WBAgent reliability fix - live test\n"
+                      f"Sent {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} UTC via the same "
+                      "30s-timeout HTTPXRequest config now used by ApplicationBuilder.\n"
+                      "If you're reading this, the hardened Telegram send path is confirmed working."
+                  )
+                  msg = await bot.send_message(chat_id=ADMIN_ID, text=text)
+                  print(f"DELIVERED: message_id={msg.message_id} chat_id={msg.chat_id}")
+
+          asyncio.run(main())
+          PYEOF
           ENDSSH
