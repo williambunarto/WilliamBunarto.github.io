@@ -206,8 +206,12 @@ This app deploys to the same Oracle Cloud VM as `wbtrade/`/HealthOS
   Triggers on push to `main` under `padel/**`, or manually via
   **Actions → Deploy Padel Wallet to Server → Run workflow**.
 
-**Status: live** at http://williambunarto.duckdns.org/padel/ (deployed via
-`deploy-padel.yml` run #2, smoke test passed — `HTTP status: 200`).
+**Status: live** at http://williambunarto.duckdns.org/padel/, running the
+round-2 schema (locations, optional packages, users management — see
+"Corrections" above) as of commit `673a090`, with the production DB
+migrated via a one-off wipe (see the "No schema migrations" note above)
+and fully re-verified — logins, RBAC, and static assets all green end to
+end (see "Round 2 verification" below).
 
 This session's own outbound network is HTTPS-only (no port 22 to the
 server) and its GitHub API token gets a 403 on `workflow_dispatch`, so the
