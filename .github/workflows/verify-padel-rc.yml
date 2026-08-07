@@ -1,0 +1,59 @@
+name: Verify Padel Rate-Card RBAC (read-only-ish)
+
+on:
+  push:
+    paths:
+      - '.github/workflows/verify-padel-rc.yml'
+  workflow_dispatch:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup SSH key
+        run: |
+          cp "ssh-key-2026-03-30 (1).key" /tmp/deploy_key
+          chmod 600 /tmp/deploy_key
+
+      - name: Confirm admin can now manage rate cards
+        run: |
+          ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@williambunarto.duckdns.org 'bash -s' << 'ENDSSH'
+            set -e
+            BASE=http://127.0.0.1:8002
+
+            echo "=== login superadmin, admin ==="
+            curl -s -c /tmp/sa.txt -X POST $BASE/api/auth/login -H 'Content-Type: application/json' \
+              -d '{"username":"superadmin","password":"superadmin"}' > /dev/null
+            curl -s -c /tmp/ad.txt -X POST $BASE/api/auth/login -H 'Content-Type: application/json' \
+              -d '{"username":"admin","password":"admin"}' > /dev/null
+
+            echo "=== ensure a location exists ==="
+            LOC_ID=$(curl -s -b /tmp/sa.txt $BASE/api/locations | python3 -c "import sys,json; d=json.load(sys.stdin); print(d[0]['id'] if d else '')")
+            if [ -z "$LOC_ID" ]; then
+              LOC_ID=$(curl -s -b /tmp/sa.txt -X POST $BASE/api/locations -H 'Content-Type: application/json' \
+                -d '{"name":"RC RBAC Check"}' | python3 -c "import sys,json; print(json.load(sys.stdin)['id'])")
+            fi
+            echo "loc_id=$LOC_ID"
+
+            echo "=== admin CREATE rate card (want 200) ==="
+            RC=$(curl -s -w '\n%{http_code}' -b /tmp/ad.txt -X POST $BASE/api/rate-cards -H 'Content-Type: application/json' \
+              -d "{\"location_id\":$LOC_ID,\"day_type\":\"weekday\",\"time_band\":\"RBAC check\",\"time_start\":\"05:00\",\"time_end\":\"05:30\",\"sell_price_per_hour\":1}")
+            echo "$RC"
+            RC_ID=$(echo "$RC" | head -1 | python3 -c "import sys,json; print(json.load(sys.stdin)['id'])")
+            echo "rc_id=$RC_ID"
+
+            echo "=== admin UPDATE rate card (want 200) ==="
+            curl -s -o /dev/null -w 'status: %{http_code}\n' -b /tmp/ad.txt -X PUT $BASE/api/rate-cards/$RC_ID \
+              -H 'Content-Type: application/json' \
+              -d "{\"location_id\":$LOC_ID,\"day_type\":\"weekday\",\"time_band\":\"RBAC check 2\",\"time_start\":\"05:00\",\"time_end\":\"05:30\",\"sell_price_per_hour\":2}"
+
+            echo "=== admin DELETE rate card (want 200, cleans up) ==="
+            curl -s -o /dev/null -w 'status: %{http_code}\n' -b /tmp/ad.txt -X DELETE $BASE/api/rate-cards/$RC_ID
+
+            echo "=== anon still blocked (want 401) ==="
+            curl -s -o /dev/null -w 'status: %{http_code}\n' -X POST $BASE/api/rate-cards -H 'Content-Type: application/json' -d '{}'
+
+            rm -f /tmp/sa.txt /tmp/ad.txt
+          ENDSSH
