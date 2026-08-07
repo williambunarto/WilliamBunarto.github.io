@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
 from database import User, RateCard, Location, DAY_WEEKDAY, DAY_WEEKEND
-from auth import get_db, get_current_user, require_super_admin
+from auth import get_db, get_current_user
 
 router = APIRouter(prefix="/api/rate-cards", tags=["rate_cards"])
 
@@ -39,7 +39,7 @@ def list_rate_cards(location_id: Optional[int] = None, db=Depends(get_db),
 
 
 @router.post("")
-def create_rate_card(body: RateCardBody, db=Depends(get_db), user: User = Depends(require_super_admin)):
+def create_rate_card(body: RateCardBody, db=Depends(get_db), user: User = Depends(get_current_user)):
     _validate(db, body)
     card = RateCard(
         location_id=body.location_id, day_type=body.day_type, time_band=body.time_band,
@@ -53,7 +53,7 @@ def create_rate_card(body: RateCardBody, db=Depends(get_db), user: User = Depend
 
 @router.put("/{card_id}")
 def update_rate_card(card_id: int, body: RateCardBody, db=Depends(get_db),
-                      user: User = Depends(require_super_admin)):
+                      user: User = Depends(get_current_user)):
     _validate(db, body)
     card = db.get(RateCard, card_id)
     if not card:
@@ -71,7 +71,7 @@ def update_rate_card(card_id: int, body: RateCardBody, db=Depends(get_db),
 
 
 @router.delete("/{card_id}")
-def delete_rate_card(card_id: int, db=Depends(get_db), user: User = Depends(require_super_admin)):
+def delete_rate_card(card_id: int, db=Depends(get_db), user: User = Depends(get_current_user)):
     card = db.get(RateCard, card_id)
     if not card:
         raise HTTPException(status_code=404, detail="Rate card not found")

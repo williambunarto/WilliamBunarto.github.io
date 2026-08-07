@@ -93,7 +93,10 @@ five are implemented and tested:
    utilization metric is actually about). Rate cards moved from a
    standalone top-level page into each location's expandable row under
    **Data → Locations** ("every court has its own rate cards"), still
-   mutable and still `super_admin`-only to change.
+   mutable. Originally `super_admin`-only to change, per a later correction
+   `admin` can now create/edit/delete rate cards too (`rate_cards_router.py`
+   uses `get_current_user`, not `require_super_admin`) — the only
+   remaining `super_admin`-only surface is **Users**.
 4. **Payments page tracks who hasn't paid, with drill-down totals.** The
    page now lists players sorted by outstanding balance (unpaid-first)
    instead of a flat payment log; clicking a player calls
@@ -148,10 +151,11 @@ five are implemented and tested:
 - **Profit** (`logic.session_profit`) exactly follows the spec formula:
   `Σ(confirmed cost_share) − (hours_used × cost_per_hour) − Σ(equipment_charges)`.
   Also reports a `profit_incl_pending` figure for a same-page optimistic view.
-- **Rate cards are mutable**, restricted to `super_admin`
-  (`auth.require_super_admin`); every session keeps its own price snapshot
-  so editing a rate card never rewrites history — `rate_card_id` stays on
-  the session purely for audit/reference.
+- **Rate cards are mutable**, open to both roles (`admin` and `super_admin`
+  — changed from the original spec's `super_admin`-only restriction per a
+  later correction); every session keeps its own price snapshot so editing
+  a rate card never rewrites history — `rate_card_id` stays on the session
+  purely for audit/reference.
 - **Per-hour headcount**: 4–12 players per hour. 12 is a hard server-side
   cap (`MAX_PLAYERS_PER_HOUR` in `database.py`) enforced on both session
   creation and `add_participant`; 4 is only the UI's default slot count,
@@ -175,8 +179,10 @@ five are implemented and tested:
   (Sat/Sun = weekend) rather than a stored field, since the spec doesn't
   define a holiday calendar.
 - Location CRUD is open to both roles (like players), not restricted to
-  `super_admin` — only the rate cards *nested inside* a location stay
-  `super_admin`-only, matching the original spec's actual restriction.
+  `super_admin`. Rate cards nested inside a location were originally
+  `super_admin`-only too (matching the original spec), but a later owner
+  correction opened them to `admin` as well — **Users** is now the only
+  `super_admin`-exclusive area of the app.
 - **No schema migrations** — `init_db()` only calls `Base.metadata.create_all()`,
   which creates missing tables but never alters existing ones. The round-2
   schema change (free-text `location` strings → `location_id` foreign
@@ -364,6 +370,17 @@ every tab of the redesigned UI, all green:
   to show nested rate cards, Payments page sorts unpaid-first and expands
   a per-player breakdown panel on click, Users tab visible for
   `super_admin` and confirmed **not** rendered at all for `admin`
+
+### Round 3 (rate cards opened to `admin`)
+
+Owner correction: `admin` can now create/edit/delete rate cards, not just
+view them (Users remains the only `super_admin`-exclusive area). Changed
+`rate_cards_router.py`'s three mutation routes from `require_super_admin`
+to `get_current_user`, and removed the now-dead `canEdit` gating in
+`app.js`'s Locations rate-card UI. Verified: `admin` gets `200` (not
+`403`) creating/updating/deleting a rate card via `curl`, and a Playwright
+pass confirms the Edit/Delete buttons and the add-rate-card form render
+for a logged-in `admin` under Data → Locations.
 
 ## Backlog (Phase 2, per spec — not built)
 

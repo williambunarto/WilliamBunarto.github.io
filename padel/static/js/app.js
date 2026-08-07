@@ -238,7 +238,7 @@ async function renderData() {
 }
 
 async function renderDataLocations(target) {
-  const canEdit = state.user.role === "super_admin";
+  // Both admin and super_admin can manage rate cards (owner correction).
   const rows = state.locations.map((l) => `
     <div class="location-card">
       <div class="location-head" data-toggle-location="${l.id}">
@@ -287,25 +287,24 @@ async function renderDataLocations(target) {
       body.innerHTML = `<p class="muted">Loading rate cards…</p>`;
       const cards = await api(`api/rate-cards?location_id=${locId}`);
       state.rateCardsByLocation[locId] = cards;
-      body.innerHTML = rateCardSectionHtml(locId, cards, canEdit);
-      wireRateCardSection(body, locId, canEdit);
+      body.innerHTML = rateCardSectionHtml(locId, cards);
+      wireRateCardSection(body, locId);
     });
   });
 }
 
-function rateCardSectionHtml(locId, cards, canEdit) {
+function rateCardSectionHtml(locId, cards) {
   const rows = cards.map((c) => `
     <tr>
       <td>${c.day_type}</td><td>${c.time_band}</td><td>${c.time_start}–${c.time_end}</td>
       <td>${fmtMoney(c.sell_price_per_hour)}</td>
-      <td>${canEdit ? `<button class="btn small secondary" data-edit-rc="${c.id}">Edit</button> <button class="btn small danger" data-delete-rc="${c.id}">Delete</button>` : ""}</td>
+      <td><button class="btn small secondary" data-edit-rc="${c.id}">Edit</button> <button class="btn small danger" data-delete-rc="${c.id}">Delete</button></td>
     </tr>
-  `).join("") || `<tr><td colspan="5" class="muted">No rate cards for this court yet${canEdit ? " — add one below" : ""}.</td></tr>`;
+  `).join("") || `<tr><td colspan="5" class="muted">No rate cards for this court yet — add one below.</td></tr>`;
 
   return `
     <table><thead><tr><th>Day type</th><th>Band</th><th>Time</th><th>Price/hr</th><th></th></tr></thead>
     <tbody>${rows}</tbody></table>
-    ${canEdit ? `
     <form data-rc-form data-location-id="${locId}" class="grid grid-4" style="margin-top:10px">
       <input type="hidden" name="id">
       <div class="form-row"><label>Day type</label>
@@ -316,20 +315,18 @@ function rateCardSectionHtml(locId, cards, canEdit) {
       <div class="form-row"><label>End (HH:MM)</label><input name="time_end" placeholder="22:00" required></div>
       <div class="form-row"><label>Price/hour (IDR)</label><input name="sell_price_per_hour" type="number" required></div>
       <div><button class="btn small" type="submit">Save rate card</button> <button type="button" class="btn small secondary hidden" data-rc-cancel-edit>Cancel edit</button></div>
-    </form>` : `<p class="muted">Only super_admin can change rate cards.</p>`}
-  `;
+    </form>`;
 }
 
-function wireRateCardSection(body, locId, canEdit) {
-  if (!canEdit) return;
+function wireRateCardSection(body, locId) {
   const form = body.querySelector("[data-rc-form]");
   const cancelBtn = body.querySelector("[data-rc-cancel-edit]");
 
   async function refresh() {
     const cards = await api(`api/rate-cards?location_id=${locId}`);
     state.rateCardsByLocation[locId] = cards;
-    body.innerHTML = rateCardSectionHtml(locId, cards, canEdit);
-    wireRateCardSection(body, locId, canEdit);
+    body.innerHTML = rateCardSectionHtml(locId, cards);
+    wireRateCardSection(body, locId);
   }
 
   form.addEventListener("submit", async (e) => {
