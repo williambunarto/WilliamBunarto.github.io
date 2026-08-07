@@ -30,9 +30,10 @@ uvicorn main:app --reload --port 8000
 ```
 
 First run auto-creates `data/padel.db` and seeds two users (see
-**Credentials** below). Set `PADEL_ROOT_PATH=` (empty) for local runs since
-there's no reverse proxy stripping a `/padel` prefix; in production it
-defaults to `/padel`.
+**Credentials** below). Every route is defined and matched at its bare path
+(`/api/...`, `/static/...`) — there is no app-level path prefix to
+configure; whatever reverse proxy sits in front (nginx in prod) is what
+decides the public `/padel` prefix, by stripping it before forwarding.
 
 ## Credentials (seeded on first boot — change these)
 
@@ -171,10 +172,16 @@ Nothing in the app hardcodes `williambunarto.duckdns.org` or `/padel`:
   against whatever URL the page was loaded from. Move the whole app to a
   Vercel/Railway subdomain, or a brand-new custom domain, and the frontend
   needs zero changes.
-- The backend's only path assumption is `PADEL_ROOT_PATH` (default
-  `/padel`), an env var, used solely for OpenAPI/docs URL generation — the
-  actual routes are always mounted at their bare paths (`/api/...`), so
-  whatever reverse proxy sits in front decides the public prefix.
+- The backend has zero path-prefix configuration at all — every route,
+  including the static-file mount, is defined at its bare path. We
+  deliberately do **not** pass `FastAPI(root_path=...)`: with it set,
+  Starlette's `Mount` (what `app.mount("/static", ...)` uses) starts
+  requiring the prefix in the incoming path to match, while ordinary
+  `@app.get(...)` routes don't — a real bug we hit (see below) where
+  `/padel/` and every `/api/...` endpoint returned 200 through nginx but
+  `/padel/static/js/app.js` 404'd, breaking the actual page. Whatever
+  reverse proxy sits in front just needs to strip its own prefix before
+  forwarding, same as it already does for the API routes.
 - `PADEL_DB` is a plain SQLite file path today; swapping
   `create_engine(...)` in `database.py` for a Postgres DSN (e.g. Vercel
   Postgres, Railway Postgres, Neon) is the only change needed to move off
@@ -207,6 +214,44 @@ actual UI:
 - the actual live deploy: systemd unit healthy, nginx serving `/padel/`
   with a 200, confirmed both by the workflow's own smoke test and by
   reading back the patched `sites-enabled`/`sites-available` config over SSH
+
+A second, deeper pass (a scripted 85-check regression suite plus another
+Playwright pass through the real UI) on top of that first pass found two
+more real bugs, both fixed and redeployed:
+
+- **`add_participant` left the new player's `cost_share` at 0.**
+  `slot.participants` was already lazy-loaded (and cached in memory) by the
+  duplicate-active-player check right above the insert. The new row was
+  then created via a bare `db.add(SlotParticipant(hour_slot_id=slot.id,
+  ...))` instead of through the ORM relationship, so SQLAlchemy never
+  spliced it into that already-loaded collection — the cost-split
+  recompute right after only saw the old participants, re-split the price
+  across the old headcount, and left the new player's share at its
+  creation default of 0 while everyone else kept a now-wrong share too.
+  Fixed by appending to `slot.participants` directly (`routers/
+  sessions_router.py`). Reproduced and confirmed fixed both via the
+  regression script and visually in the browser (adding a 2nd player to
+  an hour correctly re-split `Rp 80.000` solo → `Rp 40.000`/`Rp 40.000`).
+- **Static assets 404'd through nginx in production despite `/padel/`
+  itself returning 200.** Root cause: passing `FastAPI(root_path="/padel")`
+  makes Starlette's `Mount` (used by `app.mount("/static", ...)`) require
+  the `/padel` prefix in the incoming path to match, while ordinary
+  `@app.get(...)` routes don't — an asymmetry that only showed up once
+  something actually hit the static mount through the proxy (every other
+  smoke test we'd run so far happened to be an API call or the SPA
+  catch-all route, both unaffected). Confirmed by reproducing locally with
+  the same env var the server uses, and by curling the app directly on its
+  own port on the server (bypassing nginx) — same 404 either way, ruling
+  nginx out. Fixed by dropping `root_path` entirely (`main.py`,
+  `padel.service`) since it bought nothing we depended on.
+
+Neither bug was caught by the first, shallower pass — the first pass never
+added a *second* player to an already-populated hour slot, and never
+exercised a live static-asset request end-to-end (only the SPA's root
+document, which isn't served through the affected `Mount`). Worth keeping
+in mind for future changes: adding a player to an existing hour and
+loading the page's own JS/CSS through the real proxy are exactly the paths
+that need explicit coverage, not just "the API responds."
 
 ## Backlog (Phase 2, per spec — not built)
 

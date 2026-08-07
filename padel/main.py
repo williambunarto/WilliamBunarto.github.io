@@ -17,9 +17,17 @@ from routers.reports_router import router as reports_router
 
 STATIC_DIR = os.path.join(os.path.dirname(__file__), "static")
 
-# Never hardcode a domain here — nginx (or Vercel/Railway if this ever moves
-# there) owns the public hostname; the app only knows its own sub-path.
-ROOT_PATH = os.environ.get("PADEL_ROOT_PATH", "/padel")
+# Never hardcode a domain or sub-path here — nginx (or Vercel/Railway if this
+# ever moves there) strips its own prefix before forwarding, so every route
+# below is defined and matched at its bare path ("/api/...", "/static/...").
+# NOTE: we deliberately do NOT pass FastAPI(root_path=...) — with it set,
+# Starlette's Mount (used by app.mount("/static", ...) below) starts
+# requiring the prefix to be present in the incoming path to match, while
+# ordinary @app.get(...) routes don't. Since nginx already strips the
+# prefix consistently for every route, that mismatch 404s the static mount
+# specifically. root_path only affects OpenAPI/docs URL generation anyway
+# (unused here — the frontend calls everything with relative paths), so
+# there's no upside to keeping it and a real, easy-to-miss downside.
 SECRET_KEY = os.environ.get("PADEL_SECRET_KEY", os.urandom(32).hex())
 
 
@@ -29,7 +37,7 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(title="Padel Court Payment & Wallet Tracker", root_path=ROOT_PATH, lifespan=lifespan)
+app = FastAPI(title="Padel Court Payment & Wallet Tracker", lifespan=lifespan)
 app.add_middleware(SessionMiddleware, secret_key=SECRET_KEY, same_site="lax")
 
 app.include_router(auth_router)
