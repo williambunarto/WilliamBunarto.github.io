@@ -36,6 +36,12 @@ jobs:
             echo "=== static JS served (via nginx) ==="
             curl -s -o /dev/null -w 'status: %{http_code}\n' http://127.0.0.1/padel/static/js/app.js
             echo ""
+            echo "=== static JS direct on app port (bypass nginx) ==="
+            curl -sv http://127.0.0.1:8002/static/js/app.js 2>&1 | tail -20
+            echo ""
+            echo "=== file actually on disk? ==="
+            ls -la /home/ubuntu/padel/static/ /home/ubuntu/padel/static/js/ /home/ubuntu/padel/static/css/ 2>&1
+            echo ""
             echo "=== login as owner (via nginx) ==="
             OWNER_RESP=$(curl -s -c /tmp/owner_ck.txt -X POST http://127.0.0.1/padel/api/auth/login \
               -H 'Content-Type: application/json' -d '{"username":"owner","password":"padel-owner-2026"}')
