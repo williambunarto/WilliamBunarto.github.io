@@ -136,4 +136,36 @@ button.btn:disabled { opacity: .5; cursor: not-allowed; }
 .session-card .session-summary { padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; background: var(--panel-2); }
 .session-card .session-body { padding: 16px; display: none; }
 .session-card.open .session-body { display: block; }
+
+/* ---- Sub-tabs (Data page) ---- */
+.subtabs { display: flex; gap: 6px; margin-bottom: 16px; border-bottom: 1px solid var(--border); padding-bottom: 10px; }
+.subtab {
+  background: transparent; border: 1px solid var(--border); color: var(--muted);
+  padding: 6px 14px; border-radius: 999px; cursor: pointer; font-size: 13px;
+}
+.subtab:hover { color: var(--text); border-color: var(--accent-2); }
+.subtab.active { background: var(--accent-2); color: #06182b; border-color: var(--accent-2); font-weight: 600; }
+
+/* ---- Locations (expandable, nested rate cards) ---- */
+.location-card { border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 10px; overflow: hidden; }
+.location-head {
+  padding: 12px 16px; display: flex; justify-content: space-between; align-items: center;
+  cursor: pointer; background: var(--panel-2);
+}
+.location-head:hover { filter: brightness(1.1); }
+.location-body { padding: 0 16px; max-height: 0; overflow: hidden; }
+.location-card.open .location-body { padding: 16px; max-height: none; }
+
+/* ---- Per-hour player slot pickers (session form) ---- */
+.hour-picker { border: 1px solid var(--border); border-radius: 8px; padding: 10px; margin-bottom: 10px; }
+.player-slots { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0; }
+.player-slot { display: flex; align-items: center; gap: 4px; }
+.player-slot select { min-width: 150px; }
+.player-slot button { padding: 4px 9px; line-height: 1; }
+
+/* ---- Payments: clickable player rows + inline detail ---- */
+.player-row { cursor: pointer; }
+.player-row:hover td { background: rgba(255,255,255,0.04); }
+.player-detail-row td { background: var(--panel-2); padding: 14px 16px; }
+.player-detail-panel table { margin-top: 4px; }
 .session-card .session-summary:hover { filter: brightness(1.1); }

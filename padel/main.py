@@ -9,11 +9,13 @@ from starlette.middleware.sessions import SessionMiddleware
 from database import init_db
 from routers.auth_router import router as auth_router
 from routers.players_router import router as players_router
+from routers.locations_router import router as locations_router
 from routers.packages_router import router as packages_router
 from routers.rate_cards_router import router as rate_cards_router
 from routers.sessions_router import router as sessions_router
 from routers.payments_router import router as payments_router
 from routers.reports_router import router as reports_router
+from routers.users_router import router as users_router
 
 STATIC_DIR = os.path.join(os.path.dirname(__file__), "static")
 
@@ -42,11 +44,13 @@ app.add_middleware(SessionMiddleware, secret_key=SECRET_KEY, same_site="lax")
 
 app.include_router(auth_router)
 app.include_router(players_router)
+app.include_router(locations_router)
 app.include_router(packages_router)
 app.include_router(rate_cards_router)
 app.include_router(sessions_router)
 app.include_router(payments_router)
 app.include_router(reports_router)
+app.include_router(users_router)
 
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 

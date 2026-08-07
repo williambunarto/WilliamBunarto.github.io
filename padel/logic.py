@@ -27,20 +27,22 @@ def add_hours(hhmm: str, hours: int) -> str:
     return t.strftime("%H:%M")
 
 
-class InsufficientHoursError(Exception):
-    pass
-
-
-def allocate_hours_fifo(db: OrmSession, location: str, hours_needed: int):
+def allocate_hours_fifo(db: OrmSession, location_id: int, hours_needed: int):
     """Pick `hours_needed` single-hour allocations from active court_packages
-    at `location`, oldest purchase first, rolling over to the next package
-    as each one runs out. Returns a list of CourtPackage (len == hours_needed).
-    Caller is responsible for decrementing hours_remaining once slots are
-    actually persisted.
+    at `location_id`, oldest purchase first, rolling over to the next
+    package as each one runs out. Packages are OPTIONAL (owner's
+    correction): if there aren't enough active hours to cover the session,
+    the remaining hours are simply left unbacked (None) rather than
+    blocking session creation — the owner can play without a package and
+    just won't get a package-cost line for those hours.
+
+    Returns a list of length `hours_needed`, each entry a CourtPackage or
+    None. Caller is responsible for decrementing hours_remaining once slots
+    are actually persisted.
     """
     packages = (
         db.query(CourtPackage)
-        .filter(CourtPackage.location == location, CourtPackage.is_active.is_(True),
+        .filter(CourtPackage.location_id == location_id, CourtPackage.is_active.is_(True),
                 CourtPackage.hours_remaining > 0)
         .order_by(CourtPackage.purchase_date.asc(), CourtPackage.id.asc())
         .all()
@@ -51,12 +53,8 @@ def allocate_hours_fifo(db: OrmSession, location: str, hours_needed: int):
         while remaining_by_pkg[pkg.id] > 0 and len(allocation) < hours_needed:
             allocation.append(pkg)
             remaining_by_pkg[pkg.id] -= 1
-    if len(allocation) < hours_needed:
-        have = len(allocation)
-        raise InsufficientHoursError(
-            f"Only {have} active hour(s) available across packages at '{location}', "
-            f"need {hours_needed}. Buy another package or reduce session length."
-        )
+    while len(allocation) < hours_needed:
+        allocation.append(None)
     return allocation
 
 
@@ -140,6 +138,12 @@ def session_profit(db: OrmSession, session: PlaySession) -> dict:
             else:
                 revenue_pending += p.cost_share
 
+    # hours_used deliberately counts only package-BACKED hours, not every
+    # hour actually played. This feeds the dashboard's "hours used vs hours
+    # purchased" wallet-utilization metric, which is about the court-hour
+    # wallet specifically — an unbacked hour (packages are optional) didn't
+    # draw from any wallet, so it shouldn't inflate utilization. Total
+    # gameplay volume is visible separately via sessions_count/total_hours.
     cost = 0.0
     hours_used = 0
     for slot in session.hour_slots:

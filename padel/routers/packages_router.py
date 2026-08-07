@@ -4,14 +4,14 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
-from database import User, CourtPackage
+from database import User, CourtPackage, Location
 from auth import get_db, get_current_user
 
 router = APIRouter(prefix="/api/packages", tags=["packages"])
 
 
 class PackageBody(BaseModel):
-    location: str
+    location_id: int
     total_hours: int = 30
     price_paid: float
     purchase_date: Optional[date_cls] = None
@@ -27,8 +27,10 @@ def list_packages(db=Depends(get_db), user: User = Depends(get_current_user)):
 def create_package(body: PackageBody, db=Depends(get_db), user: User = Depends(get_current_user)):
     if body.total_hours <= 0:
         raise HTTPException(status_code=400, detail="total_hours must be positive")
+    if not db.get(Location, body.location_id):
+        raise HTTPException(status_code=404, detail="location_id not found")
     pkg = CourtPackage(
-        location=body.location.strip(),
+        location_id=body.location_id,
         total_hours=body.total_hours,
         price_paid=body.price_paid,
         hours_remaining=body.total_hours,

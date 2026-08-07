@@ -47,9 +47,10 @@ def dashboard(month: Optional[str] = None, db=Depends(get_db), user: User = Depe
         total_profit_confirmed += p["profit_confirmed"]
         total_profit_incl_pending += p["profit_incl_pending"]
         hours_used_month += p["hours_used"]
-        by_location[s.location]["sessions"] += 1
-        by_location[s.location]["hours_used"] += p["hours_used"]
-        by_location[s.location]["profit_confirmed"] += p["profit_confirmed"]
+        loc_name = s.location_ref.name if s.location_ref else f"location #{s.location_id}"
+        by_location[loc_name]["sessions"] += 1
+        by_location[loc_name]["hours_used"] += p["hours_used"]
+        by_location[loc_name]["profit_confirmed"] += p["profit_confirmed"]
 
     packages = db.query(CourtPackage).all()
     hours_purchased_total = sum(pkg.total_hours for pkg in packages)
@@ -71,40 +72,71 @@ def dashboard(month: Optional[str] = None, db=Depends(get_db), user: User = Depe
     }
 
 
+def _player_summary(db, player: Player) -> dict:
+    participations = (
+        db.query(SlotParticipant)
+        .join(SlotParticipant.hour_slot)
+        .filter(SlotParticipant.player_id == player.id, SlotParticipant.status == STATUS_ACTIVE)
+        .all()
+    )
+    session_ids = {p.hour_slot.session_id for p in participations}
+    last_played = None
+    if session_ids:
+        dates = [db.get(PlaySession, sid).date for sid in session_ids]
+        last_played = max(dates).isoformat()
+
+    payments = db.query(Payment).filter(Payment.player_id == player.id).all()
+    billable = [p for p in payments if p.status in (PAY_CONFIRMED, PAY_PENDING)]
+    total_paid = sum(p.amount_paid for p in payments if p.status == PAY_CONFIRMED)
+    outstanding = sum(p.amount_due - p.amount_paid for p in payments if p.status == PAY_PENDING)
+    confirmed_count = sum(1 for p in billable if p.status == PAY_CONFIRMED)
+    reliability_pct = round((confirmed_count / len(billable)) * 100, 1) if billable else None
+
+    return {
+        "player_id": player.id,
+        "name": player.name,
+        "contact": player.contact,
+        "sessions_count": len(session_ids),
+        "total_paid": round(total_paid, 2),
+        "outstanding": round(outstanding, 2),
+        "last_played": last_played,
+        "reliability_pct": reliability_pct,
+    }
+
+
 @router.get("/players")
 def player_stats(db=Depends(get_db), user: User = Depends(get_current_user)):
     """Per-player history: sessions played, total paid, outstanding, reliability."""
     players = db.query(Player).all()
-    results = []
-    for player in players:
-        participations = (
-            db.query(SlotParticipant)
-            .join(SlotParticipant.hour_slot)
-            .filter(SlotParticipant.player_id == player.id, SlotParticipant.status == STATUS_ACTIVE)
-            .all()
-        )
-        session_ids = {p.hour_slot.session_id for p in participations}
-        last_played = None
-        if session_ids:
-            dates = [db.get(PlaySession, sid).date for sid in session_ids]
-            last_played = max(dates).isoformat()
-
-        payments = db.query(Payment).filter(Payment.player_id == player.id).all()
-        billable = [p for p in payments if p.status in (PAY_CONFIRMED, PAY_PENDING)]
-        total_paid = sum(p.amount_paid for p in payments if p.status == PAY_CONFIRMED)
-        outstanding = sum(p.amount_due - p.amount_paid for p in payments if p.status == PAY_PENDING)
-        confirmed_count = sum(1 for p in billable if p.status == PAY_CONFIRMED)
-        reliability_pct = round((confirmed_count / len(billable)) * 100, 1) if billable else None
-
-        results.append({
-            "player_id": player.id,
-            "name": player.name,
-            "contact": player.contact,
-            "sessions_count": len(session_ids),
-            "total_paid": round(total_paid, 2),
-            "outstanding": round(outstanding, 2),
-            "last_played": last_played,
-            "reliability_pct": reliability_pct,
-        })
+    results = [_player_summary(db, p) for p in players]
     results.sort(key=lambda r: r["name"].lower())
     return results
+
+
+@router.get("/players/{player_id}")
+def player_detail(player_id: int, db=Depends(get_db), user: User = Depends(get_current_user)):
+    """Drill-down for the Payments page: totals (sum paid, sum outstanding,
+    reliability) plus the itemized list of every payment for this player,
+    so clicking a player shows exactly what they owe and what they've paid.
+    """
+    player = db.get(Player, player_id)
+    if not player:
+        raise HTTPException(status_code=404, detail="Player not found")
+
+    summary = _player_summary(db, player)
+    payments = (
+        db.query(Payment)
+        .filter(Payment.player_id == player_id)
+        .order_by(Payment.created_at.desc())
+        .all()
+    )
+    items = []
+    for pay in payments:
+        session = db.get(PlaySession, pay.session_id)
+        items.append({
+            **pay.to_dict(),
+            "session_date": session.date.isoformat() if session else None,
+            "session_location": session.location_ref.name if session and session.location_ref else None,
+        })
+
+    return {**summary, "payments": items}

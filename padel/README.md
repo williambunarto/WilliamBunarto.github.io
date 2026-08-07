@@ -39,31 +39,85 @@ decides the public `/padel` prefix, by stripping it before forwarding.
 
 | username | password | role |
 |---|---|---|
-| `owner` | `padel-owner-2026` | `super_admin` |
-| `jc` | `padel-jc-2026` | `admin` |
+| `superadmin` | `superadmin` | `super_admin` |
+| `admin` | `admin` | `admin` |
 
-Override the seed passwords via `PADEL_OWNER_PASSWORD` / `PADEL_JC_PASSWORD`
-env vars **before the first run** (they only apply when the users table is
-empty — changing them later does nothing; use the app or a DB shell to
-rotate credentials post-seed). Set `PADEL_SECRET_KEY` in production
-(`padel.env` on the server) or every restart invalidates existing login
-sessions.
+Set by the owner deliberately for convenience on this internal tool — the
+super_admin can add proper accounts for real use any time via **Users**
+(see below), and delete/rotate these seed ones once real accounts exist.
+
+Override the seed passwords via `PADEL_SUPERADMIN_PASSWORD` /
+`PADEL_ADMIN_PASSWORD` env vars **before the first run** (they only apply
+when the users table is empty — changing them later does nothing; use the
+app's own **Users** tab or a DB shell to rotate credentials post-seed). Set
+`PADEL_SECRET_KEY` in production (`padel.env` on the server) or every
+restart invalidates existing login sessions.
 
 ## Data model
 
-Matches the spec 1:1 — `users`, `court_packages`, `rate_cards`, `sessions`
-(`PlaySession` in code — `Session` collides with SQLAlchemy's own class),
-`session_hour_slots`, `players`, `slot_participants`, `equipment_charges`,
-`payments`. See `database.py` for columns.
+Extends the original spec with a `locations` table and a few corrections
+requested after the first round (see "Corrections" below): `users`,
+`locations`, `court_packages`, `rate_cards`, `sessions` (`PlaySession` in
+code — `Session` collides with SQLAlchemy's own class), `session_hour_slots`,
+`players`, `slot_participants`, `equipment_charges`, `payments`. See
+`database.py` for columns.
+
+## Corrections (round 2 — implemented after initial delivery)
+
+The owner asked for five corrections after using the first version; all
+five are implemented and tested:
+
+1. **Per-hour player count: 4 default, 12 max.** The session form now
+   shows 4 player-select dropdowns per hour by default, with a "+ Add
+   player" button (up to 12) and a per-slot remove button. The 12-player
+   cap is enforced server-side too (`sessions_router.create_session` /
+   `add_participant`), including a duplicate-player-in-the-same-hour check
+   — the UI default of 4 is a convenience, not a hard minimum, so a
+   session can still be created before every slot is confirmed and filled
+   in later.
+2. **Locations are now a registered entity, like players** — a new
+   `locations` table (`locations_router.py`), CRUD'd from **Data →
+   Locations**, and a `<select>` (not free text) on the session form.
+   `court_packages`, `rate_cards`, and `sessions` all reference
+   `location_id` now instead of a free-text string. The **Data** tab
+   consolidates Locations, Players, and Packages into one page with
+   sub-tabs (previously three separate top-level tabs).
+3. **Packages are optional; rate cards live inside their location.**
+   `logic.allocate_hours_fifo` no longer errors when a location has no (or
+   insufficient) active packages — it backs as many hours as it can and
+   leaves the rest `package_id = None` ("unbacked"), so a session can be
+   created and billed with zero packages purchased; the profit calc simply
+   counts no package cost for those hours (see the `hours_used`
+   clarification in `logic.session_profit` — it tracks wallet-hours
+   consumed specifically, not total hours played, since that's what the
+   utilization metric is actually about). Rate cards moved from a
+   standalone top-level page into each location's expandable row under
+   **Data → Locations** ("every court has its own rate cards"), still
+   mutable and still `super_admin`-only to change.
+4. **Payments page tracks who hasn't paid, with drill-down totals.** The
+   page now lists players sorted by outstanding balance (unpaid-first)
+   instead of a flat payment log; clicking a player calls
+   `GET /api/reports/players/{id}` (new endpoint) and expands a panel with
+   sum total paid, sum outstanding, sessions played, reliability %, and
+   the itemized list of every payment for that player.
+5. **New credentials + user management.** Seed accounts changed to
+   `superadmin`/`superadmin` and `admin`/`admin` (see Credentials above).
+   `super_admin` gets a new **Users** tab (hidden entirely for `admin` —
+   checked both client-side for UI and server-side via `require_super_admin`
+   on every `/api/users/*` route) with full CRUD for admin accounts:
+   create, edit (name/username/role/password — blank password leaves it
+   unchanged), and delete, with guards against deleting your own account
+   or removing the last remaining `super_admin` (would lock everyone out).
 
 ## Business rules implemented
 
 - **FIFO hour allocation** (`logic.allocate_hours_fifo`): active
   `court_packages` at the session's location, oldest `purchase_date` first;
   a multi-hour session automatically rolls onto the next package once one
-  runs dry. Creating a session fails fast with a clear error if there
-  aren't enough active hours anywhere, rather than silently leaving a slot
-  unbacked by a package.
+  runs dry. **Packages are optional** (round-2 correction): if a location
+  has no active packages, or not enough hours left to cover the whole
+  session, the shortfall is simply left `package_id = None` ("unbacked")
+  rather than blocking session creation.
 - **Rate card resolution**: pass `rate_card_id` explicitly, or let the
   session auto-match by `location` + `day_type` (Sat/Sun = weekend) +
   the card whose `[time_start, time_end)` covers the session's start time.
@@ -98,6 +152,10 @@ Matches the spec 1:1 — `users`, `court_packages`, `rate_cards`, `sessions`
   (`auth.require_super_admin`); every session keeps its own price snapshot
   so editing a rate card never rewrites history — `rate_card_id` stays on
   the session purely for audit/reference.
+- **Per-hour headcount**: 4–12 players per hour. 12 is a hard server-side
+  cap (`MAX_PLAYERS_PER_HOUR` in `database.py`) enforced on both session
+  creation and `add_participant`; 4 is only the UI's default slot count,
+  not a server-enforced minimum (see Corrections #1 above).
 
 ## Assumptions / extensions beyond the spec (flagging these explicitly)
 
@@ -116,6 +174,22 @@ Matches the spec 1:1 — `users`, `court_packages`, `rate_cards`, `sessions`
 - Day type (weekday/weekend) is derived from the session date
   (Sat/Sun = weekend) rather than a stored field, since the spec doesn't
   define a holiday calendar.
+- Location CRUD is open to both roles (like players), not restricted to
+  `super_admin` — only the rate cards *nested inside* a location stay
+  `super_admin`-only, matching the original spec's actual restriction.
+- **No schema migrations** — `init_db()` only calls `Base.metadata.create_all()`,
+  which creates missing tables but never alters existing ones. The round-2
+  schema change (free-text `location` strings → `location_id` foreign
+  keys) is a breaking change for any existing SQLite file; the production
+  DB had to be wiped once by hand for this update (see git history / the
+  session notes for the one-off "reset the padel DB" step). Any future
+  schema change needs the same manual wipe-and-reseed until a real
+  migration tool is worth adopting.
+- Deleting a user (`DELETE /api/users/{id}`) doesn't touch historical
+  `sessions.created_by` / `payments.confirmed_by` references to that user
+  — SQLite doesn't enforce foreign keys by default in this setup, so those
+  columns are left as a harmless dangling id rather than blocked or
+  cascaded. Not shown anywhere in the UI today, so it's cosmetic for now.
 
 ## Deployment
 
@@ -252,6 +326,40 @@ document, which isn't served through the affected `Mount`). Worth keeping
 in mind for future changes: adding a player to an existing hour and
 loading the page's own JS/CSS through the real proxy are exactly the paths
 that need explicit coverage, not just "the API responds."
+
+### Round 2 verification (after the five corrections above)
+
+A fresh 50-check regression script plus another Playwright pass through
+every tab of the redesigned UI, all green:
+- new credentials (`superadmin`/`superadmin`, `admin`/`admin`) work; old
+  ones (`owner`/`jc`) correctly rejected
+- locations: create, duplicate-name rejection, rename, both roles can
+  create (not `super_admin`-restricted)
+- rate cards: nested under a location, `GET ?location_id=` filtering,
+  `admin` still gets `403` on mutation
+- **a session created with zero active packages anywhere succeeds**
+  (previously would have been impossible), hour slot has `package_id: null`,
+  `package_cost: 0`, and — deliberately — `hours_used: 0` for that hour
+  (utilization tracks wallet consumption, not gameplay volume); buying a
+  package afterward correctly backs the *next* session
+- duplicate player within one hour rejected; 13 players in one hour
+  rejected; a 5th distinct player added post-creation correctly re-splits
+  5-way and stays under the 12 cap
+- `GET /api/reports/players/{id}` drill-down returns correct totals and
+  itemized payments
+- user management: `admin` blocked (`403`) from every `/api/users/*`
+  route; create/login-as-new-user round-trip; duplicate username rejected;
+  blank-password update leaves the password unchanged; can't delete your
+  own account or the last `super_admin`
+- full/partial cancel still correct with the new optional-package model
+  (cancelling an already-unbacked session doesn't error trying to "return"
+  hours that were never allocated)
+- browser pass: 4 default player-select slots per hour confirmed by
+  count, "+ Add player" appends a 5th, the per-slot "×" removes it back to
+  4, location is a real `<select>`, Data tab's Locations sub-tab expands
+  to show nested rate cards, Payments page sorts unpaid-first and expands
+  a per-player breakdown panel on click, Users tab visible for
+  `super_admin` and confirmed **not** rendered at all for `admin`
 
 ## Backlog (Phase 2, per spec — not built)
 

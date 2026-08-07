@@ -1,10 +1,10 @@
 """
 Padel Court Payment & Wallet Tracking System — data layer.
 
-SQLAlchemy models mirror the schema in the spec 1:1 (see project README).
-SQLite by default (PADEL_DB env var can point elsewhere, e.g. a Postgres
-DSN is NOT supported by this simple engine setup — swap create_engine call
-if you migrate to Postgres later).
+SQLAlchemy models mirror the schema in the spec, extended per the owner's
+follow-up corrections (see README "Corrections" section): locations are a
+first-class managed entity, rate cards belong to a location, packages are
+optional per session, and hour slots carry a min/max headcount.
 """
 import os
 import math
@@ -41,6 +41,9 @@ PAY_CONFIRMED = "confirmed"
 PAY_CANCELLED = "cancelled"  # extension beyond spec's pending|confirmed, used when a
                              # session is fully cancelled so a payment never gets collected
 
+MIN_PLAYERS_PER_HOUR = 4   # UI default headcount per hour slot
+MAX_PLAYERS_PER_HOUR = 12  # hard cap enforced server-side
+
 
 class User(Base):
     __tablename__ = "users"
@@ -58,16 +61,34 @@ class User(Base):
         return {"id": self.id, "name": self.name, "username": self.username, "role": self.role}
 
 
+class Location(Base):
+    """A court/venue. Registered up front (like players) so sessions,
+    packages, and rate cards all reference it instead of a free-text string.
+    """
+    __tablename__ = "locations"
+    id = Column(Integer, primary_key=True)
+    name = Column(String, unique=True, nullable=False)
+    notes = Column(String, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    rate_cards = relationship("RateCard", backref="location", cascade="all, delete-orphan")
+
+    def to_dict(self):
+        return {"id": self.id, "name": self.name, "notes": self.notes}
+
+
 class CourtPackage(Base):
     __tablename__ = "court_packages"
     id = Column(Integer, primary_key=True)
     purchase_date = Column(Date, nullable=False, default=date_cls.today)
-    location = Column(String, nullable=False)
+    location_id = Column(Integer, ForeignKey("locations.id"), nullable=False)
     total_hours = Column(Integer, nullable=False, default=30)
     price_paid = Column(Float, nullable=False)
     hours_remaining = Column(Float, nullable=False)
     is_active = Column(Boolean, nullable=False, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)
+
+    location_ref = relationship("Location")
 
     @property
     def cost_per_hour(self):
@@ -79,7 +100,8 @@ class CourtPackage(Base):
         return {
             "id": self.id,
             "purchase_date": self.purchase_date.isoformat() if self.purchase_date else None,
-            "location": self.location,
+            "location_id": self.location_id,
+            "location_name": self.location_ref.name if self.location_ref else None,
             "total_hours": self.total_hours,
             "price_paid": self.price_paid,
             "hours_remaining": self.hours_remaining,
@@ -89,11 +111,15 @@ class CourtPackage(Base):
 
 
 class RateCard(Base):
+    """Owned by a Location — "every court has its own rate cards" per the
+    owner's correction. Still mutable, still super_admin-only to change;
+    sessions snapshot the price so past sessions are unaffected by edits.
+    """
     __tablename__ = "rate_cards"
     id = Column(Integer, primary_key=True)
-    location = Column(String, nullable=False)
+    location_id = Column(Integer, ForeignKey("locations.id"), nullable=False)
     day_type = Column(String, nullable=False)  # weekday | weekend
-    time_band = Column(String, nullable=False)  # e.g. "06:00-17:00" label, human readable
+    time_band = Column(String, nullable=False)  # e.g. "Peak" human label
     time_start = Column(String, nullable=False)  # "HH:MM", used for auto-matching
     time_end = Column(String, nullable=False)    # "HH:MM"
     sell_price_per_hour = Column(Float, nullable=False)
@@ -102,7 +128,8 @@ class RateCard(Base):
     def to_dict(self):
         return {
             "id": self.id,
-            "location": self.location,
+            "location_id": self.location_id,
+            "location_name": self.location.name if self.location else None,
             "day_type": self.day_type,
             "time_band": self.time_band,
             "time_start": self.time_start,
@@ -117,7 +144,7 @@ class PlaySession(Base):
     __tablename__ = "sessions"
     id = Column(Integer, primary_key=True)
     date = Column(Date, nullable=False)
-    location = Column(String, nullable=False)
+    location_id = Column(Integer, ForeignKey("locations.id"), nullable=False)
     start_time = Column(String, nullable=False)  # "HH:MM"
     end_time = Column(String, nullable=False)    # "HH:MM"
     total_hours = Column(Integer, nullable=False)
@@ -128,6 +155,7 @@ class PlaySession(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     cancelled_at = Column(DateTime, nullable=True)
 
+    location_ref = relationship("Location")
     hour_slots = relationship("SessionHourSlot", backref="session", cascade="all, delete-orphan",
                                order_by="SessionHourSlot.hour_index")
     equipment_charges = relationship("EquipmentCharge", backref="session", cascade="all, delete-orphan")
@@ -136,7 +164,8 @@ class PlaySession(Base):
         return {
             "id": self.id,
             "date": self.date.isoformat() if self.date else None,
-            "location": self.location,
+            "location_id": self.location_id,
+            "location_name": self.location_ref.name if self.location_ref else None,
             "start_time": self.start_time,
             "end_time": self.end_time,
             "total_hours": self.total_hours,
@@ -156,6 +185,9 @@ class SessionHourSlot(Base):
     hour_index = Column(Integer, nullable=False)  # 1-based
     start_time = Column(String, nullable=False)
     end_time = Column(String, nullable=False)
+    # Nullable: packages are optional (owner's correction) — an hour can be
+    # played with no court-hour package backing it, it just costs the owner
+    # nothing extra to log (no package cost line for that hour).
     package_id = Column(Integer, ForeignKey("court_packages.id"), nullable=True)
 
     participants = relationship("SlotParticipant", backref="hour_slot", cascade="all, delete-orphan")
@@ -263,11 +295,11 @@ def init_db():
 def _seed(db: OrmSession):
     try:
         if db.query(User).count() == 0:
-            owner = User(name="William Bunarto", username="owner", role=ROLE_SUPER_ADMIN)
-            owner.set_password(os.environ.get("PADEL_OWNER_PASSWORD", "padel-owner-2026"))
-            jc = User(name="JC", username="jc", role=ROLE_ADMIN)
-            jc.set_password(os.environ.get("PADEL_JC_PASSWORD", "padel-jc-2026"))
-            db.add_all([owner, jc])
+            superadmin = User(name="Super Admin", username="superadmin", role=ROLE_SUPER_ADMIN)
+            superadmin.set_password(os.environ.get("PADEL_SUPERADMIN_PASSWORD", "superadmin"))
+            admin = User(name="Admin", username="admin", role=ROLE_ADMIN)
+            admin.set_password(os.environ.get("PADEL_ADMIN_PASSWORD", "admin"))
+            db.add_all([superadmin, admin])
             db.commit()
     finally:
         db.close()
