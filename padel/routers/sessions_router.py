@@ -162,8 +162,11 @@ def add_participant(session_id: int, slot_id: int, body: AddParticipantBody, db=
     if any(p.player_id == body.player_id and p.status == STATUS_ACTIVE for p in slot.participants):
         raise HTTPException(status_code=400, detail="Player already active in this hour slot")
 
-    db.add(SlotParticipant(hour_slot_id=slot.id, player_id=body.player_id, cost_share=0,
-                            status=STATUS_ACTIVE))
+    # Append via the relationship (not a bare hour_slot_id= FK assignment) so the
+    # in-memory slot.participants collection — already cached by the duplicate
+    # check above — actually includes the new row when recompute reads it below.
+    slot.participants.append(SlotParticipant(player_id=body.player_id, cost_share=0,
+                                               status=STATUS_ACTIVE))
     db.flush()
     recompute_slot_cost_shares(slot, session.sell_price_per_hour_snapshot)
     sync_payments_for_session(db, session)
