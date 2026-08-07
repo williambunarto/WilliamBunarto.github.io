@@ -72,3 +72,4 @@ jobs:
             grep -n "Append via the relationship" /home/ubuntu/padel/routers/sessions_router.py || echo "FIX NOT FOUND ON SERVER"
             rm -f /tmp/owner_ck.txt /tmp/jc_ck.txt
           ENDSSH
+# touch 1786103000 to re-trigger verify
