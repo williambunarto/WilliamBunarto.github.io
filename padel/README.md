@@ -131,17 +131,28 @@ This app deploys to the same Oracle Cloud VM as `wbtrade/`/HealthOS
   Triggers on push to `main` under `padel/**`, or manually via
   **Actions → Deploy Padel Wallet to Server → Run workflow**.
 
-**This session could not execute that live deploy itself** — outbound
-network here is HTTPS-only (no port 22 to the server), and the GitHub
-API token available to this session got a 403 on `workflow_dispatch`.
-Everything needed to deploy is pushed and tested locally (see
-"What was verified" below); it just needs one of:
-1. Merge this branch to `main` → the workflow fires automatically, or
-2. From the GitHub UI: **Actions → Deploy Padel Wallet to Server →
-   Run workflow**, branch = `claude/padel-payment-wallet-system-xcckw6`.
+**Status: live** at http://williambunarto.duckdns.org/padel/ (deployed via
+`deploy-padel.yml` run #2, smoke test passed — `HTTP status: 200`).
 
-Before the first deploy, set two things on the server that aren't in git
-(secrets don't belong in the repo):
+This session's own outbound network is HTTPS-only (no port 22 to the
+server) and its GitHub API token gets a 403 on `workflow_dispatch`, so the
+deploy couldn't be triggered directly from here — instead this branch was
+merged into `main` (with explicit go-ahead), which fired the workflow the
+normal way. Run #1 actually failed the smoke test: `patch_nginx.py` was
+only editing `/etc/nginx/sites-available/healthos`, but on this server
+`sites-enabled/healthos` is a **separate plain file, not a symlink** to
+it (same quirk `wbtrade`'s deploy workflow already works around) — nginx
+loads the sites-enabled copy, so the `/padel/` location block never
+actually took effect even though `nginx -t` validated fine and the app
+itself was healthy. Fixed by patching both copies; run #2 is green.
+
+To redeploy after future changes, just push to `main` under `padel/**` —
+same workflow, no manual steps needed. To run it manually instead:
+**Actions → Deploy Padel Wallet to Server → Run workflow**.
+
+Before trusting this with real money, set two things on the server that
+aren't in git (secrets don't belong in the repo — the seed defaults below
+are what it's running on right now):
 ```bash
 # /home/ubuntu/padel/padel.env  (systemd reads this via EnvironmentFile=-)
 PADEL_SECRET_KEY=<random 32+ byte string>
@@ -193,6 +204,9 @@ actual UI:
 - the SPA itself in a real browser (dashboard, sessions, packages, rate
   cards, players, payments tabs all render and round-trip through the API
   with no console errors beyond the expected pre-login 401)
+- the actual live deploy: systemd unit healthy, nginx serving `/padel/`
+  with a 200, confirmed both by the workflow's own smoke test and by
+  reading back the patched `sites-enabled`/`sites-available` config over SSH
 
 ## Backlog (Phase 2, per spec — not built)
 
