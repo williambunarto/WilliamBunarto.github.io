@@ -1,0 +1,68 @@
+name: Verify Padel Live Deployment (read-only)
+
+on:
+  push:
+    paths:
+      - '.github/workflows/verify-padel.yml'
+  workflow_dispatch:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup SSH key
+        run: |
+          cp "ssh-key-2026-03-30 (1).key" /tmp/deploy_key
+          chmod 600 /tmp/deploy_key
+
+      - name: Read-only functional checks against the live app
+        run: |
+          ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@williambunarto.duckdns.org 'bash -s' << 'ENDSSH'
+            set -e
+            echo "=== systemd status ==="
+            sudo systemctl is-active padel
+            echo ""
+            echo "=== direct app health (127.0.0.1:8002) ==="
+            curl -s -o /dev/null -w 'status: %{http_code}\n' http://127.0.0.1:8002/healthz
+            echo ""
+            echo "=== via nginx path (127.0.0.1/padel/) ==="
+            curl -s -o /dev/null -w 'status: %{http_code}\n' http://127.0.0.1/padel/
+            echo ""
+            echo "=== via public domain ==="
+            curl -s -o /dev/null -w 'status: %{http_code}\n' http://williambunarto.duckdns.org/padel/
+            echo ""
+            echo "=== static JS served (via nginx) ==="
+            curl -s -o /dev/null -w 'status: %{http_code}\n' http://127.0.0.1/padel/static/js/app.js
+            echo ""
+            echo "=== login as owner (via nginx) ==="
+            OWNER_RESP=$(curl -s -c /tmp/owner_ck.txt -X POST http://127.0.0.1/padel/api/auth/login \
+              -H 'Content-Type: application/json' -d '{"username":"owner","password":"padel-owner-2026"}')
+            echo "$OWNER_RESP"
+            echo ""
+            echo "=== login as jc (via nginx) ==="
+            JC_RESP=$(curl -s -c /tmp/jc_ck.txt -X POST http://127.0.0.1/padel/api/auth/login \
+              -H 'Content-Type: application/json' -d '{"username":"jc","password":"padel-jc-2026"}')
+            echo "$JC_RESP"
+            echo ""
+            echo "=== owner GET /api/players ==="
+            curl -s -b /tmp/owner_ck.txt -o /dev/null -w 'status: %{http_code}\n' http://127.0.0.1/padel/api/players
+            echo "=== owner GET /api/packages ==="
+            curl -s -b /tmp/owner_ck.txt -o /dev/null -w 'status: %{http_code}\n' http://127.0.0.1/padel/api/packages
+            echo "=== owner GET /api/rate-cards ==="
+            curl -s -b /tmp/owner_ck.txt -o /dev/null -w 'status: %{http_code}\n' http://127.0.0.1/padel/api/rate-cards
+            echo "=== owner GET /api/reports/dashboard ==="
+            curl -s -b /tmp/owner_ck.txt -o /dev/null -w 'status: %{http_code}\n' http://127.0.0.1/padel/api/reports/dashboard
+            echo "=== jc GET /api/payments ==="
+            curl -s -b /tmp/jc_ck.txt -o /dev/null -w 'status: %{http_code}\n' http://127.0.0.1/padel/api/payments
+            echo "=== jc tries POST /api/rate-cards (must be 403, RBAC) ==="
+            curl -s -b /tmp/jc_ck.txt -o /dev/null -w 'status: %{http_code}\n' -X POST http://127.0.0.1/padel/api/rate-cards \
+              -H 'Content-Type: application/json' -d '{"location":"x","day_type":"weekday","time_band":"x","time_start":"00:00","time_end":"01:00","sell_price_per_hour":1}'
+            echo "=== anon GET /api/players (must be 401) ==="
+            curl -s -o /dev/null -w 'status: %{http_code}\n' http://127.0.0.1/padel/api/players
+            echo ""
+            echo "=== deployed commit on server (main.py mtime + grep for the fix) ==="
+            grep -n "Append via the relationship" /home/ubuntu/padel/routers/sessions_router.py || echo "FIX NOT FOUND ON SERVER"
+            rm -f /tmp/owner_ck.txt /tmp/jc_ck.txt
+          ENDSSH
