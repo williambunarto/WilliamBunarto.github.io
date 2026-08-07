@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Padel Wallet — Court Payment &amp; Wallet Tracker</title>
+<link rel="stylesheet" href="static/css/style.css">
+</head>
+<body>
+  <div id="login-screen" class="login-screen hidden">
+    <form id="login-form" class="login-card">
+      <h1>🎾 Padel Wallet</h1>
+      <p class="muted">Court payment &amp; wallet tracking</p>
+      <label>Username<input type="text" id="login-username" autocomplete="username" required></label>
+      <label>Password<input type="password" id="login-password" autocomplete="current-password" required></label>
+      <button type="submit">Sign in</button>
+      <p id="login-error" class="error hidden"></p>
+    </form>
+  </div>
+
+  <div id="app-shell" class="app-shell hidden">
+    <header class="topbar">
+      <div class="topbar-left">
+        <span class="logo">🎾 Padel Wallet</span>
+      </div>
+      <nav id="tabs" class="tabs">
+        <button data-tab="dashboard" class="tab active">Dashboard</button>
+        <button data-tab="sessions" class="tab">Sessions</button>
+        <button data-tab="packages" class="tab">Packages</button>
+        <button data-tab="rate-cards" class="tab">Rate Cards</button>
+        <button data-tab="players" class="tab">Players</button>
+        <button data-tab="payments" class="tab">Payments</button>
+      </nav>
+      <div class="topbar-right">
+        <span id="whoami" class="whoami"></span>
+        <button id="logout-btn" class="btn-ghost">Logout</button>
+      </div>
+    </header>
+    <main id="app-content" class="app-content"></main>
+  </div>
+
+  <div id="toast" class="toast hidden"></div>
+
+  <script src="static/js/app.js"></script>
+</body>
+</html>

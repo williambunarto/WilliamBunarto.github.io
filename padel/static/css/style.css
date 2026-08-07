@@ -1,0 +1,139 @@
+:root {
+  --bg: #0f1720;
+  --panel: #16212c;
+  --panel-2: #1c2a37;
+  --border: #2a3b48;
+  --text: #e6edf3;
+  --muted: #8b9bab;
+  --accent: #3ddc97;
+  --accent-2: #4c9aff;
+  --warn: #f0b429;
+  --danger: #e5534b;
+  --radius: 10px;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+.hidden { display: none !important; }
+.muted { color: var(--muted); }
+.error { color: var(--danger); }
+
+/* ---- Login ---- */
+.login-screen {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+.login-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 32px;
+  width: 100%;
+  max-width: 340px;
+}
+.login-card h1 { margin: 0 0 4px; font-size: 22px; }
+.login-card label { display: block; margin-top: 14px; font-size: 13px; color: var(--muted); }
+.login-card input {
+  width: 100%; margin-top: 6px; padding: 10px; border-radius: 8px;
+  border: 1px solid var(--border); background: var(--panel-2); color: var(--text); font-size: 14px;
+}
+.login-card button {
+  margin-top: 20px; width: 100%; padding: 11px; border-radius: 8px; border: none;
+  background: var(--accent); color: #06251a; font-weight: 600; cursor: pointer; font-size: 14px;
+}
+
+/* ---- Shell ---- */
+.app-shell { min-height: 100vh; display: flex; flex-direction: column; }
+.topbar {
+  display: flex; align-items: center; gap: 20px; padding: 10px 20px;
+  background: var(--panel); border-bottom: 1px solid var(--border); flex-wrap: wrap;
+}
+.logo { font-weight: 700; }
+.tabs { display: flex; gap: 4px; flex: 1; flex-wrap: wrap; }
+.tab {
+  background: transparent; border: none; color: var(--muted); padding: 8px 14px;
+  border-radius: 8px; cursor: pointer; font-size: 14px;
+}
+.tab:hover { background: var(--panel-2); color: var(--text); }
+.tab.active { background: var(--accent); color: #06251a; font-weight: 600; }
+.topbar-right { display: flex; align-items: center; gap: 10px; }
+.whoami { font-size: 13px; color: var(--muted); }
+.btn-ghost {
+  background: transparent; border: 1px solid var(--border); color: var(--text);
+  padding: 7px 12px; border-radius: 8px; cursor: pointer; font-size: 13px;
+}
+.btn-ghost:hover { border-color: var(--accent); }
+
+.app-content { padding: 20px; max-width: 1200px; margin: 0 auto; width: 100%; }
+
+/* ---- Generic components ---- */
+.panel {
+  background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 18px; margin-bottom: 18px;
+}
+.panel h2 { margin-top: 0; font-size: 16px; }
+.grid { display: grid; gap: 16px; }
+.grid-2 { grid-template-columns: 1fr 1fr; }
+.grid-3 { grid-template-columns: repeat(3, 1fr); }
+.grid-4 { grid-template-columns: repeat(4, 1fr); }
+@media (max-width: 800px) { .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; } }
+
+.stat-card {
+  background: var(--panel-2); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 14px 16px;
+}
+.stat-card .label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+.stat-card .value { font-size: 24px; font-weight: 700; margin-top: 4px; }
+.stat-card .value.good { color: var(--accent); }
+.stat-card .value.bad { color: var(--danger); }
+
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); }
+th { color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; }
+tr:hover td { background: rgba(255,255,255,0.02); }
+
+.form-row { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; }
+.form-row label { font-size: 12px; color: var(--muted); }
+input, select, textarea {
+  padding: 8px 10px; border-radius: 6px; border: 1px solid var(--border);
+  background: var(--panel-2); color: var(--text); font-size: 14px; font-family: inherit;
+}
+button.btn {
+  padding: 8px 14px; border-radius: 6px; border: none; background: var(--accent-2);
+  color: #06182b; font-weight: 600; cursor: pointer; font-size: 13px;
+}
+button.btn.secondary { background: var(--panel-2); color: var(--text); border: 1px solid var(--border); }
+button.btn.danger { background: var(--danger); color: #2b0906; }
+button.btn.small { padding: 4px 9px; font-size: 12px; }
+button.btn:disabled { opacity: .5; cursor: not-allowed; }
+
+.badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; }
+.badge.active { background: rgba(61,220,151,.15); color: var(--accent); }
+.badge.cancelled { background: rgba(229,83,75,.15); color: var(--danger); }
+.badge.pending { background: rgba(240,180,41,.15); color: var(--warn); }
+.badge.confirmed { background: rgba(61,220,151,.15); color: var(--accent); }
+
+.hour-slot { border: 1px solid var(--border); border-radius: 8px; padding: 10px; margin-bottom: 8px; }
+.hour-slot .slot-head { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 6px; }
+.participant-row { display: flex; justify-content: space-between; align-items: center; padding: 4px 0; font-size: 13px; }
+
+.toast {
+  position: fixed; bottom: 20px; right: 20px; background: var(--panel-2); border: 1px solid var(--border);
+  padding: 12px 18px; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,.4); z-index: 999; max-width: 340px;
+}
+.toast.error { border-color: var(--danger); color: var(--danger); }
+.toast.success { border-color: var(--accent); color: var(--accent); }
+
+.session-card { border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 12px; overflow: hidden; }
+.session-card .session-summary { padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; background: var(--panel-2); }
+.session-card .session-body { padding: 16px; display: none; }
+.session-card.open .session-body { display: block; }
+.session-card .session-summary:hover { filter: brightness(1.1); }

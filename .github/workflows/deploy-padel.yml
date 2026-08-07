@@ -1,0 +1,79 @@
+name: Deploy Padel Wallet to Server
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'padel/**'
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup SSH key
+        run: |
+          cp "ssh-key-2026-03-30 (1).key" /tmp/deploy_key
+          chmod 600 /tmp/deploy_key
+
+      - name: Create directories
+        run: |
+          ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@williambunarto.duckdns.org \
+            "mkdir -p /home/ubuntu/padel/{routers,static/css,static/js,data,scripts}"
+
+      - name: Copy Python source files
+        run: |
+          KEY=/tmp/deploy_key
+          OPTS="-i $KEY -o StrictHostKeyChecking=no"
+          HOST="ubuntu@williambunarto.duckdns.org"
+          scp $OPTS \
+            padel/main.py \
+            padel/database.py \
+            padel/logic.py \
+            padel/security.py \
+            padel/auth.py \
+            padel/requirements.txt \
+            $HOST:/home/ubuntu/padel/
+          scp $OPTS padel/routers/*.py $HOST:/home/ubuntu/padel/routers/
+
+      - name: Copy static frontend
+        run: |
+          KEY=/tmp/deploy_key
+          OPTS="-i $KEY -o StrictHostKeyChecking=no"
+          HOST="ubuntu@williambunarto.duckdns.org"
+          scp $OPTS padel/static/index.html $HOST:/home/ubuntu/padel/static/
+          scp $OPTS padel/static/css/style.css $HOST:/home/ubuntu/padel/static/css/
+          scp $OPTS padel/static/js/app.js $HOST:/home/ubuntu/padel/static/js/
+
+      - name: Setup venv and install dependencies
+        run: |
+          ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@williambunarto.duckdns.org \
+            "sudo apt-get install -y python3-venv python3-pip > /dev/null 2>&1 && cd /home/ubuntu/padel && ([ -f venv/bin/pip ] || (rm -rf venv && python3 -m venv venv)) && venv/bin/pip install -q --upgrade pip && venv/bin/pip install -q -r requirements.txt"
+
+      - name: Install systemd service
+        run: |
+          scp -i /tmp/deploy_key -o StrictHostKeyChecking=no \
+            padel/padel.service ubuntu@williambunarto.duckdns.org:/tmp/padel.service
+          ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@williambunarto.duckdns.org \
+            "sudo mv /tmp/padel.service /etc/systemd/system/padel.service && sudo systemctl daemon-reload && sudo systemctl enable padel"
+
+      - name: Patch nginx config (idempotent)
+        run: |
+          scp -i /tmp/deploy_key -o StrictHostKeyChecking=no \
+            padel/scripts/patch_nginx.py ubuntu@williambunarto.duckdns.org:/tmp/patch_padel_nginx.py
+          ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@williambunarto.duckdns.org \
+            "sudo python3 /tmp/patch_padel_nginx.py && sudo nginx -t && sudo systemctl restart nginx && echo 'Nginx restarted OK'"
+
+      - name: Start / restart padel service
+        run: |
+          ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@williambunarto.duckdns.org \
+            "sudo systemctl restart padel && sleep 3 && sudo systemctl status padel --no-pager -l"
+
+      - name: Smoke test
+        run: |
+          sleep 5
+          STATUS=$(curl -s -o /dev/null -w '%{http_code}' http://williambunarto.duckdns.org/padel/)
+          echo "HTTP status: $STATUS"
+          [ "$STATUS" = "200" ] && echo 'OK: /padel/ reachable' || (echo "FAIL: got $STATUS"; exit 1)

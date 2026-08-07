@@ -1,0 +1,22 @@
+[Unit]
+Description=Padel Court Payment & Wallet Tracker
+After=network.target
+Wants=network-online.target
+
+[Service]
+Type=exec
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/home/ubuntu/padel
+Environment="PADEL_DB=/home/ubuntu/padel/data/padel.db"
+Environment="PADEL_ROOT_PATH=/padel"
+EnvironmentFile=-/home/ubuntu/padel/padel.env
+ExecStart=/home/ubuntu/padel/venv/bin/uvicorn main:app --host 127.0.0.1 --port 8002 --workers 1
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=padel
+
+[Install]
+WantedBy=multi-user.target
