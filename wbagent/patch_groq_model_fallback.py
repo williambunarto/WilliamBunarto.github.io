@@ -29,6 +29,20 @@ Fixes applied (idempotent):
      (confirmed: 16-73 reasoning tokens for a trivial prompt) -- with a
      tight budget this silently returns EMPTY content instead of an
      error. Bumped to 400/200/200 for headroom.
+  4. The real structural gap: call_groq() returned
+     resp.choices[0].message.content.strip() immediately on ANY
+     successful API response, even an empty one -- it only tries the
+     next model / falls back to Gemini on an *exception*. Confirmed
+     live: with a realistic EOD-report-style prompt, openai/gpt-oss-20b
+     burned its entire max_tokens=200 budget on hidden reasoning
+     (reasoning_tokens=198, completion_tokens=200, content=''), and
+     that empty string would have been returned as-is with no retry.
+     Since every groq_fn()/call_groq() caller in bot.py and
+     portfolio.py shares this one function, this is the actual
+     permanent fix: treat empty content the same as a retryable error
+     (try next model, ultimately fall back to Gemini) so no future
+     reasoning-budget edge case can silently return blank content
+     again, no matter how max_tokens is tuned per call site.
 """
 import sys
 import subprocess
@@ -100,6 +114,32 @@ elif new_check in bot:
     print("call_groq() retry classification already up to date -- nothing to do.")
 else:
     print("ERROR: call_groq() retryable-error check not found in expected form -- aborting.")
+    sys.exit(1)
+
+# 3. Treat an empty (but exception-free) response the same as a retryable
+#    error: try the next model instead of returning blank content as if
+#    it were a successful reply.
+old_return = (
+    "            return resp.choices[0].message.content.strip()\n"
+    "        except Exception as e:"
+)
+new_return = (
+    '            content = (resp.choices[0].message.content or "").strip()\n'
+    "            if not content:\n"
+    '                log.warning(f"Model {model} returned empty content '
+    '(reasoning-token budget exhausted?), trying next model...")\n'
+    "                continue\n"
+    "            return content\n"
+    "        except Exception as e:"
+)
+if old_return in bot:
+    bot = bot.replace(old_return, new_return, 1)
+    changed = True
+    print("call_groq() now retries the next model on empty content instead of returning it as-is.")
+elif new_return in bot:
+    print("call_groq() empty-content retry already up to date -- nothing to do.")
+else:
+    print("ERROR: call_groq() success-path return not found in expected form -- aborting.")
     sys.exit(1)
 
 if changed:
