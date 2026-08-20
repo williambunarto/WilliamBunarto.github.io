@@ -16,26 +16,23 @@ jobs:
           cp "ssh-key-2026-03-30 (1).key" /tmp/deploy_key
           chmod 600 /tmp/deploy_key
 
-      - name: Investigate Groq model 404 error
+      - name: Full Groq model catalog + call_groq source
         run: |
           SSH="ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@williambunarto.duckdns.org"
           $SSH bash << 'ENDSSH'
-          echo '===== grep llama-3.3-70b-versatile occurrences ====='
-          grep -rn "llama-3.3-70b-versatile\|llama-3.1-8b-instant\|MODELS\s*=" /home/ubuntu/bot.py /home/ubuntu/portfolio.py /home/ubuntu/btc_signal.py 2>/dev/null
+          echo '===== bot.py lines 80,145 (MODELS + call_groq full body) ====='
+          sed -n '80,145p' /home/ubuntu/bot.py
           echo ''
-          echo '===== call_groq function definition ====='
-          grep -n "def call_groq" /home/ubuntu/bot.py
-          echo ''
-          echo '===== nohup.out recent Groq/AI errors ====='
-          grep -i "AI error\|modelnotfound\|does not exist\|Groq error" /home/ubuntu/nohup.out | tail -30
-          echo ''
-          echo '===== EOD report build function - AI error message ====='
-          grep -n "AI error" /home/ubuntu/portfolio.py /home/ubuntu/bot.py 2>/dev/null
-          echo ''
-          echo '===== groq package version ====='
-          pip3 show groq 2>/dev/null | grep -E "Name|Version"
-          echo ''
-          echo '===== test current groq models list via API ====='
+          echo '===== full Groq model catalog (id + owned_by, no truncation) ====='
           set -a; source /home/ubuntu/.env; set +a
-          curl -s https://api.groq.com/openai/v1/models -H "Authorization: Bearer $GROQ_API_KEY" | python3 -m json.tool 2>/dev/null | grep -A1 '"id"' | grep -v "^--" | head -80
+          curl -s https://api.groq.com/openai/v1/models -H "Authorization: Bearer $GROQ_API_KEY" \
+            | python3 -c "
+          import json, sys
+          data = json.load(sys.stdin)
+          for m in data.get('data', []):
+              print(m.get('id'), '|', m.get('owned_by'), '| active:', m.get('active'), '| ctx:', m.get('context_window'))
+          "
+          echo ''
+          echo '===== other Groq model refs elsewhere in codebase ====='
+          grep -rn "llama-3\|llama3\|groq" /home/ubuntu/portfolio.py /home/ubuntu/btc_signal.py /home/ubuntu/btc_signal_handlers.py 2>/dev/null | grep -i model
           ENDSSH
