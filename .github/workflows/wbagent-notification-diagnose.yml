@@ -16,16 +16,7 @@ jobs:
           cp "ssh-key-2026-03-30 (1).key" /tmp/deploy_key
           chmod 600 /tmp/deploy_key
 
-      - name: Fetch call_groq() and groq_fn definitions verbatim
+      - name: Fetch call_groq() full body (line range)
         run: |
           SSH="ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@williambunarto.duckdns.org"
-          $SSH bash << 'ENDSSH'
-          echo '===== call_groq() in bot.py ====='
-          awk '/^def call_groq/,/^def [a-zA-Z_]+\(/{print NR": "$0}' /home/ubuntu/bot.py | head -60
-          echo ''
-          echo '===== groq_fn definition/import in portfolio.py ====='
-          grep -n "groq_fn" /home/ubuntu/portfolio.py | head -20
-          echo ''
-          echo '===== groq_fn definition/assignment in bot.py ====='
-          grep -n "groq_fn" /home/ubuntu/bot.py | head -20
-          ENDSSH
+          $SSH "sed -n '120,180p' /home/ubuntu/bot.py | cat -n"
