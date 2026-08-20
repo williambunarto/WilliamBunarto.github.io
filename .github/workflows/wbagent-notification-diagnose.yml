@@ -16,37 +16,13 @@ jobs:
           cp "ssh-key-2026-03-30 (1).key" /tmp/deploy_key
           chmod 600 /tmp/deploy_key
 
-      - name: Investigate empty content from gpt-oss models
+      - name: Find all call_groq/groq_fn callers with their max_tokens
         run: |
           SSH="ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@williambunarto.duckdns.org"
           $SSH bash << 'ENDSSH'
-          cd /home/ubuntu
-          set -a; source /home/ubuntu/.env; set +a
-          python3 << 'PYEOF'
-          import os, json
-          from groq import Groq
-
-          client = Groq(api_key=os.environ["GROQ_API_KEY"])
-          for model in ["openai/gpt-oss-120b", "openai/gpt-oss-20b"]:
-              print(f"===== {model} with max_tokens=300 =====")
-              try:
-                  resp = client.chat.completions.create(
-                      model=model,
-                      messages=[{"role": "user", "content": "Say hello in one short sentence."}],
-                      max_tokens=300,
-                      temperature=0.7,
-                  )
-                  msg = resp.choices[0].message
-                  print("content:", repr(msg.content))
-                  print("finish_reason:", resp.choices[0].finish_reason)
-                  print("usage:", resp.usage)
-                  # dump full message object to see if there's a reasoning field
-                  try:
-                      print("message dict:", json.dumps(msg.model_dump(), indent=2)[:1000])
-                  except Exception as ie:
-                      print("dump failed:", ie)
-              except Exception as e:
-                  print("FAILED:", e)
-              print()
-          PYEOF
+          echo '===== all call_groq/groq_fn call sites with max_tokens ====='
+          grep -n "call_groq(\|groq_fn(" /home/ubuntu/bot.py /home/ubuntu/portfolio.py /home/ubuntu/btc_signal.py 2>/dev/null
+          echo ''
+          echo '===== max_tokens values used across those files ====='
+          grep -n "max_tokens" /home/ubuntu/bot.py /home/ubuntu/portfolio.py /home/ubuntu/btc_signal.py 2>/dev/null
           ENDSSH
