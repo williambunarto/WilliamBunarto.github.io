@@ -22,11 +22,19 @@ Fixes applied (idempotent):
      model_not_found / "does not exist" / 404 / decommissioned as
      retryable, so it falls through to the next model and ultimately to
      the existing Gemini fallback instead of surfacing a raw error.
+  3. portfolio.py's three groq_fn() call sites had tight max_tokens
+     budgets (150/40/60) sized for the old non-reasoning llama models.
+     openai/gpt-oss-* are reasoning models that spend part of the token
+     budget on a hidden "reasoning" field before the visible answer
+     (confirmed: 16-73 reasoning tokens for a trivial prompt) -- with a
+     tight budget this silently returns EMPTY content instead of an
+     error. Bumped to 400/200/200 for headroom.
 """
 import sys
 import subprocess
 
 BOT_PATH = "/home/ubuntu/bot.py"
+PORTFOLIO_PATH = "/home/ubuntu/portfolio.py"
 
 
 def compile_check(path, content):
@@ -100,6 +108,53 @@ if changed:
     os.replace(tmp_bot, BOT_PATH)
     print("bot.py patched OK.")
 else:
-    print("Nothing to patch.")
+    print("Nothing to patch (bot.py).")
+
+# ─────────────────────────────────────────────────────────────────────────
+# portfolio.py: give the tight max_tokens budgets headroom for gpt-oss's
+# hidden reasoning tokens, so per-stock commentary / signals don't come
+# back silently empty.
+# ─────────────────────────────────────────────────────────────────────────
+with open(PORTFOLIO_PATH, "r", encoding="utf-8") as f:
+    pf = f.read()
+
+pf_changed = False
+
+pf_replacements = [
+    (
+        '        resp = groq_fn([{"role": "user", "content": prompt}], max_tokens=150)',
+        '        resp = groq_fn([{"role": "user", "content": prompt}], max_tokens=400)',
+        "150 -> 400",
+    ),
+    (
+        '        raw = groq_fn([{"role": "user", "content": prompt}], max_tokens=40).strip()',
+        '        raw = groq_fn([{"role": "user", "content": prompt}], max_tokens=200).strip()',
+        "40 -> 200",
+    ),
+    (
+        '            verdict = groq_fn([{"role": "user", "content": verdict_prompt}], max_tokens=60).strip()',
+        '            verdict = groq_fn([{"role": "user", "content": verdict_prompt}], max_tokens=200).strip()',
+        "60 -> 200",
+    ),
+]
+
+for old, new, label in pf_replacements:
+    if old in pf:
+        pf = pf.replace(old, new, 1)
+        pf_changed = True
+        print(f"portfolio.py: bumped max_tokens ({label})")
+    elif new in pf:
+        pass  # already patched
+    else:
+        print(f"ERROR: expected portfolio.py call site not found -- aborting: {old!r}")
+        sys.exit(1)
+
+if pf_changed:
+    tmp_pf = compile_check(PORTFOLIO_PATH, pf)
+    import os
+    os.replace(tmp_pf, PORTFOLIO_PATH)
+    print("portfolio.py patched OK.")
+else:
+    print("Nothing to patch (portfolio.py already up to date).")
 
 print("Patch complete.")
