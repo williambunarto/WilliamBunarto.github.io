@@ -16,57 +16,16 @@ jobs:
           cp "ssh-key-2026-03-30 (1).key" /tmp/deploy_key
           chmod 600 /tmp/deploy_key
 
-      - name: Realistic Groq call - EOD-commentary-length prompt at new max_tokens budgets
+      - name: Fetch call_groq() and groq_fn definitions verbatim
         run: |
           SSH="ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@williambunarto.duckdns.org"
           $SSH bash << 'ENDSSH'
-          cd /home/ubuntu
-          set -a; source /home/ubuntu/.env; set +a
-          python3 << 'PYEOF'
-          import os
-          from groq import Groq
-
-          client = Groq(api_key=os.environ["GROQ_API_KEY"])
-
-          cases = [
-              ("open_pulse commentary", 400,
-               "You are a terse Indonesian stock market assistant. Given this "
-               "portfolio snapshot, write a 2-3 sentence morning commentary in "
-               "Bahasa Indonesia:\nBBCA +0.79% Rp6,350, floating -9.90%. "
-               "BMRI +0.24% Rp4,150, floating -10.98%. BTC/USD +11.29% 24h."),
-              ("ticker signal", 200,
-               "Given 35 days of BBCA daily OHLC price data trending mildly "
-               "upward with RSI around 55 and price above the 20-day MA, "
-               "classify the short-term technical signal as BUY, HOLD, or "
-               "SELL and give one sentence of reasoning in Bahasa Indonesia."),
-              ("verdict", 200,
-               "Portfolio floating P&L is -10.67% overall with BTC up "
-               "sharply offsetting IDX stock losses. In one or two short "
-               "sentences in Bahasa Indonesia, give an overall verdict: "
-               "hold steady, trim, or add."),
-          ]
-
-          for model in ["openai/gpt-oss-120b", "openai/gpt-oss-20b"]:
-              print(f"===== {model} =====")
-              for label, max_tokens, prompt in cases:
-                  try:
-                      resp = client.chat.completions.create(
-                          model=model,
-                          messages=[{"role": "user", "content": prompt}],
-                          max_tokens=max_tokens,
-                          temperature=0.3,
-                      )
-                      text = (resp.choices[0].message.content or "").strip()
-                      usage = resp.usage
-                      reasoning = getattr(
-                          getattr(usage, "completion_tokens_details", None),
-                          "reasoning_tokens", None,
-                      )
-                      status = "OK" if text else "EMPTY-CONTENT"
-                      print(f"  [{status}] {label} (max_tokens={max_tokens}, "
-                            f"reasoning_tokens={reasoning}, completion_tokens={usage.completion_tokens}): "
-                            f"{text[:200]!r}")
-                  except Exception as e:
-                      print(f"  [EXCEPTION] {label}: {e}")
-          PYEOF
+          echo '===== call_groq() in bot.py ====='
+          awk '/^def call_groq/,/^def [a-zA-Z_]+\(/{print NR": "$0}' /home/ubuntu/bot.py | head -60
+          echo ''
+          echo '===== groq_fn definition/import in portfolio.py ====='
+          grep -n "groq_fn" /home/ubuntu/portfolio.py | head -20
+          echo ''
+          echo '===== groq_fn definition/assignment in bot.py ====='
+          grep -n "groq_fn" /home/ubuntu/bot.py | head -20
           ENDSSH
