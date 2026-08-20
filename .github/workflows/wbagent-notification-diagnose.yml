@@ -16,23 +16,21 @@ jobs:
           cp "ssh-key-2026-03-30 (1).key" /tmp/deploy_key
           chmod 600 /tmp/deploy_key
 
-      - name: Full Groq model catalog + call_groq source
+      - name: call_gemini body + GEMINI_API_KEY presence
         run: |
           SSH="ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@williambunarto.duckdns.org"
           $SSH bash << 'ENDSSH'
-          echo '===== bot.py lines 80,145 (MODELS + call_groq full body) ====='
-          sed -n '80,145p' /home/ubuntu/bot.py
+          echo '===== bot.py lines 145,185 (call_gemini full body) ====='
+          sed -n '145,185p' /home/ubuntu/bot.py
           echo ''
-          echo '===== full Groq model catalog (id + owned_by, no truncation) ====='
-          set -a; source /home/ubuntu/.env; set +a
-          curl -s https://api.groq.com/openai/v1/models -H "Authorization: Bearer $GROQ_API_KEY" \
-            | python3 -c "
-          import json, sys
-          data = json.load(sys.stdin)
-          for m in data.get('data', []):
-              print(m.get('id'), '|', m.get('owned_by'), '| active:', m.get('active'), '| ctx:', m.get('context_window'))
-          "
+          echo '===== GEMINI_API_KEY set? (not printing value) ====='
+          if grep -q '^GEMINI_API_KEY=' /home/ubuntu/.env 2>/dev/null; then
+            val=$(grep '^GEMINI_API_KEY=' /home/ubuntu/.env | cut -d= -f2-)
+            if [ -n "$val" ]; then echo "GEMINI_API_KEY: set (non-empty)"; else echo "GEMINI_API_KEY: present but EMPTY"; fi
+          else
+            echo "GEMINI_API_KEY: NOT SET in .env"
+          fi
           echo ''
-          echo '===== other Groq model refs elsewhere in codebase ====='
-          grep -rn "llama-3\|llama3\|groq" /home/ubuntu/portfolio.py /home/ubuntu/btc_signal.py /home/ubuntu/btc_signal_handlers.py 2>/dev/null | grep -i model
+          echo '===== EOD report AI failures today, exact count ====='
+          grep -c "AI error" /home/ubuntu/nohup.out
           ENDSSH
