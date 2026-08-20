@@ -1,0 +1,98 @@
+name: Deploy Groq Model Fallback Fix
+
+on:
+  push:
+    paths:
+      - 'wbagent/patch_groq_model_fallback.py'
+      - '.github/workflows/deploy-groq-model-fix.yml'
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup SSH
+        run: |
+          cp "ssh-key-2026-03-30 (1).key" /tmp/deploy_key
+          chmod 600 /tmp/deploy_key
+
+      - name: Copy patch script to server
+        run: |
+          scp -i /tmp/deploy_key -o StrictHostKeyChecking=no \
+            wbagent/patch_groq_model_fallback.py \
+            ubuntu@williambunarto.duckdns.org:/home/ubuntu/patch_groq_model_fallback.py
+
+      - name: Backup bot.py before patching
+        run: |
+          SSH="ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@williambunarto.duckdns.org"
+          $SSH "cp /home/ubuntu/bot.py /home/ubuntu/bot.py.bak.\$(date +%Y%m%d%H%M%S)"
+
+      - name: Run patch (idempotent)
+        run: |
+          SSH="ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@williambunarto.duckdns.org"
+          $SSH "cd /home/ubuntu && python3 patch_groq_model_fallback.py"
+
+      - name: Verify syntax
+        run: |
+          SSH="ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@williambunarto.duckdns.org"
+          $SSH "python3 -m py_compile /home/ubuntu/bot.py && echo 'syntax OK'"
+
+      - name: Live test - call new Groq models directly against the real API
+        run: |
+          SSH="ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@williambunarto.duckdns.org"
+          $SSH bash << 'ENDSSH'
+          cd /home/ubuntu
+          set -a; source /home/ubuntu/.env; set +a
+          python3 << 'PYEOF'
+          import os
+          from groq import Groq
+
+          client = Groq(api_key=os.environ["GROQ_API_KEY"])
+          for model in ["openai/gpt-oss-120b", "openai/gpt-oss-20b"]:
+              try:
+                  resp = client.chat.completions.create(
+                      model=model,
+                      messages=[{"role": "user", "content": "Reply with exactly: OK"}],
+                      max_tokens=10,
+                      temperature=0.0,
+                  )
+                  text = resp.choices[0].message.content.strip()
+                  print(f"SUCCESS {model}: {text!r}")
+              except Exception as e:
+                  print(f"FAILED {model}: {e}")
+          PYEOF
+          ENDSSH
+
+      - name: Restart bot process
+        run: |
+          SSH="ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@williambunarto.duckdns.org"
+          $SSH "printf '%s\n' \
+            '#!/bin/bash' \
+            'pkill -f python3.*bot.py 2>/dev/null; true' \
+            'sleep 2' \
+            'cd /home/ubuntu' \
+            'nohup python3 bot.py >> /home/ubuntu/nohup.out 2>&1 &' \
+            'sleep 5' \
+            'pgrep -a -f python3.*bot.py > /tmp/bot_newpid.txt 2>&1 || echo none > /tmp/bot_newpid.txt' \
+            > /tmp/restart_bot.sh && chmod +x /tmp/restart_bot.sh"
+          $SSH "setsid bash /tmp/restart_bot.sh > /tmp/restart_bot.log 2>&1 < /dev/null & echo 'Restart initiated in background'"
+
+      - name: Verify bot restarted
+        run: |
+          sleep 15
+          SSH="ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@williambunarto.duckdns.org"
+          $SSH "echo '=== bot.py process ===' && \
+                (pgrep -a -f 'python3 bot.py' || echo 'none found'); \
+                echo '=== nohup.out tail (last 30) ===' && \
+                tail -30 /home/ubuntu/nohup.out"
+
+      - name: Notify Telegram
+        run: |
+          SSH="ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@williambunarto.duckdns.org"
+          $SSH "set -a && source /home/ubuntu/.env && set +a && \
+                curl -s \"https://api.telegram.org/bot\${TELEGRAM_BOT_TOKEN}/sendMessage\" \
+                  -d \"chat_id=\${TELEGRAM_CHAT_ID}\" \
+                  --data-urlencode \"text=WBAgent: fixed AI error in EOD report - Groq deprecated llama-3.3-70b-versatile, switched to openai/gpt-oss-120b/20b and hardened the fallback so future model retirements auto-recover instead of erroring.\" > /dev/null && echo 'Telegram notified' || echo 'Telegram notify failed (non-fatal)'"
+        continue-on-error: true
