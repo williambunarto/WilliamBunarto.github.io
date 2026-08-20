@@ -16,21 +16,16 @@ jobs:
           cp "ssh-key-2026-03-30 (1).key" /tmp/deploy_key
           chmod 600 /tmp/deploy_key
 
-      - name: call_gemini body + GEMINI_API_KEY presence
+      - name: Exact MODELS block + line numbers
         run: |
           SSH="ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no ubuntu@williambunarto.duckdns.org"
           $SSH bash << 'ENDSSH'
-          echo '===== bot.py lines 145,185 (call_gemini full body) ====='
-          sed -n '145,185p' /home/ubuntu/bot.py
+          echo '===== cat -A on lines 84,92 (show exact whitespace/tabs) ====='
+          sed -n '84,92p' /home/ubuntu/bot.py | cat -A | head -20
           echo ''
-          echo '===== GEMINI_API_KEY set? (not printing value) ====='
-          if grep -q '^GEMINI_API_KEY=' /home/ubuntu/.env 2>/dev/null; then
-            val=$(grep '^GEMINI_API_KEY=' /home/ubuntu/.env | cut -d= -f2-)
-            if [ -n "$val" ]; then echo "GEMINI_API_KEY: set (non-empty)"; else echo "GEMINI_API_KEY: present but EMPTY"; fi
-          else
-            echo "GEMINI_API_KEY: NOT SET in .env"
-          fi
+          echo '===== plain lines 84,92 ====='
+          sed -n '84,92p' /home/ubuntu/bot.py
           echo ''
-          echo '===== EOD report AI failures today, exact count ====='
-          grep -c "AI error" /home/ubuntu/nohup.out
+          echo '===== any other MODELS or model list refs in whole file ====='
+          grep -n "MODELS" /home/ubuntu/bot.py
           ENDSSH
