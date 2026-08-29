@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>WealthMatrix v2 — Demo</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{
+  --bg:#07090f;--card:#0d1322;--card2:#111827;--inp:#090d19;
+  --b:#1a2540;--bh:#2a3a5c;
+  --tx:#e2e8f0;--muted:#64748b;--dim:#334155;
+  --teal:#10d4a8;--teal10:rgba(16,212,168,.1);--teal25:rgba(16,212,168,.25);
+  --gold:#e6b84a;--gold10:rgba(230,184,74,.1);
+  --red:#ef4444;--red10:rgba(239,68,68,.1);
+  --green:#22c55e;--green10:rgba(34,197,94,.1);
+  --blue:#3b82f6;--orange:#f97316;--purple:#a855f7;
+  --font:'Sora',sans-serif;--mono:'JetBrains Mono',monospace;
+  --r:12px;--rs:8px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:var(--font);background:var(--bg);color:var(--tx);min-height:100vh;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 60% 50% at 15% 10%,rgba(16,212,168,.05),transparent 70%),radial-gradient(ellipse 50% 40% at 85% 85%,rgba(230,184,74,.04),transparent 70%);pointer-events:none;z-index:0}
+#app{position:relative;z-index:1;display:flex;flex-direction:column;min-height:100vh}
+
+header{position:sticky;top:0;z-index:100;background:rgba(7,9,15,.94);backdrop-filter:blur(20px);border-bottom:1px solid var(--b);height:56px;display:flex;align-items:center;padding:0 20px;gap:20px;flex-shrink:0}
+.logo{display:flex;align-items:center;gap:9px;text-decoration:none;flex-shrink:0}
+.logo-box{width:30px;height:30px;background:linear-gradient(135deg,var(--teal),#059473);border-radius:8px;display:grid;place-items:center;font-size:15px;box-shadow:0 0 14px var(--teal25)}
+.logo-text{font-size:14.5px;font-weight:700;letter-spacing:-.4px}
+.logo-text b{color:var(--teal)}
+nav{display:flex;gap:2px;flex:1;overflow-x:auto;scrollbar-width:none}
+nav::-webkit-scrollbar{display:none}
+.nb{display:flex;align-items:center;gap:5px;padding:5px 12px;border-radius:6px;border:none;background:transparent;color:var(--muted);font-family:var(--font);font-size:12px;font-weight:500;cursor:pointer;transition:.15s;white-space:nowrap;flex-shrink:0}
+.nb:hover{color:var(--tx);background:rgba(255,255,255,.05)}
+.nb.on{color:var(--teal);background:var(--teal10)}
+.hdr-r{margin-left:auto;display:flex;align-items:center;gap:10px;flex-shrink:0}
+.btc-ticker{font-family:var(--mono);font-size:11px;color:var(--muted);cursor:pointer;padding:4px 8px;border-radius:6px;border:1px solid var(--b);transition:.15s;white-space:nowrap}
+.btc-ticker b{color:var(--gold)}
+.total-pill{font-family:var(--mono);font-size:11px;color:var(--muted);white-space:nowrap}
+.total-pill b{color:var(--teal);font-size:12.5px}
+.demo-badge{padding:3px 10px;border-radius:12px;background:rgba(168,85,247,.15);color:#a855f7;font-size:10px;font-weight:700;border:1px solid rgba(168,85,247,.3);letter-spacing:.3px}
+
+main{padding:18px 20px;flex:1;max-width:1440px;width:100%;margin:0 auto}
+.sec{display:none;animation:fadeUp .22s ease}
+.sec.on{display:block}
+@keyframes fadeUp{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+
+.card{background:var(--card);border:1px solid var(--b);border-radius:var(--r);padding:16px}
+.card-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.card-title{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--muted)}
+
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.g2{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.g21{display:grid;grid-template-columns:2fr 1fr;gap:12px}
+.mb3{margin-bottom:12px}.mb4{margin-bottom:16px}.mb5{margin-bottom:20px}
+
+.stat{background:var(--card);border:1px solid var(--b);border-radius:var(--r);padding:16px 18px;position:relative;overflow:hidden;transition:.15s}
+.stat::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--ac,var(--teal)),transparent);opacity:.7}
+.stat:hover{border-color:var(--bh)}
+.stat-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--muted);margin-bottom:7px}
+.stat-val{font-family:var(--mono);font-size:20px;font-weight:700;line-height:1;margin-bottom:5px}
+.stat-sub{font-size:11px;color:var(--muted)}
+.stat-ico{position:absolute;top:13px;right:13px;font-size:24px;opacity:.12}
+
+.inv-list{display:flex;flex-direction:column;gap:6px}
+.inv-row{background:var(--card);border:1px solid var(--b);border-radius:var(--rs);padding:13px 15px;display:grid;grid-template-columns:6px 1fr auto auto auto;align-items:center;gap:12px;cursor:pointer;transition:.15s}
+.inv-row:hover{border-color:var(--bh);background:var(--card2)}
+.inv-info h4{font-size:13px;font-weight:600;margin-bottom:1px}
+.inv-info small{font-size:11px;color:var(--muted)}
+.inv-val{text-align:right}
+.inv-val .amt{font-family:var(--mono);font-size:13.5px;font-weight:700}
+.inv-val .pp{font-size:10.5px;font-family:var(--mono)}
+.inv-rt{text-align:right;min-width:65px}
+.inv-rt .rate{font-family:var(--mono);font-size:12px;font-weight:600}
+.pb{height:3px;background:var(--b);border-radius:2px;overflow:hidden;margin-top:5px}
+.pf{height:100%;border-radius:2px}
+
+.btn{display:inline-flex;align-items:center;gap:5px;padding:7px 14px;border-radius:var(--rs);border:none;font-family:var(--font);font-size:12px;font-weight:600;cursor:pointer;transition:.15s;white-space:nowrap}
+.btn-pri{background:var(--teal);color:#000}
+.btn-pri:hover{background:#0ec49a;box-shadow:0 0 16px var(--teal25)}
+.btn-sec{background:rgba(255,255,255,.06);color:var(--tx);border:1px solid var(--b)}
+.btn-sec:hover{background:rgba(255,255,255,.1)}
+.btn-del{background:var(--red10);color:var(--red);border:1px solid rgba(239,68,68,.25)}
+.btn-gold{background:var(--gold10);color:var(--gold);border:1px solid rgba(230,184,74,.25)}
+.btn-sm{padding:4px 10px;font-size:11.5px}
+.btn-ico{width:27px;height:27px;padding:0;justify-content:center;border-radius:6px}
+
+.sec-hdr{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px;gap:12px}
+.sec-title{font-size:19px;font-weight:700;letter-spacing:-.4px}
+.sec-sub{font-size:12px;color:var(--muted);margin-top:2px}
+.sec-acts{display:flex;gap:7px;flex-shrink:0;flex-wrap:wrap}
+
+.chips{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:12px}
+.chip{padding:4px 12px;border-radius:20px;border:1px solid var(--b);background:transparent;color:var(--muted);font-size:11.5px;font-weight:500;cursor:pointer;transition:.15s}
+.chip.on{border-color:var(--teal);color:var(--teal);background:var(--teal10)}
+.chip:hover:not(.on){color:var(--tx);border-color:var(--bh)}
+
+.overlay{position:fixed;inset:0;background:rgba(5,7,14,.9);backdrop-filter:blur(12px);z-index:200;display:none;align-items:center;justify-content:center;padding:16px}
+.overlay.on{display:flex}
+.modal{background:var(--card);border:1px solid var(--bh);border-radius:16px;width:100%;max-width:500px;max-height:92vh;overflow-y:auto;animation:mIn .26s cubic-bezier(.16,1,.3,1)}
+@keyframes mIn{from{opacity:0;transform:scale(.95) translateY(14px)}to{opacity:1;transform:scale(1) translateY(0)}}
+.m-hdr{padding:16px 20px;border-bottom:1px solid var(--b);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--card);z-index:1}
+.m-hdr h3{font-size:14.5px;font-weight:700}
+.m-body{padding:20px}
+.m-foot{padding:12px 20px;border-top:1px solid var(--b);display:flex;gap:7px;justify-content:flex-end}
+
+.fg{margin-bottom:13px}
+.fg label{display:block;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:4px}
+.fc{width:100%;padding:9px 11px;background:var(--inp);border:1px solid var(--b);border-radius:var(--rs);color:var(--tx);font-family:var(--font);font-size:13px;transition:.15s;outline:none}
+.fc:focus{border-color:var(--teal)}
+.fc.mono{font-family:var(--mono)}
+.fc-hint{font-size:10.5px;color:var(--muted);margin-top:3px}
+.fr{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+select.fc{cursor:pointer}
+textarea.fc{min-height:64px;resize:vertical}
+
+.type-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-bottom:4px}
+.type-opt{padding:10px 6px;border-radius:var(--rs);border:1px solid var(--b);background:var(--inp);color:var(--muted);font-size:10.5px;font-weight:600;text-align:center;cursor:pointer;transition:.15s}
+.type-opt .ti{font-size:18px;display:block;margin-bottom:3px}
+.type-opt:hover{border-color:var(--bh);color:var(--tx)}
+.type-opt.sel-saham{border-color:var(--blue);background:rgba(59,130,246,.12);color:var(--blue)}
+.type-opt.sel-crypto{border-color:var(--orange);background:rgba(249,115,22,.12);color:var(--orange)}
+.type-opt.sel-deposito{border-color:var(--teal);background:var(--teal10);color:var(--teal)}
+
+.ftabs{display:flex;gap:3px;background:var(--card);border:1px solid var(--b);border-radius:var(--rs);padding:3px;margin-bottom:16px}
+.ftab{flex:1;padding:7px;border-radius:6px;border:none;background:transparent;color:var(--muted);font-family:var(--font);font-size:12px;font-weight:600;cursor:pointer;transition:.15s}
+.ftab.on{background:var(--teal);color:#000}
+.ftab:not(.on):hover{color:var(--tx);background:rgba(255,255,255,.05)}
+
+.sbar{display:flex;align-items:flex-end;gap:14px;padding:13px 16px;background:var(--card);border:1px solid var(--b);border-radius:var(--r);margin-bottom:16px;flex-wrap:wrap}
+.sbar label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);display:block;margin-bottom:4px}
+.sdiv{width:1px;height:32px;background:var(--b);align-self:center}
+
+.proj-mini{padding:4px 0}
+.pv-big{font-family:var(--mono);font-size:22px;font-weight:700;line-height:1;margin-bottom:4px}
+.pg{font-size:11.5px;margin-bottom:2px}
+.pf-from{font-size:10.5px;color:var(--muted)}
+
+.tbl{width:100%;border-collapse:collapse;font-size:12px}
+.tbl th{padding:8px 11px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);border-bottom:1px solid var(--b)}
+.tbl td{padding:10px 11px;border-bottom:1px solid rgba(26,37,64,.35);font-family:var(--mono)}
+.tbl tr:last-child td{border-bottom:none}
+.tbl tr:hover td{background:rgba(255,255,255,.013)}
+
+.goal-card{background:var(--card);border:1px solid var(--b);border-radius:var(--r);padding:16px;position:relative;overflow:hidden;transition:.15s}
+.goal-card:hover{border-color:var(--bh)}
+.goal-prog{height:6px;background:var(--b);border-radius:3px;overflow:hidden;margin:10px 0 6px}
+.goal-prog-fill{height:100%;border-radius:3px;transition:width .5s ease}
+
+.drop-zone{border:2px dashed var(--bh);border-radius:var(--r);padding:36px;text-align:center;cursor:pointer;transition:.2s;background:var(--inp)}
+.drop-zone:hover{border-color:var(--teal);background:var(--teal10)}
+.drop-zone .di{font-size:36px;margin-bottom:8px}
+.drop-zone p{font-size:13px;color:var(--muted)}
+.drop-zone b{color:var(--teal)}
+
+.badge{display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:12px;font-size:10px;font-weight:600}
+.badge-ok{background:var(--green10);color:var(--green)}
+.badge-warn{background:var(--gold10);color:var(--gold)}
+.badge-err{background:var(--red10);color:var(--red)}
+.badge-blue{background:rgba(59,130,246,.12);color:var(--blue)}
+
+.cw{position:relative;width:100%}
+.cw canvas{width:100%!important}
+
+.inf-row{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid rgba(26,37,64,.35);font-size:12.5px}
+.inf-row:last-child{border:none}
+.inf-year{font-family:var(--mono);color:var(--muted);width:36px;flex-shrink:0}
+.inf-bar-wrap{flex:1;height:8px;background:var(--b);border-radius:4px;overflow:hidden}
+.inf-bar-fill{height:100%;border-radius:4px}
+.inf-rate{font-family:var(--mono);width:45px;text-align:right;flex-shrink:0}
+
+.up{color:var(--green)}.down{color:var(--red)}
+
+#toast{position:fixed;bottom:18px;right:18px;z-index:300;display:flex;flex-direction:column;gap:6px}
+.ti{background:var(--card2);border:1px solid var(--bh);border-radius:var(--rs);padding:10px 14px;font-size:12.5px;animation:tIn .22s ease;box-shadow:0 8px 24px rgba(0,0,0,.55);display:flex;align-items:center;gap:7px}
+@keyframes tIn{from{opacity:0;transform:translateX(14px)}to{opacity:1;transform:translateX(0)}}
+.ti-ok{border-left:3px solid var(--teal)}.ti-err{border-left:3px solid var(--red)}.ti-warn{border-left:3px solid var(--gold)}
+
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--bh);border-radius:3px}
+
+@media(max-width:1100px){.g4{grid-template-columns:repeat(2,1fr)}.g21{grid-template-columns:1fr}}
+@media(max-width:750px){main{padding:12px 12px}.g4,.g3,.g2{grid-template-columns:1fr}.fr{grid-template-columns:1fr}.inv-row{grid-template-columns:6px 1fr auto auto}.logo-text{display:none}.sbar{flex-direction:column;align-items:flex-start}.sdiv{display:none}}
+</style>
+</head>
+<body>
+<div id="app">
+
+<header>
+  <a class="logo" href="#">
+    <div class="logo-box">💎</div>
+    <div class="logo-text">Wealth<b>Matrix</b></div>
+  </a>
+  <nav>
+    <button class="nb on" onclick="nav('dashboard',this)">📊 Dashboard</button>
+    <button class="nb" onclick="nav('portfolio',this)">💼 Portfolio</button>
+    <button class="nb" onclick="nav('forecast',this)">🔮 Forecast</button>
+    <button class="nb" onclick="nav('goals',this)">🎯 Goals</button>
+    <button class="nb" onclick="nav('upload',this)">📄 Import PDF</button>
+    <button class="nb" onclick="nav('market',this)">🌐 Market</button>
+  </nav>
+  <div class="hdr-r">
+    <div class="btc-ticker">₿ <b>Rp 1,62M</b> <span style="color:var(--green)">+2.4%</span></div>
+    <div class="total-pill">Portfolio: <b id="hdr-total">Rp 487,5Jt</b></div>
+    <span class="demo-badge">DEMO</span>
+  </div>
+</header>
+
+<main>
+
+<!-- DASHBOARD -->
+<section id="s-dashboard" class="sec on">
+  <div class="sec-hdr">
+    <div><div class="sec-title">Dashboard</div><div class="sec-sub" id="dash-dt"></div></div>
+    <div class="sec-acts">
+      <button class="btn btn-sec btn-sm" onclick="nav('upload',document.querySelectorAll('.nb')[4])">📄 Import PDF</button>
+      <button class="btn btn-pri btn-sm" onclick="openAdd()">+ Add Investment</button>
+    </div>
+  </div>
+  <div class="g4 mb4">
+    <div class="stat" style="--ac:var(--teal)">
+      <div class="stat-lbl">Total Portfolio</div>
+      <div class="stat-val">Rp 487,5Jt</div>
+      <div class="stat-sub up">▲ Rp 87,5Jt unrealized</div>
+      <div class="stat-ico">💎</div>
+    </div>
+    <div class="stat" style="--ac:var(--gold)">
+      <div class="stat-lbl">Total Modal</div>
+      <div class="stat-val">Rp 400Jt</div>
+      <div class="stat-sub" style="color:var(--muted)">3 positions</div>
+      <div class="stat-ico">💰</div>
+    </div>
+    <div class="stat" style="--ac:var(--green)">
+      <div class="stat-lbl">Total P&L</div>
+      <div class="stat-val" style="color:var(--green)">Rp 87,5Jt</div>
+      <div class="stat-sub up">+21.88% overall</div>
+      <div class="stat-ico">📊</div>
+    </div>
+    <div class="stat" style="--ac:var(--blue)">
+      <div class="stat-lbl">Weighted Return</div>
+      <div class="stat-val">28.64%</div>
+      <div class="stat-sub" style="color:var(--muted)">Annual blended rate</div>
+      <div class="stat-ico">🎯</div>
+    </div>
+  </div>
+  <div class="g21 mb4">
+    <div class="card">
+      <div class="card-hdr"><div class="card-title">Portfolio Value History</div><span style="font-size:10.5px;color:var(--muted)">6 data points</span></div>
+      <div class="cw" style="height:210px"><canvas id="ch-hist"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-hdr"><div class="card-title">Allocation</div></div>
+      <div class="cw" style="height:210px"><canvas id="ch-alloc"></canvas></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-hdr"><div class="card-title">Holdings</div><span style="font-size:11px;color:var(--muted)">3 assets</span></div>
+    <div class="inv-list">
+      <div class="inv-row" onclick="openEdit('1')">
+        <div style="width:6px;border-radius:3px;align-self:stretch;background:#3b82f6"></div>
+        <div class="inv-info"><h4>BBCA</h4><small>Saham · Ajaib · Jan 2024</small></div>
+        <div class="inv-val"><div class="amt">Rp 210Jt</div><div class="pp up">+40.00%</div><div class="pb"><div class="pf" style="width:43%;background:#3b82f6"></div></div></div>
+        <div class="inv-rt"><div class="rate" style="color:#3b82f6">20.0%/yr</div><div style="font-size:10px;color:var(--muted)">43.1% alloc</div></div>
+        <div><button class="btn btn-sec btn-sm btn-ico" onclick="event.stopPropagation();openUpd('1')" title="Update">↑</button></div>
+      </div>
+      <div class="inv-row" onclick="openEdit('2')">
+        <div style="width:6px;border-radius:3px;align-self:stretch;background:#f97316"></div>
+        <div class="inv-info"><h4>BTC <span class="badge badge-blue" style="font-size:9px;vertical-align:middle">LIVE</span></h4><small>Crypto · Bybit · Mar 2024</small></div>
+        <div class="inv-val"><div class="amt">Rp 194,5Jt</div><div class="pp up">+29.67%</div><div class="pb"><div class="pf" style="width:40%;background:#f97316"></div></div></div>
+        <div class="inv-rt"><div class="rate" style="color:#f97316">60.0%/yr</div><div style="font-size:10px;color:var(--muted)">39.9% alloc</div></div>
+        <div><button class="btn btn-sec btn-sm btn-ico" onclick="event.stopPropagation();openUpd('2')" title="Update">↑</button></div>
+      </div>
+      <div class="inv-row" onclick="openEdit('3')">
+        <div style="width:6px;border-radius:3px;align-self:stretch;background:#10d4a8"></div>
+        <div class="inv-info"><h4>Deposito BCA 6 Bulan</h4><small>Deposito · BCA · Nov 2023</small></div>
+        <div class="inv-val"><div class="amt">Rp 83Jt</div><div class="pp up">+3.75%</div><div class="pb"><div class="pf" style="width:17%;background:#10d4a8"></div></div></div>
+        <div class="inv-rt"><div class="rate" style="color:#10d4a8">6.5%/yr</div><div style="font-size:10px;color:var(--muted)">17.0% alloc</div></div>
+        <div><button class="btn btn-sec btn-sm btn-ico" onclick="event.stopPropagation();openUpd('3')" title="Update">↑</button></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PORTFOLIO -->
+<section id="s-portfolio" class="sec">
+  <div class="sec-hdr">
+    <div><div class="sec-title">Portfolio Manager</div><div class="sec-sub">Record and track all your investments</div></div>
+    <div class="sec-acts">
+      <button class="btn btn-sec btn-sm">📄 Import PDF</button>
+      <button class="btn btn-pri" onclick="openAdd()">+ Add Investment</button>
+    </div>
+  </div>
+  <div class="chips">
+    <button class="chip on">All</button>
+    <button class="chip">📈 Saham</button>
+    <button class="chip">₿ Crypto</button>
+    <button class="chip">🏦 Deposito</button>
+  </div>
+  <div class="inv-list">
+    <div class="inv-row" onclick="openEdit('1')">
+      <div style="width:6px;border-radius:3px;align-self:stretch;background:#3b82f6"></div>
+      <div class="inv-info"><h4>BBCA</h4><small>Saham · Ajaib · Jan 2024 · 3000 lot</small></div>
+      <div class="inv-val"><div class="amt">Rp 210Jt</div><div class="pp up">+40.00%</div><div class="pb"><div class="pf" style="width:43%;background:#3b82f6"></div></div></div>
+      <div class="inv-rt"><div class="rate" style="color:#3b82f6">20.0%/yr</div><div style="font-size:10px;color:var(--muted)">43.1% alloc</div></div>
+      <div><button class="btn btn-sec btn-sm btn-ico">↑</button></div>
+    </div>
+    <div class="inv-row" onclick="openEdit('2')">
+      <div style="width:6px;border-radius:3px;align-self:stretch;background:#f97316"></div>
+      <div class="inv-info"><h4>BTC <span class="badge badge-blue" style="font-size:9px;vertical-align:middle">LIVE</span></h4><small>Crypto · Bybit · Mar 2024 · 0.12 BTC</small></div>
+      <div class="inv-val"><div class="amt">Rp 194,5Jt</div><div class="pp up">+29.67%</div><div class="pb"><div class="pf" style="width:40%;background:#f97316"></div></div></div>
+      <div class="inv-rt"><div class="rate" style="color:#f97316">60.0%/yr</div><div style="font-size:10px;color:var(--muted)">39.9% alloc</div></div>
+      <div><button class="btn btn-sec btn-sm btn-ico">↑</button></div>
+    </div>
+    <div class="inv-row" onclick="openEdit('3')">
+      <div style="width:6px;border-radius:3px;align-self:stretch;background:#10d4a8"></div>
+      <div class="inv-info"><h4>Deposito BCA 6 Bulan</h4><small>Deposito · BCA · Nov 2023</small></div>
+      <div class="inv-val"><div class="amt">Rp 83Jt</div><div class="pp up">+3.75%</div><div class="pb"><div class="pf" style="width:17%;background:#10d4a8"></div></div></div>
+      <div class="inv-rt"><div class="rate" style="color:#10d4a8">6.5%/yr</div><div style="font-size:10px;color:var(--muted)">17.0% alloc</div></div>
+      <div><button class="btn btn-sec btn-sm btn-ico">↑</button></div>
+    </div>
+  </div>
+</section>
+
+<!-- FORECAST -->
+<section id="s-forecast" class="sec">
+  <div class="sec-hdr">
+    <div><div class="sec-title">Wealth Forecast</div><div class="sec-sub">Compound interest projection — 3 scenarios, all timeframes</div></div>
+  </div>
+  <div class="sbar mb4">
+    <div><label>Monthly Contribution (IDR)</label><input type="number" class="fc mono" style="width:170px" placeholder="5,000,000" value="5000000" id="demo-pmt" oninput="updateForecast()"></div>
+    <div class="sdiv"></div>
+    <div><label>Current Portfolio</label><input type="text" class="fc mono" style="width:150px" value="Rp 487,5Jt" readonly></div>
+    <div class="sdiv"></div>
+    <div><label>Weighted Return</label><input type="text" class="fc mono" style="width:110px" value="28.64%/yr" readonly></div>
+    <div class="sdiv"></div>
+    <div><label>Positions</label><input type="text" class="fc mono" style="width:70px" value="3" readonly></div>
+    <button class="btn btn-sec btn-sm" onclick="renderForecastDash()" style="align-self:flex-end">↻ Refresh</button>
+  </div>
+  <div class="ftabs">
+    <button class="ftab on" onclick="switchFP('short',this)">⚡ Short Term</button>
+    <button class="ftab" onclick="switchFP('mid',this)">📅 Mid Term</button>
+    <button class="ftab" onclick="switchFP('long',this)">🏔 Long Term</button>
+    <button class="ftab" onclick="switchFP('breakdown',this)">🔍 Per Asset</button>
+  </div>
+  <div id="fp-short">
+    <div class="g2 mb4">
+      <div class="card"><div class="card-hdr"><div class="card-title">1 Week</div></div><div id="p1w"></div></div>
+      <div class="card"><div class="card-hdr"><div class="card-title">1 Month</div></div><div id="p1m"></div></div>
+    </div>
+    <div class="card mb4"><div class="card-hdr"><div class="card-title">3 Months</div></div><div id="p3ms"></div></div>
+    <div class="card">
+      <div class="card-hdr"><div class="card-title">Short Term — Next 8 Weeks</div><div style="font-size:11px;display:flex;gap:8px"><span style="color:var(--gold)">— Optimistic</span><span style="color:var(--teal)">— Base</span><span style="color:var(--muted)">— Conservative</span></div></div>
+      <div class="cw" style="height:230px"><canvas id="ch-short"></canvas></div>
+    </div>
+  </div>
+  <div id="fp-mid" style="display:none">
+    <div class="g3 mb4">
+      <div class="card"><div class="card-hdr"><div class="card-title">3 Months</div></div><div id="p3m"></div></div>
+      <div class="card"><div class="card-hdr"><div class="card-title">6 Months</div></div><div id="p6m"></div></div>
+      <div class="card"><div class="card-hdr"><div class="card-title">12 Months</div></div><div id="p12m"></div></div>
+    </div>
+    <div class="card">
+      <div class="card-hdr"><div class="card-title">Monthly Projection — 12 Months</div><div style="font-size:11px;display:flex;gap:8px"><span style="color:var(--gold)">— Optimistic +30%</span><span style="color:var(--teal)">— Base</span><span style="color:var(--muted)">— Conservative −30%</span></div></div>
+      <div class="cw" style="height:250px"><canvas id="ch-mid"></canvas></div>
+    </div>
+  </div>
+  <div id="fp-long" style="display:none">
+    <div class="card mb4">
+      <div class="card-hdr"><div class="card-title">Long Term Wealth Projection</div><div style="font-size:11px;display:flex;gap:8px"><span style="color:var(--gold)">— Optimistic</span><span style="color:var(--teal)">— Base</span><span style="color:var(--muted)">— Conservative</span><span style="color:var(--blue)">— PMT Only</span></div></div>
+      <div class="cw" style="height:300px"><canvas id="ch-long"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-hdr"><div class="card-title">Milestone Projection Table</div></div>
+      <table class="tbl"><thead><tr><th>Horizon</th><th>Conservative −30%</th><th>Base Case</th><th>Optimistic +30%</th><th>PMT Compound</th><th>Gain vs Today</th></tr></thead><tbody id="tbl-long"></tbody></table>
+    </div>
+  </div>
+  <div id="fp-breakdown" style="display:none">
+    <div class="card mb4">
+      <div class="card-hdr"><div class="card-title">Per-Investment Projection</div></div>
+      <table class="tbl"><thead><tr><th>Investment</th><th>Type</th><th>Current</th><th>Rate</th><th>3M</th><th>6M</th><th>12M</th><th>5Y</th><th>10Y</th></tr></thead>
+      <tbody>
+        <tr><td style="color:var(--tx);font-weight:600">BBCA</td><td><span class="badge badge-blue">Saham</span></td><td>Rp 210Jt</td><td style="color:#3b82f6">20%</td><td>Rp 213,4Jt</td><td>Rp 220Jt</td><td style="color:var(--teal)">Rp 252Jt</td><td style="color:var(--gold)">Rp 519Jt</td><td style="color:var(--orange)">Rp 1,28M</td></tr>
+        <tr><td style="color:var(--tx);font-weight:600">BTC</td><td><span class="badge" style="background:rgba(249,115,22,.12);color:#f97316">Crypto</span></td><td>Rp 194,5Jt</td><td style="color:#f97316">60%</td><td>Rp 219,3Jt</td><td>Rp 248Jt</td><td style="color:var(--teal)">Rp 456Jt</td><td style="color:var(--gold)">Rp 8,5M</td><td style="color:var(--orange)">Rp 372M</td></tr>
+        <tr><td style="color:var(--tx);font-weight:600">Deposito BCA</td><td><span class="badge" style="background:var(--teal10);color:var(--teal)">Deposito</span></td><td>Rp 83Jt</td><td style="color:#10d4a8">6.5%</td><td>Rp 84,3Jt</td><td>Rp 85,7Jt</td><td style="color:var(--teal)">Rp 88,6Jt</td><td style="color:var(--gold)">Rp 113,6Jt</td><td style="color:var(--orange)">Rp 155,7Jt</td></tr>
+      </tbody></table>
+    </div>
+    <div class="card"><div class="card-hdr"><div class="card-title">12M Projection by Asset</div></div><div class="cw" style="height:240px"><canvas id="ch-inv-proj"></canvas></div></div>
+  </div>
+</section>
+
+<!-- GOALS -->
+<section id="s-goals" class="sec">
+  <div class="sec-hdr">
+    <div><div class="sec-title">Financial Goals</div><div class="sec-sub">Track targets and required monthly contributions</div></div>
+    <button class="btn btn-pri" onclick="openAddGoal()">+ Add Goal</button>
+  </div>
+  <div class="g2">
+    <div class="goal-card">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px">
+        <div><div style="font-size:15px;font-weight:700">🏠 Rumah Pertama</div><div style="font-size:11px;color:var(--muted)">Target: December 2028</div></div>
+        <span class="badge badge-ok">On Track ✓</span>
+      </div>
+      <div style="font-family:var(--mono);font-size:18px;font-weight:700;margin-bottom:2px">Rp 2.000.000.000</div>
+      <div class="goal-prog"><div class="goal-prog-fill" style="width:24%;background:#10d4a8"></div></div>
+      <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:10px"><span>Rp 487,5Jt current</span><span>24.4%</span></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:11px">
+        <div style="background:var(--inp);border:1px solid var(--b);border-radius:6px;padding:7px"><div style="color:var(--muted);margin-bottom:2px">Projected at 3.5yr</div><div style="font-family:var(--mono);font-weight:600;color:var(--green)">Rp 2,18M</div></div>
+        <div style="background:var(--inp);border:1px solid var(--b);border-radius:6px;padding:7px"><div style="color:var(--muted);margin-bottom:2px">Required PMT/mo</div><div style="font-family:var(--mono);font-weight:600;color:var(--gold)">Rp 14,2Jt</div></div>
+      </div>
+    </div>
+    <div class="goal-card">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px">
+        <div><div style="font-size:15px;font-weight:700">🚗 Mobil Listrik</div><div style="font-size:11px;color:var(--muted)">Target: June 2026</div></div>
+        <span class="badge badge-warn">Needs Boost</span>
+      </div>
+      <div style="font-family:var(--mono);font-size:18px;font-weight:700;margin-bottom:2px">Rp 600.000.000</div>
+      <div class="goal-prog"><div class="goal-prog-fill" style="width:81%;background:#e6b84a"></div></div>
+      <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:10px"><span>Rp 487,5Jt current</span><span>81.3%</span></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:11px">
+        <div style="background:var(--inp);border:1px solid var(--b);border-radius:6px;padding:7px"><div style="color:var(--muted);margin-bottom:2px">Projected at 1yr</div><div style="font-family:var(--mono);font-weight:600;color:var(--red)">Rp 567Jt</div></div>
+        <div style="background:var(--inp);border:1px solid var(--b);border-radius:6px;padding:7px"><div style="color:var(--muted);margin-bottom:2px">Required PMT/mo</div><div style="font-family:var(--mono);font-weight:600;color:var(--gold)">Rp 11,4Jt</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- UPLOAD -->
+<section id="s-upload" class="sec">
+  <div class="sec-hdr">
+    <div><div class="sec-title">PDF Import</div><div class="sec-sub">Upload Ajaib or Bybit monthly statements to auto-populate portfolio data</div></div>
+  </div>
+  <div class="g2 mb5">
+    <div class="card">
+      <div class="card-hdr"><div class="card-title">Upload Statement</div></div>
+      <div class="fg"><label>Source</label>
+        <select class="fc"><option>Ajaib (Saham / Reksa Dana)</option><option>Bybit (Crypto)</option><option>Other</option></select>
+      </div>
+      <div class="drop-zone" onclick="toast('Demo mode — deploy to server to use PDF import','warn')">
+        <div class="di">📄</div>
+        <p>Drop PDF here or <b>click to browse</b></p>
+        <p style="font-size:11px;margin-top:5px">Max 25MB · PDF format only</p>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-hdr"><div class="card-title">Recent Uploads</div></div>
+      <div>
+        <div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid rgba(26,37,64,.35);font-size:12px">
+          <span style="font-size:16px">📈</span>
+          <div style="flex:1"><div style="font-weight:600">Ajaib_Portfolio_Apr2025.pdf</div><div style="font-size:10.5px;color:var(--muted)">28 Apr 2025 · ajaib</div></div>
+          <span class="badge badge-ok">imported</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;padding:7px 0;font-size:12px">
+          <span style="font-size:16px">₿</span>
+          <div style="flex:1"><div style="font-weight:600">Bybit_Statement_Mar2025.pdf</div><div style="font-size:10.5px;color:var(--muted)">5 Apr 2025 · bybit</div></div>
+          <span class="badge badge-ok">imported</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- MARKET -->
+<section id="s-market" class="sec">
+  <div class="sec-hdr">
+    <div><div class="sec-title">Market & Macro</div><div class="sec-sub">BTC live price · Indonesia inflation history · Real return context</div></div>
+    <button class="btn btn-sec btn-sm" onclick="toast('Demo mode — live BTC price available on deployed server','warn')">↻ Refresh BTC</button>
+  </div>
+  <div class="g4 mb4">
+    <div class="stat" style="--ac:var(--gold)">
+      <div class="stat-lbl">BTC Price (IDR)</div>
+      <div class="stat-val" style="font-size:17px">Rp 1,62M</div>
+      <div class="stat-sub up">+2.40% 24h</div>
+      <div class="stat-ico">₿</div>
+    </div>
+    <div class="stat" style="--ac:var(--blue)">
+      <div class="stat-lbl">BTC Price (USD)</div>
+      <div class="stat-val" style="font-size:17px">$101,250</div>
+      <div class="stat-sub" style="color:var(--muted)">Updated: 6 May 2025</div>
+      <div class="stat-ico">💵</div>
+    </div>
+    <div class="stat" style="--ac:var(--red)">
+      <div class="stat-lbl">Indonesia Inflation 2024</div>
+      <div class="stat-val">2.84%</div>
+      <div class="stat-sub" style="color:var(--muted)">BPS · 10yr avg: 3.34%</div>
+      <div class="stat-ico">📉</div>
+    </div>
+    <div class="stat" style="--ac:var(--green)">
+      <div class="stat-lbl">Your Real Return (est)</div>
+      <div class="stat-val" style="color:var(--green)">25.80%</div>
+      <div class="stat-sub up">28.64% − 2.84% inflation</div>
+      <div class="stat-ico">⚡</div>
+    </div>
+  </div>
+  <div class="g2 mb4">
+    <div class="card">
+      <div class="card-hdr"><div class="card-title">Indonesia Inflation — 10 Year History (BPS)</div></div>
+      <div class="cw" style="height:220px"><canvas id="ch-inflation"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-hdr"><div class="card-title">Annual Inflation Data</div></div>
+      <div id="inf-table-demo"></div>
+    </div>
+  </div>
+</section>
+
+</main>
+</div>
+
+<!-- MODALS -->
+<div class="overlay" id="ov-inv" onclick="if(event.target===this)this.classList.remove('on')">
+  <div class="modal">
+    <div class="m-hdr"><h3 id="inv-m-title">Add Investment</h3><button class="btn btn-sec btn-sm btn-ico" onclick="document.getElementById('ov-inv').classList.remove('on')">✕</button></div>
+    <div class="m-body">
+      <div class="fg">
+        <label>Investment Type</label>
+        <div class="type-grid">
+          <div class="type-opt" onclick="selT('saham',this)"><span class="ti">📈</span>Saham (Ajaib)</div>
+          <div class="type-opt" onclick="selT('crypto',this)"><span class="ti">₿</span>Crypto (Bybit)</div>
+          <div class="type-opt" onclick="selT('deposito',this)"><span class="ti">🏦</span>Deposito</div>
+        </div>
+      </div>
+      <div class="fr">
+        <div class="fg"><label>Name / Ticker</label><input class="fc" placeholder="e.g. BBCA, BTC, BCA 6M"></div>
+        <div class="fg"><label>Platform / Bank</label><input class="fc" placeholder="e.g. Ajaib, Bybit, BCA"></div>
+      </div>
+      <div class="fr">
+        <div class="fg"><label>Principal / Modal (IDR)</label><input type="number" class="fc mono" placeholder="0"></div>
+        <div class="fg"><label>Current Value (IDR)</label><input type="number" class="fc mono" placeholder="0"></div>
+      </div>
+      <div class="fr">
+        <div class="fg"><label>Expected Annual Return (%)</label><input type="number" class="fc mono" placeholder="15" id="inv-ret-demo"><div class="fc-hint" id="inv-ret-hint-demo">Select type to see suggested rate</div></div>
+        <div class="fg"><label>Start Date</label><input type="date" class="fc"></div>
+      </div>
+      <div class="fg"><label>Notes</label><input class="fc" placeholder="Strategy, target price, memo..."></div>
+    </div>
+    <div class="m-foot">
+      <button class="btn btn-sec" onclick="document.getElementById('ov-inv').classList.remove('on')">Cancel</button>
+      <button class="btn btn-pri" onclick="toast('Demo mode — save works on deployed server','warn');document.getElementById('ov-inv').classList.remove('on')">Save</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="ov-upd" onclick="if(event.target===this)this.classList.remove('on')">
+  <div class="modal" style="max-width:380px">
+    <div class="m-hdr"><h3>Update Value</h3><button class="btn btn-sec btn-sm btn-ico" onclick="document.getElementById('ov-upd').classList.remove('on')">✕</button></div>
+    <div class="m-body">
+      <div style="background:var(--inp);border:1px solid var(--b);border-radius:var(--rs);padding:10px 12px;margin-bottom:14px;font-size:12.5px;color:var(--muted)" id="upd-info-demo"></div>
+      <div class="fr">
+        <div class="fg"><label>New Value (IDR)</label><input type="number" class="fc mono" placeholder="0"></div>
+        <div class="fg"><label>Date</label><input type="date" class="fc"></div>
+      </div>
+      <div class="fg"><label>Notes (optional)</label><input class="fc" placeholder="Monthly update..."></div>
+      <div style="font-size:10.5px;color:var(--muted);margin-top:6px">Each update creates a snapshot, building your portfolio history chart.</div>
+    </div>
+    <div class="m-foot">
+      <button class="btn btn-sec" onclick="document.getElementById('ov-upd').classList.remove('on')">Cancel</button>
+      <button class="btn btn-pri" onclick="toast('Demo mode — updates work on deployed server','warn');document.getElementById('ov-upd').classList.remove('on')">Update</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="ov-goal" onclick="if(event.target===this)this.classList.remove('on')">
+  <div class="modal" style="max-width:440px">
+    <div class="m-hdr"><h3>Add Goal</h3><button class="btn btn-sec btn-sm btn-ico" onclick="document.getElementById('ov-goal').classList.remove('on')">✕</button></div>
+    <div class="m-body">
+      <div class="fr">
+        <div class="fg"><label>Goal Name</label><input class="fc" placeholder="e.g. Emergency Fund, Dream Car"></div>
+        <div class="fg"><label>Icon</label><input class="fc" placeholder="🎯" style="font-size:18px"></div>
+      </div>
+      <div class="fr">
+        <div class="fg"><label>Target Amount (IDR)</label><input type="number" class="fc mono" placeholder="0"></div>
+        <div class="fg"><label>Target Date</label><input type="date" class="fc"></div>
+      </div>
+      <div class="fr">
+        <div class="fg"><label>Monthly PMT (IDR)</label><input type="number" class="fc mono" placeholder="0"><div class="fc-hint">Your dedicated monthly contribution</div></div>
+        <div class="fg"><label>Color</label><input type="color" class="fc" value="#10d4a8" style="height:38px;padding:4px"></div>
+      </div>
+      <div class="fg"><label>Notes</label><textarea class="fc" placeholder="What is this for?"></textarea></div>
+    </div>
+    <div class="m-foot">
+      <button class="btn btn-sec" onclick="document.getElementById('ov-goal').classList.remove('on')">Cancel</button>
+      <button class="btn btn-pri" onclick="toast('Demo mode — goals work on deployed server','warn');document.getElementById('ov-goal').classList.remove('on')">Save Goal</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// Demo data
+const INFLDATA = [
+  {year:2024,rate:2.84},{year:2023,rate:3.69},{year:2022,rate:5.51},
+  {year:2021,rate:1.87},{year:2020,rate:1.68},{year:2019,rate:2.72},
+  {year:2018,rate:3.13},{year:2017,rate:3.61},{year:2016,rate:3.02},{year:2015,rate:3.35}
+];
+
+const PV=487500000, RATE=28.64, INVS=[
+  {name:'BBCA',type:'saham',cur:210000000,prin:150000000,rate:20,inst:'Ajaib',color:'#3b82f6'},
+  {name:'BTC', type:'crypto',cur:194500000,prin:150000000,rate:60,inst:'Bybit',color:'#f97316'},
+  {name:'Deposito BCA',type:'deposito',cur:83000000,prin:80000000,rate:6.5,inst:'BCA',color:'#10d4a8'}
+];
+
+const fmt=(n,c=false)=>{if(!n&&n!==0)return'Rp 0';const a=Math.abs(n),s=n<0?'−':'';if(c&&a>=1e12)return s+'Rp '+(a/1e12).toFixed(2)+'T';if(c&&a>=1e9)return s+'Rp '+(a/1e9).toFixed(2)+'M';if(c&&a>=1e6)return s+'Rp '+(a/1e6).toFixed(1)+'Jt';return s+'Rp '+Math.round(a).toLocaleString('id-ID');};
+const pct=(n)=>(n>=0?'+':'')+n.toFixed(2)+'%';
+const proj=(pv,r,n,p=0)=>{const rate=r/100/12;if(!rate)return pv+p*n;const g=Math.pow(1+rate,n);return pv*g+p*((g-1)/rate);};
+const mini=(pv,fv)=>{const g=fv-pv,gp=pv>0?(g/pv)*100:0;return`<div class="proj-mini"><div class="pv-big">${fmt(fv,true)}</div><div class="pg ${g>=0?'up':'down'}">${g>=0?'▲':'▼'} ${fmt(Math.abs(g),true)} (${pct(gp)})</div><div class="pf-from">from ${fmt(pv,true)}</div></div>`;};
+
+const CH={};
+const dc=id=>{if(CH[id]){CH[id].destroy();delete CH[id];}};
+const baseO=(extra={})=>({responsive:true,maintainAspectRatio:false,animation:{duration:400},plugins:{legend:{labels:{color:'#94a3b8',font:{family:'JetBrains Mono',size:10},padding:10},...extra.legend},tooltip:{backgroundColor:'#0d1322',borderColor:'#2a3a5c',borderWidth:1,titleColor:'#e2e8f0',bodyColor:'#94a3b8',padding:11}},scales:{x:{grid:{color:'rgba(26,37,64,.55)'},ticks:{color:'#475569',font:{family:'JetBrains Mono',size:10}}},y:{grid:{color:'rgba(26,37,64,.55)'},ticks:{color:'#475569',font:{family:'JetBrains Mono',size:10},callback:v=>fmt(v,true)}}},...extra});
+const ds=(label,data,color,dashed=false,fill=false)=>({label,data,borderColor:color,backgroundColor:fill?color.replace('rgb','rgba').replace(')',',0.08)'):'transparent',tension:.4,fill,borderWidth:dashed?1.5:2,borderDash:dashed?[5,4]:undefined,pointRadius:data.length<=10?4:2,pointBackgroundColor:color});
+
+function nav(id,btn){
+  document.querySelectorAll('.sec').forEach(s=>s.classList.remove('on'));
+  document.querySelectorAll('.nb').forEach(b=>b.classList.remove('on'));
+  document.getElementById('s-'+id).classList.add('on');
+  btn.classList.add('on');
+  if(id==='forecast')renderForecastDash();
+  if(id==='market')renderMarketCharts();
+}
+
+function switchFP(p,el){
+  document.querySelectorAll('.ftab').forEach(t=>t.classList.remove('on'));
+  el.classList.add('on');
+  ['short','mid','long','breakdown'].forEach(x=>{document.getElementById('fp-'+x).style.display=x===p?'block':'none';});
+  renderForecastDash();
+}
+
+function renderForecastDash(){
+  const pmt=parseFloat(document.getElementById('demo-pmt')?.value)||5000000;
+  const active=document.querySelector('.ftab.on')?.textContent.toLowerCase()||'short';
+
+  if(active.includes('short')){
+    const pts=[0,0.25,0.5,0.75,1,1.5,2,3].map(m=>({label:m===0?'Now':m<1?`${Math.round(m*4)}W`:`${m}M`,months:m,b:proj(PV,RATE,m,pmt),o:proj(PV,RATE*1.3,m,pmt),c:proj(PV,RATE*.7,m,pmt)}));
+    document.getElementById('p1w').innerHTML=mini(PV,pts[1].b);
+    document.getElementById('p1m').innerHTML=mini(PV,pts[4].b);
+    document.getElementById('p3ms').innerHTML=mini(PV,pts[7].b);
+    dc('short');
+    CH['short']=new Chart(document.getElementById('ch-short'),{type:'line',data:{labels:pts.map(p=>p.label),datasets:[ds('Optimistic (+30%)',pts.map(p=>p.o),'#e6b84a',true),{...ds('Base Case',pts.map(p=>p.b),'#10d4a8'),backgroundColor:'rgba(16,212,168,0.08)',fill:true},ds('Conservative (−30%)',pts.map(p=>p.c),'#64748b',true)]},options:baseO()});
+  }
+  if(active.includes('mid')){
+    const pts=Array.from({length:13},(_,i)=>i).map(m=>({label:m===0?'Now':`M${m}`,b:proj(PV,RATE,m,pmt),o:proj(PV,RATE*1.3,m,pmt),c:proj(PV,RATE*.7,m,pmt)}));
+    document.getElementById('p3m').innerHTML=mini(PV,pts[3].b);
+    document.getElementById('p6m').innerHTML=mini(PV,pts[6].b);
+    document.getElementById('p12m').innerHTML=mini(PV,pts[12].b);
+    dc('mid');
+    CH['mid']=new Chart(document.getElementById('ch-mid'),{type:'line',data:{labels:pts.map(p=>p.label),datasets:[ds('Optimistic',pts.map(p=>p.o),'#e6b84a',true),{...ds('Base',pts.map(p=>p.b),'#10d4a8'),backgroundColor:'rgba(16,212,168,.09)',fill:true},ds('Conservative',pts.map(p=>p.c),'#64748b',true)]},options:baseO()});
+  }
+  if(active.includes('long')){
+    const years=[0,1,2,3,5,7,10,12,15,20];
+    const pts=years.map(y=>({label:y===0?'Now':`Y${y}`,b:proj(PV,RATE,y*12,pmt),o:proj(PV,RATE*1.3,y*12,pmt),c:proj(PV,RATE*.7,y*12,pmt),pm:proj(0,RATE,y*12,pmt)}));
+    dc('long');
+    CH['long']=new Chart(document.getElementById('ch-long'),{type:'line',data:{labels:pts.map(p=>p.label),datasets:[{...ds('Optimistic (+30%)',pts.map(p=>p.o),'#e6b84a'),backgroundColor:'rgba(230,184,74,.07)',fill:true},{...ds('Base Case',pts.map(p=>p.b),'#10d4a8'),backgroundColor:'rgba(16,212,168,.09)',fill:true,borderWidth:2.5},{...ds('Conservative (−30%)',pts.map(p=>p.c),'#475569',true),backgroundColor:'rgba(71,85,105,.05)',fill:true},{...ds('PMT Only',pts.map(p=>p.pm),'#3b82f6',true),borderWidth:1.5}]},options:baseO()});
+    const milestones=[{l:'3 Months',m:3},{l:'6 Months',m:6},{l:'1 Year',m:12},{l:'2 Years',m:24},{l:'5 Years',m:60},{l:'10 Years',m:120},{l:'15 Years',m:180},{l:'20 Years',m:240}];
+    document.getElementById('tbl-long').innerHTML=milestones.map(ms=>{const b=proj(PV,RATE,ms.m,pmt),o=proj(PV,RATE*1.3,ms.m,pmt),c=proj(PV,RATE*.7,ms.m,pmt),pm=proj(0,RATE,ms.m,pmt);return`<tr><td style="color:var(--tx);font-weight:600">${ms.l}</td><td style="color:var(--muted)">${fmt(c,true)}</td><td style="color:var(--teal);font-weight:600">${fmt(b,true)}</td><td style="color:var(--gold)">${fmt(o,true)}</td><td style="color:var(--blue)">${fmt(pm,true)}</td><td class="${b>PV?'up':'down'}">${pct(PV>0?((b-PV)/PV)*100:0)}</td></tr>`;}).join('');
+  }
+  if(active.includes('per')||active.includes('asset')||active.includes('breakdown')){
+    dc('inv-proj');
+    CH['inv-proj']=new Chart(document.getElementById('ch-inv-proj'),{type:'bar',data:{labels:INVS.map(i=>i.name),datasets:[{label:'Current',data:INVS.map(i=>i.cur),backgroundColor:INVS.map(i=>i.color+'55'),borderRadius:4},{label:'12M',data:INVS.map(i=>proj(i.cur,i.rate,12,0)),backgroundColor:INVS.map(i=>i.color+'cc'),borderRadius:4},{label:'5Y',data:INVS.map(i=>proj(i.cur,i.rate,60,0)),backgroundColor:INVS.map(i=>i.color+'88'),borderRadius:4}]},options:baseO()});
+  }
+}
+
+function renderMarketCharts(){
+  dc('inflation');
+  const ctx=document.getElementById('ch-inflation');if(!ctx)return;
+  CH['inflation']=new Chart(ctx,{type:'bar',data:{labels:INFLDATA.map(d=>d.year),datasets:[{label:'Inflation Rate (%)',data:INFLDATA.map(d=>d.rate),backgroundColor:INFLDATA.map(d=>d.rate>4?'rgba(239,68,68,.7)':d.rate>3?'rgba(230,184,74,.7)':'rgba(34,197,94,.7)'),borderRadius:5}]},options:{...baseO({legend:{display:false}}),plugins:{...baseO().plugins,legend:{display:false},tooltip:{...baseO().plugins.tooltip,callbacks:{label:c=>` ${c.raw.toFixed(2)}%`}}},scales:{x:{...baseO().scales.x},y:{...baseO().scales.y,ticks:{...baseO().scales.y.ticks,callback:v=>v+'%'}}}}});
+
+  document.getElementById('inf-table-demo').innerHTML=INFLDATA.map(d=>{
+    const wRet=RATE,real=wRet-d.rate,bw=Math.min(100,(d.rate/6)*100),bc=d.rate>4?'var(--red)':d.rate>3?'var(--gold)':'var(--green)';
+    return`<div class="inf-row"><div class="inf-year">${d.year}</div><div class="inf-bar-wrap"><div class="inf-bar-fill" style="width:${bw}%;background:${bc}"></div></div><div class="inf-rate" style="color:${bc}">${d.rate.toFixed(2)}%</div><div style="font-family:var(--mono);font-size:11px;width:60px;text-align:right;color:${real>=0?'var(--green)':'var(--red)'}">${real>=0?'+':''}${real.toFixed(1)}%</div></div>`;
+  }).join('');
+}
+
+function openAdd(){document.getElementById('inv-m-title').textContent='Add Investment';document.querySelectorAll('.type-opt').forEach(o=>o.className='type-opt');document.getElementById('ov-inv').classList.add('on');}
+function openEdit(id){document.getElementById('inv-m-title').textContent='Edit Investment';document.getElementById('ov-inv').classList.add('on');}
+function openUpd(id){const m={1:'BBCA · Current: Rp 210Jt',2:'BTC · Current: Rp 194,5Jt',3:'Deposito BCA · Current: Rp 83Jt'};document.getElementById('upd-info-demo').innerHTML=`<b>${m[id]||'Investment'}</b>`;document.getElementById('ov-upd').classList.add('on');}
+function openAddGoal(){document.getElementById('ov-goal').classList.add('on');}
+
+function selT(t,el){
+  document.querySelectorAll('.type-opt').forEach(o=>o.className='type-opt');
+  el.classList.add('sel-'+t);
+  const hints={saham:'IDX historical avg ~15-25%/yr. Adjust per your picks.',crypto:'High volatility. Qty in BTC = live IDR price applied.',deposito:'Bank rates ~4.5-7.5%/yr. Safe & guaranteed.'};
+  const rates={saham:20,crypto:60,deposito:6.5};
+  document.getElementById('inv-ret-demo').value=rates[t]||15;
+  document.getElementById('inv-ret-hint-demo').textContent=hints[t]||'';
+}
+
+function toast(msg,t='ok'){
+  const el=document.createElement('div');el.className=`ti ti-${t}`;
+  el.innerHTML=(t==='ok'?'✓':t==='err'?'⚠':'ℹ')+' '+msg;
+  document.getElementById('toast').appendChild(el);setTimeout(()=>el.remove(),3500);
+}
+
+// Init
+document.getElementById('dash-dt').textContent=new Date().toLocaleDateString('id-ID',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+
+// History chart
+CH['hist']=new Chart(document.getElementById('ch-hist'),{type:'line',data:{labels:['Nov','Dec','Jan','Feb','Mar','Apr','May'],datasets:[{label:'Portfolio',data:[380e6,395e6,415e6,440e6,462e6,476e6,487.5e6],borderColor:'#10d4a8',backgroundColor:'rgba(16,212,168,.07)',tension:.4,fill:true,pointRadius:4,pointBackgroundColor:'#10d4a8',borderWidth:2}]},options:{...baseO(),plugins:{...baseO().plugins,legend:{display:false}}}});
+
+// Alloc chart
+CH['alloc']=new Chart(document.getElementById('ch-alloc'),{type:'doughnut',data:{labels:['Saham','Crypto','Deposito'],datasets:[{data:[210e6,194.5e6,83e6],backgroundColor:['#3b82f6','#f97316','#10d4a8'],borderColor:'#07090f',borderWidth:3,hoverOffset:10}]},options:{responsive:true,maintainAspectRatio:false,cutout:'68%',animation:{duration:400},plugins:{legend:{position:'bottom',labels:{color:'#94a3b8',font:{family:'JetBrains Mono',size:10},padding:10}},tooltip:{backgroundColor:'#0d1322',borderColor:'#2a3a5c',borderWidth:1,callbacks:{label:c=>' '+fmt(c.raw,true)}}}}});
+
+renderForecastDash();
+</script>
+</body>
+</html>

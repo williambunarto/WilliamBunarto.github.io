@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WealthMatrix — Login</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Sora',sans-serif;background:#07090f;color:#e2e8f0;min-height:100vh;display:grid;place-items:center;overflow:hidden}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 70% 60% at 50% 40%,rgba(16,212,168,.08) 0%,transparent 70%);pointer-events:none}
+.grid-bg{position:fixed;inset:0;background-image:linear-gradient(rgba(16,212,168,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(16,212,168,.04) 1px,transparent 1px);background-size:60px 60px;pointer-events:none}
+.box{width:100%;max-width:400px;padding:20px;position:relative;z-index:1}
+.logo{text-align:center;margin-bottom:36px}
+.logo-icon{width:56px;height:56px;background:linear-gradient(135deg,#10d4a8,#059473);border-radius:16px;display:grid;place-items:center;font-size:26px;margin:0 auto 12px;box-shadow:0 0 40px rgba(16,212,168,.3)}
+.logo-name{font-size:24px;font-weight:700;letter-spacing:-.5px}
+.logo-name b{color:#10d4a8}
+.logo-sub{font-size:12px;color:#64748b;margin-top:4px;font-family:'JetBrains Mono',monospace;letter-spacing:.5px}
+.card{background:#0d1322;border:1px solid #1a2540;border-radius:16px;padding:32px}
+.card-title{font-size:14px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.6px;margin-bottom:24px;text-align:center}
+.fg{margin-bottom:16px}
+.fg label{display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;margin-bottom:6px}
+.fc{width:100%;padding:11px 14px;background:#090d19;border:1px solid #1a2540;border-radius:8px;color:#e2e8f0;font-family:'Sora',sans-serif;font-size:14px;outline:none;transition:.2s}
+.fc:focus{border-color:#10d4a8;box-shadow:0 0 0 3px rgba(16,212,168,.1)}
+.fc-mono{font-family:'JetBrains Mono',monospace;letter-spacing:.5px}
+.btn{width:100%;padding:12px;background:#10d4a8;border:none;border-radius:8px;color:#000;font-family:'Sora',sans-serif;font-size:14px;font-weight:700;cursor:pointer;transition:.2s;margin-top:8px}
+.btn:hover{background:#0ec49a;box-shadow:0 0 24px rgba(16,212,168,.35)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.err{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.25);color:#ef4444;font-size:12.5px;padding:10px 14px;border-radius:8px;margin-top:12px;display:none}
+.hint{font-size:11.5px;color:#475569;text-align:center;margin-top:16px;font-family:'JetBrains Mono',monospace}
+.spinner{display:inline-block;width:16px;height:16px;border:2px solid rgba(0,0,0,.3);border-top-color:#000;border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:6px}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<div class="grid-bg"></div>
+<div class="box">
+  <div class="logo">
+    <div class="logo-icon">💎</div>
+    <div class="logo-name">Wealth<b>Matrix</b></div>
+    <div class="logo-sub">Investment Intelligence System</div>
+  </div>
+  <div class="card">
+    <div class="card-title">Secure Access</div>
+    <div class="fg">
+      <label>User ID</label>
+      <input class="fc fc-mono" id="un" type="text" placeholder="williambunarto" autocomplete="username" onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <div class="fg">
+      <label>Password</label>
+      <input class="fc" id="pw" type="password" placeholder="••••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <button class="btn" id="loginBtn" onclick="doLogin()">Sign In</button>
+    <div class="err" id="err"></div>
+    <div class="hint">v2.0 · Personal · Solo Access</div>
+  </div>
+</div>
+<script>
+async function doLogin() {
+  const un  = document.getElementById('un').value.trim();
+  const pw  = document.getElementById('pw').value;
+  const btn = document.getElementById('loginBtn');
+  const err = document.getElementById('err');
+  if (!un || !pw) { showErr('Enter your credentials'); return; }
+  btn.disabled  = true;
+  btn.innerHTML = '<span class="spinner"></span>Signing in...';
+  err.style.display = 'none';
+  try {
+    const res  = await fetch('/api/auth/login', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ username:un, password:pw }) });
+    const data = await res.json();
+    if (data.ok) { window.location.href = '/wealth/app'; }
+    else showErr(data.error || 'Invalid credentials');
+  } catch { showErr('Server unreachable. Try again.'); }
+  btn.disabled  = false;
+  btn.innerHTML = 'Sign In';
+}
+function showErr(msg) {
+  const el = document.getElementById('err');
+  el.textContent = '⚠ ' + msg;
+  el.style.display = 'block';
+}
+document.getElementById('un').focus();
+</script>
+</body>
+</html>
