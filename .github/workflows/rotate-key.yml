@@ -10,7 +10,7 @@ jobs:
       - name: Fetch the leaked key from history (used once, to rotate it)
         uses: actions/checkout@v4
         with:
-          ref: 10f9297
+          ref: 10f92975d1d272ad4a74bda925d0c6a50e46fbe6
           path: old
       - name: Rotate
         run: |
