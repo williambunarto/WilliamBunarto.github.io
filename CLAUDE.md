@@ -2,22 +2,11 @@
 
 ## Oracle Cloud Server
 
-- **IP:** `140.245.103.249`
 - **DNS:** `williambunarto.duckdns.org`
 - **User:** `ubuntu`
 - **Region:** ap-singapore-1
-- **SSH key (private):** `ssh-key-2026-03-30 (1).key` (in repo root)
-- **SSH key (public):** `ssh-key-2026-03-30.key.pub`
-
-### SSH command (from any device with repo cloned)
-```bash
-ssh -i "ssh-key-2026-03-30 (1).key" -o StrictHostKeyChecking=no ubuntu@140.245.103.249
-```
-
-### SSH command (from this Claude Code environment)
-```bash
-ssh -i "/home/user/WilliamBunarto.github.io/ssh-key-2026-03-30 (1).key" -o StrictHostKeyChecking=no ubuntu@140.245.103.249
-```
+- **SSH access:** private key is NOT stored in this repo. CI uses the GitHub Actions secret `DEPLOY_SSH_KEY`. Local access uses the key kept on William's own devices.
+- **Never commit** keys, tokens or API credentials to this public repo. Use GitHub Actions secrets.
 
 ## Server Layout
 

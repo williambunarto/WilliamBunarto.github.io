@@ -15,7 +15,7 @@ jobs:
 
       - name: Setup SSH key
         run: |
-          cp "ssh-key-2026-03-30 (1).key" /tmp/deploy_key
+          printf '%s\n' "${{ secrets.DEPLOY_SSH_KEY }}" > /tmp/deploy_key
           chmod 600 /tmp/deploy_key
 
       - name: Read codebase
