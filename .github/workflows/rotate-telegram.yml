@@ -33,3 +33,4 @@ jobs:
           pgrep -f "python3.*bot.py" >/dev/null && echo "bot running" || { echo "bot NOT running"; tail -15 /home/ubuntu/nohup.out; exit 1; }
           sudo systemctl restart wbtrade 2>/dev/null && echo "wbtrade restarted" || true
           REMOTE
+# rerun after DEPLOY_SSH_KEY added
