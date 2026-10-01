@@ -1,0 +1,27 @@
+name: Diag 2 (one-off)
+on:
+  push:
+    paths: ['.github/workflows/diag2.yml']
+jobs:
+  diag:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check
+        env:
+          K: ${{ secrets.DEPLOY_SSH_KEY }}
+        run: |
+          printf '%s\n' "$K" > /tmp/dk; chmod 600 /tmp/dk
+          O="-o StrictHostKeyChecking=no -o ConnectTimeout=15 -o BatchMode=yes -o LogLevel=ERROR -i /tmp/dk"
+          cat > /tmp/d.sh <<'REMOTE'
+          red() { sed -E 's/[0-9]{8,}:[A-Za-z0-9_-]{30,}/<TOKEN>/g; s/(KEY|SECRET|TOKEN|PASSWORD)=.*/\1=<redacted>/Ig'; }
+          echo "--bot.py token refs:"; grep -n -i -E "token|getenv|environ|dotenv" /home/ubuntu/bot.py | head -8 | cut -c1-120 | red
+          echo "--env files:"; ls -a /home/ubuntu | grep -i -E "^\.env|config" | tr '\n' ' '
+          echo "--systemd:"; grep -l -i "bot.py" /etc/systemd/system/*.service 2>/dev/null | tr '\n' ' '
+          echo "--tail:"; tail -6 /home/ubuntu/nohup.out | cut -c1-140 | red
+          echo "--procs:"; ps -eo pid,etime,cmd | grep -E "[b]ot[.]py" | cut -c1-100
+          REMOTE
+          sed -i 's/^          //' /tmp/d.sh
+          scp $O /tmp/d.sh ubuntu@140.245.103.249:/tmp/d.sh
+          OUT=$(timeout 60 ssh $O ubuntu@140.245.103.249 'bash /tmp/d.sh < /dev/null; rm -f /tmp/d.sh' 2>&1 | tr '\n' '|')
+          echo "::notice::D2 $OUT"
