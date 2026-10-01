@@ -1836,7 +1836,8 @@ document.getElementById('cf')?.addEventListener('submit', async function(e){
   if(!FORM_ENDPOINT){ mailto(); return; }
   btn.disabled = true; show('Sending...');
   try{
-    const r = await fetch(FORM_ENDPOINT, { method: 'POST', headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' }, body: JSON.stringify({ name, company: co, email, type, message: msg, _subject: '[' + type + '] from ' + name, _template: 'table', _captcha: 'false' }) });
+    const ac = new AbortController(); setTimeout(() => ac.abort(), 8000);
+    const r = await fetch(FORM_ENDPOINT, { signal: ac.signal, method: 'POST', headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' }, body: JSON.stringify({ name, company: co, email, type, message: msg, _subject: '[' + type + '] from ' + name, _template: 'table', _captcha: 'false' }) });
     const data = await r.json().catch(() => ({}));
     if(!r.ok || String(data.success) === 'false') throw new Error('not delivered');
     f.reset(); show('Thanks. Your message was sent and I reply within 24 hours.');
