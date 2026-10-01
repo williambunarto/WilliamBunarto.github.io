@@ -877,6 +877,9 @@ nav.open .nav-toggle span:nth-child(3){transform:translateY(-6px) rotate(-45deg)
 .nav-logo{font-size:11px}
 .pfloat{display:none}
 .contact-cv{margin:-22px 0 34px}
+html:not([data-theme="light"]) :is(.btn-primary,.nav-cta,.cf-submit,.skip-link){background:#2b66d4}
+html[data-theme="light"]{--amber:#8a5000}
+.test-footer a,.about-text a{text-decoration:underline;text-underline-offset:3px}
 @media (prefers-reduced-motion: reduce){
   *,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important;transition-delay:0s!important;scroll-behavior:auto!important}
   .reveal{opacity:1!important;transform:none!important}
@@ -891,7 +894,7 @@ nav.open .nav-toggle span:nth-child(3){transform:translateY(-6px) rotate(-45deg)
 <!-- SCROLL PROGRESS -->
 <div id="scroll-bar"></div>
 <!-- SCROLL SECTION NUM -->
-<div id="scroll-section-num">00</div>
+<div id="scroll-section-num" aria-hidden="true">00</div>
 <!-- AURORA -->
 <div class="aurora">
   <div class="aurora-blob a1"></div>
@@ -1814,7 +1817,7 @@ document.querySelectorAll('a[href^="#"]').forEach(a=>{
 });
 
 // CONTACT FORM
-const FORM_ENDPOINT = ''; // Paste a Formspree endpoint here (https://formspree.io/f/xxxxxxxx). Empty = fall back to the visitor's email app.
+const FORM_ENDPOINT = 'https://formsubmit.co/ajax/william.bunarto.job@gmail.com'; // Email relay (FormSubmit). Swap for a Formspree URL if preferred. Empty = fall back to the visitor's email app.
 document.getElementById('cf')?.addEventListener('submit', async function(e){
   e.preventDefault();
   const f = this, g = id => document.getElementById(id).value.trim();
@@ -1833,8 +1836,9 @@ document.getElementById('cf')?.addEventListener('submit', async function(e){
   if(!FORM_ENDPOINT){ mailto(); return; }
   btn.disabled = true; show('Sending...');
   try{
-    const r = await fetch(FORM_ENDPOINT, { method: 'POST', headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' }, body: JSON.stringify({ name, company: co, email, type, message: msg, _subject: '[' + type + '] from ' + name }) });
-    if(!r.ok) throw new Error('bad status');
+    const r = await fetch(FORM_ENDPOINT, { method: 'POST', headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' }, body: JSON.stringify({ name, company: co, email, type, message: msg, _subject: '[' + type + '] from ' + name, _template: 'table', _captcha: 'false' }) });
+    const data = await r.json().catch(() => ({}));
+    if(!r.ok || String(data.success) === 'false') throw new Error('not delivered');
     f.reset(); show('Thanks. Your message was sent and I reply within 24 hours.');
   }catch(err){ show('Could not send from here. Opening your email app instead.'); mailto(); }
   btn.disabled = false;
